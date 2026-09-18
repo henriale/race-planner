@@ -212,15 +212,20 @@ footer{margin-top:30px;color:var(--muted);font-size:12.5px;line-height:1.7}
 <body>
 <div class="wrap">
 
+  <div id="home-view" hidden></div>
+
+  <div id="race-view" hidden>
+
   <header class="masthead">
     <div>
-      <h1>Fodaxman Solo Point Five <span class="yr">2025</span></h1>
-      <p class="where">Serra do Rio do Rastro, SC · 27 Sep 2025 · <b>2 km</b> swim, <b>87 km</b> bike, <b>22 km</b> run</p>
+      <h1 id="race-title"></h1>
+      <p class="where" id="race-where"></p>
     </div>
     <div class="tools">
+      <a class="btn ghost" id="btn-back" href="#/">← Races</a>
+      <a class="btn" id="watch-live" href="#/">Watch live</a>
       <button class="btn primary" id="btn-import">Paste results</button>
       <button class="btn" id="btn-copy">Copy data</button>
-      <button class="btn ghost" id="btn-reset">Reset to race</button>
       <span class="sync" id="sync" role="status" aria-live="polite">Not saved yet</span>
     </div>
   </header>
@@ -265,6 +270,8 @@ footer{margin-top:30px;color:var(--muted);font-size:12.5px;line-height:1.7}
     Bike checkpoint distances are estimates split evenly across the leg — type a real distance and the italics clear.<br>
     Next up for the timeline: elevation per checkpoint, cut-off times, and a live "where is he now" marker for the staff view.
   </footer>
+
+  </div><!-- /#race-view -->
 </div>
 
 <div class="toast" id="toast" hidden><span id="toast-msg"></span><button id="toast-undo">Undo</button></div>
@@ -353,7 +360,7 @@ let storageOK = true;
 
 function storageGet(k){ try{ return localStorage.getItem(k); }catch(e){ storageOK = false; return null; } }
 
-/** Accepts a stored blob or a pasted backup; returns a clean state or null. */
+/** Accepts a stored blob or a pasted backup; returns a clean race or null. */
 function normalize(obj){
   if(!obj || typeof obj !== "object") return null;
   if(!Array.isArray(obj.sections) || !obj.sections.length) return null;
@@ -402,11 +409,8 @@ function load(){
 }
 
 function save(){
-  state.savedAt = Date.now();
-  try{
-    localStorage.setItem(KEY, JSON.stringify(state));
-    storageOK = true;
-  }catch(e){ storageOK = false; }
+  if(!active) return;
+  saveRace(active);            // stamps savedAt, writes blob + upserts index (keyed on active.id)
   showSaved();
 }
 
@@ -420,7 +424,7 @@ function showSaved(){
     return;
   }
   el.className = "sync ok";
-  el.textContent = state.savedAt ? "Saved " + fmtClock(clockOf(state.savedAt)).slice(0,5) : "Saved";
+  el.textContent = (active && active.savedAt) ? "Saved " + fmtClock(clockOf(active.savedAt)).slice(0,5) : "Saved";
   el.title = "Stored in this browser. Clearing site data removes it — “Copy backup” gives you a copy.";
 }
 function clockOf(ms){ const d = new Date(ms); return d.getHours()*3600 + d.getMinutes()*60 + d.getSeconds(); }
@@ -511,17 +515,24 @@ function migrateLegacy(){
   storageSet(MIGRATED_KEY, "1");
 }
 
-let state = load() || RACE();
+/* The app mounts one race at a time. `active` is the mounted race context;
+   `mode` is the current view; `readOnly` suppresses editing (follow mode).
+   undoStack + selected reset on every mount, so nothing leaks across races. */
+let active = null;
+let mode = "home";
+let readOnly = false;
 let undoStack = [];
 let selected = null;
 function snapshot(){
-  undoStack.push(JSON.stringify(state));
+  if(!active) return;
+  undoStack.push(JSON.stringify(active));
   if(undoStack.length > 60) undoStack.shift();
 }
 function undo(){
+  if(mode !== "edit") return;
   const prev = undoStack.pop();
   if(!prev) return;
-  state = JSON.parse(prev); save(); render();
+  active = JSON.parse(prev); save(); render();
 }
 
 /* ============================================================
@@ -576,8 +587,8 @@ function fmtDistLabel(sport, m){
 /* ============================================================
    3. Derived values
    ============================================================ */
-function cumulative(i){ let t=0; for(let k=0;k<=i;k++) t += state.sections[k].dur; return t; }
-function total(){ return state.sections.reduce((a,s)=>a+s.dur,0); }
+function cumulative(i){ let t=0; for(let k=0;k<=i;k++) t += active.sections[k].dur; return t; }
+function total(){ return active.sections.reduce((a,s)=>a+s.dur,0); }
 
 function paceOf(sport, meters, seconds){
   if(!meters || !seconds) return null;
@@ -588,7 +599,7 @@ function paceOf(sport, meters, seconds){
 }
 function legTotals(){
   const out = {};
-  for(const s of state.sections){
+  for(const s of active.sections){
     const t = out[s.sport] || (out[s.sport] = {dur:0, dist:0, est:false});
     t.dur += s.dur; t.dist += (s.dist||0);
     if(s.est) t.est = true;
@@ -597,7 +608,7 @@ function legTotals(){
 }
 function groups(){
   const g = [];
-  state.sections.forEach((s,i) => {
+  active.sections.forEach((s,i) => {
     const last = g[g.length-1];
     if(last && last.sport === s.sport) last.items.push({s,i});
     else g.push({sport:s.sport, items:[{s,i}]});
@@ -610,12 +621,12 @@ function groups(){
    ============================================================ */
 function setDur(i, seconds){            // split edit: push everything after
   snapshot();
-  state.sections[i].dur = Math.max(0, Math.round(seconds));
+  active.sections[i].dur = Math.max(0, Math.round(seconds));
   commit();
 }
 function setCumulative(i, seconds){     // elapsed/clock edit: next split absorbs it
   snapshot();
-  const ss = state.sections;
+  const ss = active.sections;
   const target = Math.max(0, Math.round(seconds));
   const before = cumulative(i) - ss[i].dur;
   const dur = Math.max(0, target - before);
@@ -631,14 +642,14 @@ function setCumulative(i, seconds){     // elapsed/clock edit: next split absorb
  * `sport` adopts the leg it was dropped into; null keeps the current one.
  */
 function moveSection(from, insertAt, sport){
-  const arr = state.sections;
+  const arr = active.sections;
   let pos = insertAt;
   if(pos > from) pos--;
   pos = Math.max(0, Math.min(arr.length-1, pos));
   const changesSport = sport && SPORTS[sport] && sport !== arr[from].sport;
   if(pos === from && !changesSport) return;
 
-  const before = JSON.stringify(state);
+  const before = JSON.stringify(active);
   snapshot();
   const [s] = arr.splice(from, 1);
   if(changesSport) s.sport = sport;
@@ -648,7 +659,7 @@ function moveSection(from, insertAt, sport){
   arr.splice(pos, 0, s);
   commit();
   toast((s.name || "Checkpoint") + " moved — split and distance cleared",
-        () => { state = JSON.parse(before); save(); render(); });
+        () => { active = JSON.parse(before); save(); render(); });
 }
 
 /* ---- drag to reorder ----------------------------------------
@@ -709,15 +720,15 @@ function endDrag(){
   clearDropMarks();
   if(!d.moved || !d.target) return;
 
-  const from = state.sections.findIndex(x => x.id === d.id);
-  const t    = state.sections.findIndex(x => x.id === d.target.id);
+  const from = active.sections.findIndex(x => x.id === d.id);
+  const t    = active.sections.findIndex(x => x.id === d.target.id);
   if(from < 0 || t < 0) return;
 
   // A transition is structural: it keeps its own sport wherever it lands,
   // and dropping onto one never turns a checkpoint into a transition.
   const legEl = d.target.el.closest(".leg");
   const legSport = legEl ? legEl.dataset.sport : null;
-  const sport = (state.sections[from].sport === "trans" || legSport === "trans") ? null : legSport;
+  const sport = (active.sections[from].sport === "trans" || legSport === "trans") ? null : legSport;
   moveSection(from, d.before ? t : t+1, sport);
 }
 
@@ -726,18 +737,18 @@ function commit(){ save(); render(); }
 function addSection(sport, atIndex){
   snapshot();
   const s = sec("", sport, null, 0);
-  state.sections.splice(atIndex, 0, s);
+  active.sections.splice(atIndex, 0, s);
   commit();
   const el = document.querySelector('[data-id="'+s.id+'"] input.name');
   if(el) el.focus();
 }
 function removeSection(i){
-  const before = JSON.stringify(state);
+  const before = JSON.stringify(active);
   snapshot();
-  const [gone] = state.sections.splice(i,1);
-  if(!state.sections.length) state.sections.push(sec("", "swim", null, 0));
+  const [gone] = active.sections.splice(i,1);
+  if(!active.sections.length) active.sections.push(sec("", "swim", null, 0));
   commit();
-  toast((gone.name || "Section")+" removed", () => { state = JSON.parse(before); save(); render(); });
+  toast((gone.name || "Section")+" removed", () => { active = JSON.parse(before); save(); render(); });
 }
 
 /* ============================================================
@@ -749,7 +760,35 @@ const PIN_OUT = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s7-6
 const PIN_IN  = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s7-6.2 7-11a7 7 0 1 0-14 0c0 4.8 7 11 7 11zm0-8.6a2.4 2.4 0 1 1 0-4.8 2.4 2.4 0 0 1 0 4.8z"/></svg>';
 const GRIP = '<svg viewBox="0 0 8 14" aria-hidden="true"><circle cx="2" cy="2" r="1.3"/><circle cx="6" cy="2" r="1.3"/><circle cx="2" cy="7" r="1.3"/><circle cx="6" cy="7" r="1.3"/><circle cx="2" cy="12" r="1.3"/><circle cx="6" cy="12" r="1.3"/></svg>';
 
-function render(){ $("#start").value = fmtClock(state.start); renderBoard(); renderLegs(); }
+const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+function fmtDate(s){
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(s||"").trim());
+  return m ? (+m[3])+" "+MONTHS[(+m[2])-1]+" "+m[1] : String(s||"");
+}
+const distKm = m => +(m/1000).toFixed(2);
+
+/** Masthead reflects the active race's identity + leg distances. */
+function renderMasthead(){
+  const t = $("#race-title");
+  if(t) t.textContent = active.name || "Untitled race";
+  const w = $("#race-where");
+  if(!w) return;
+  const d = active.dist || defaultDist();
+  const parts = [];
+  if(active.location) parts.push(esc(active.location));
+  if(active.date) parts.push(esc(fmtDate(active.date)));
+  parts.push("<b>"+distKm(d.swim)+" km</b> swim, <b>"+distKm(d.bike)+" km</b> bike, <b>"+distKm(d.run)+" km</b> run");
+  w.innerHTML = parts.join(" · ");
+}
+
+function render(){
+  if(!active) return;
+  renderMasthead();
+  const startEl = $("#start");
+  if(startEl) startEl.value = fmtClock(active.start);   // static text in follow mode (no input#start)
+  renderBoard();
+  renderLegs();
+}
 
 function renderBoard(){
   const t = total();
@@ -762,7 +801,7 @@ function renderBoard(){
     bar.innerHTML = "<p>No times yet — paste your results or type a split below.</p>";
   }else{
     bar.classList.remove("empty");
-    state.sections.forEach(s => {
+    active.sections.forEach(s => {
       if(s.dur <= 0) return;
       const d = document.createElement("div");
       d.className = "seg" + (selected===s.id?" on":"") + ((s.note||s.map)?" pin":"");
@@ -778,11 +817,11 @@ function renderBoard(){
       });
       bar.appendChild(d);
     });
-    const firstHour = Math.ceil(state.start/3600)*3600;
-    for(let c = firstHour; c <= state.start + t; c += 3600){
+    const firstHour = Math.ceil(active.start/3600)*3600;
+    for(let c = firstHour; c <= active.start + t; c += 3600){
       const el = document.createElement("div");
       el.className = "tick";
-      el.style.left = ((c-state.start)/t*100)+"%";
+      el.style.left = ((c-active.start)/t*100)+"%";
       el.textContent = pad(Math.floor(c/3600)%24)+":00";
       ticks.appendChild(el);
     }
@@ -862,7 +901,7 @@ function rowFor(s, i){
   grip.addEventListener("pointerdown", ev => startDrag(ev, s.id));
   grip.addEventListener("keydown", ev => {
     if(ev.key === "ArrowUp" && i > 0){ ev.preventDefault(); moveSection(i, i-1, null); }
-    if(ev.key === "ArrowDown" && i < state.sections.length-1){ ev.preventDefault(); moveSection(i, i+2, null); }
+    if(ev.key === "ArrowDown" && i < active.sections.length-1){ ev.preventDefault(); moveSection(i, i+2, null); }
   });
   row.appendChild(grip);
 
@@ -884,8 +923,8 @@ function rowFor(s, i){
     v => { const n = parseFlexDur(v); n!=null ? setCumulative(i,n) : render(); },
     n => setCumulative(i, cum+n)), "Elapsed"));
 
-  row.appendChild(cell(timeField(fmtClock(state.start+cum), "Clock",
-    v => { const n = parseFlexDur(v); n!=null ? setCumulative(i, n-state.start) : render(); },
+  row.appendChild(cell(timeField(fmtClock(active.start+cum), "Clock",
+    v => { const n = parseFlexDur(v); n!=null ? setCumulative(i, n-active.start) : render(); },
     n => setCumulative(i, cum+n)), "Clock"));
 
   const pc = document.createElement("div");
@@ -1142,7 +1181,7 @@ raw.addEventListener("input", () => {
   } else w.hidden = true;
 });
 $("#dlg-backup").addEventListener("click", async () => {
-  const json = JSON.stringify(state);
+  const json = JSON.stringify(active);
   try{ await navigator.clipboard.writeText(json); toast("Backup copied — paste it here to restore"); }
   catch(e){ raw.value = json; raw.select(); }
 });
@@ -1155,9 +1194,13 @@ function tryRestoreBackup(text){
 }
 
 $("#dlg-apply").addEventListener("click", () => {
+  if(!active) return;
   const restored = tryRestoreBackup(raw.value);
   if(restored){
-    snapshot(); state = restored; commit(); dlg.close();
+    // Replace only the splits — keep this race's id/name/location/date/dist so it
+    // stays the same race in the index rather than becoming an orphaned blob (F8).
+    snapshot(); active.start = restored.start; active.sections = restored.sections;
+    commit(); dlg.close();
     toast("Backup restored");
     return;
   }
@@ -1167,29 +1210,30 @@ $("#dlg-apply").addEventListener("click", () => {
     return;
   }
   snapshot();
-  state = {start: built.gun != null ? built.gun : state.start, sections: built.sections};
+  active.start = built.gun != null ? built.gun : active.start;
+  active.sections = built.sections;
   commit(); dlg.close();
   toast(built.sections.length+" sections loaded");
 });
 
 $("#start").addEventListener("change", e => {
+  if(!active) return;
   const n = parseFlexDur(e.target.value);
   if(n == null){ render(); return; }
-  snapshot(); state.start = n % 86400; commit();
+  snapshot(); active.start = n % 86400; commit();
 });
-$("#btn-add").addEventListener("click", () => addSection($("#new-sport").value, state.sections.length));
-$("#btn-reset").addEventListener("click", () => {
-  const before = JSON.stringify(state);
-  snapshot(); state = RACE(); commit();
-  toast("Reset to the race as run", () => { state = JSON.parse(before); save(); render(); });
-});
+$("#btn-add").addEventListener("click", () => { if(active) addSection($("#new-sport").value, active.sections.length); });
+/* The old global "Reset to race" seeded the hardcoded Fodaxman race, which would
+   overwrite any race with Fodaxman data — its single-race semantics no longer
+   apply, so it is removed from the multi-race build (F7). */
 
 $("#btn-copy").addEventListener("click", async () => {
+  if(!active) return;
   const lines = ["checkpoint\tleg\tdistance_m\tsplit\telapsed\tclock\tpace\tmap\tnote"];
-  state.sections.forEach((s,i) => {
+  active.sections.forEach((s,i) => {
     const cum = cumulative(i), p = paceOf(s.sport, s.dist, s.dur);
     lines.push([s.name, s.sport, s.dist ?? "", fmtSplit(s.dur), fmtHMS(cum),
-                fmtClock(state.start+cum), p ? p.v+" "+p.u : "", s.map, s.note].join("\t"));
+                fmtClock(active.start+cum), p ? p.v+" "+p.u : "", s.map, s.note].join("\t"));
   });
   const text = lines.join("\n");
   try{ await navigator.clipboard.writeText(text); toast("Copied as a tab-separated table"); }
@@ -1223,8 +1267,111 @@ function flush(){
 window.addEventListener("pagehide", flush);
 document.addEventListener("visibilitychange", () => { if(document.hidden) flush(); });
 
-render();
-if(state.savedAt || !storageOK) showSaved();
+/* ============================================================
+   9. Router + view mounting
+   ============================================================ */
+const VIEWS = ["home-view","race-view"];
+function show(id){ VIEWS.forEach(v => { const el = $("#"+v); if(el) el.hidden = v !== id; }); }
+function focusHeading(viewId){                       // F11: land AT/keyboard focus on the heading
+  const view = $("#"+viewId);
+  if(!view) return;
+  const h = view.querySelector("h1,h2");
+  if(h){ h.setAttribute("tabindex","-1"); h.focus(); }
+}
+function parseHash(){
+  const h = location.hash.replace(/^#/, "");
+  const m = h.match(/^\/race\/([^/]+)\/(edit|follow)$/);
+  if(m) return {view:m[2], id:decodeURIComponent(m[1])};
+  return {view:"home", id:null};                     // "", "/", or anything unknown -> home
+}
+
+let markerTimer = null;
+function stopMarker(){ if(markerTimer){ clearInterval(markerTimer); markerTimer = null; } }
+
+function teardownActiveView(){
+  stopMarker();                                      // clears the follow timer (U5)
+  /* The document/window handlers (undo keydown, pagehide, visibilitychange) are
+     bound once at load and gated by `mode`, so repeated navigation cannot stack
+     them — there is nothing to unbind here (F6). */
+}
+
+function router(){
+  const route = parseHash();
+  teardownActiveView();
+  if(route.view === "home") return mountHome();
+  const race = loadRace(route.id);
+  if(!race){                                         // deleted/unknown id or malformed hash (F3)
+    toast("That race is no longer here");
+    location.hash = "#/";                             // re-fires hashchange -> mountHome
+    return;
+  }
+  return route.view === "follow" ? mountFollow(race) : mountEdit(race);
+}
+
+function applyReadOnly(ro){
+  readOnly = ro;
+  const rv = $("#race-view");
+  if(rv) rv.classList.toggle("readonly", ro);
+}
+
+function mountHome(){
+  mode = "home"; active = null; readOnly = false; selected = null; undoStack = [];
+  renderHome();
+  show("home-view");
+  document.title = "Race splits";
+  focusHeading("home-view");
+}
+function mountEdit(race){
+  mode = "edit"; active = race; selected = null; undoStack = [];
+  applyReadOnly(false);
+  const wl = $("#watch-live");
+  if(wl) wl.href = "#/race/" + encodeURIComponent(race.id) + "/follow";   // F15
+  show("race-view");
+  render();
+  showSaved();
+  document.title = (race.name || "Untitled race") + " — Splits";
+  focusHeading("race-view");
+}
+/* The real follow view arrives in U5; until then follow falls back to edit so
+   the route resolves and the masthead "Watch live" link works. */
+function mountFollow(race){ return mountEdit(race); }
+
+/* Minimal home list — replaced by the full library view in U3. */
+function renderHome(){
+  const el = $("#home-view");
+  if(!el) return;
+  const races = listRaces();
+  let html = '<header class="masthead"><div>'+
+             '<h1 id="home-title">Race splits</h1>'+
+             '<p class="where">Your saved races on this browser.</p></div></header>';
+  if(!races.length){
+    html += '<p class="hint">No races yet — create one to get started.</p>';
+  }else{
+    html += '<div class="legs">';
+    races.forEach(r => {
+      const id = encodeURIComponent(r.id);
+      html += '<div class="leg"><div class="leg-head">'+
+              '<div class="leg-title"><span class="t">'+esc(r.name || "Untitled race")+'</span>'+
+              (r.location ? '<span class="d">'+esc(r.location)+'</span>' : '')+'</div>'+
+              '<div class="leg-tot">'+
+              '<a class="btn" href="#/race/'+id+'/edit">Open</a> '+
+              '<a class="btn ghost" href="#/race/'+id+'/follow">Follow</a>'+
+              '</div></div></div>';
+    });
+    html += '</div>';
+  }
+  html += '<div class="addbar"><button class="btn primary" id="home-new">New race</button></div>';
+  el.innerHTML = html;
+  const nb = $("#home-new");
+  if(nb) nb.addEventListener("click", () => {
+    const r = createRace({});
+    location.hash = "#/race/" + encodeURIComponent(r.id) + "/edit";
+  });
+}
+
+migrateLegacy();
+window.addEventListener("hashchange", router);
+router();
 })();
 </script>
 </body>
