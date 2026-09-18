@@ -313,8 +313,16 @@ const SPORTS = {
   trans: {label:"Transition", unit:null, pace:null,      official:null}
 };
 const ORDER = ["swim","bike","run"];
-const KEY = "fodaxman-sp5-2025-v2";
+const KEY = "fodaxman-sp5-2025-v2";          // legacy single-race key (migration source only)
+const INDEX_KEY = "race-splits:index";        // light [{id,name,location,date,savedAt}] library index
+const MIGRATED_KEY = "race-splits:migrated";  // once-only sentinel for the legacy import
+const raceKey = id => "race-splits:race:" + id;
 const M = 60;
+
+/** Default leg distances for a new race, seeded from the per-sport officials. */
+function defaultDist(){
+  return {swim: SPORTS.swim.official, bike: SPORTS.bike.official, run: SPORTS.run.official};
+}
 
 function uid(){ return Math.random().toString(36).slice(2,9); }
 const sec = (name,sport,dist,dur,est) => ({id:uid(), name, sport, dist, dur, est:!!est, note:"", map:""});
@@ -363,7 +371,22 @@ function normalize(obj){
     }));
   if(!sections.length) return null;
   const start = (typeof obj.start === "number" && isFinite(obj.start)) ? ((obj.start % 86400) + 86400) % 86400 : 6*3600;
-  return {start, sections, savedAt: typeof obj.savedAt === "number" ? obj.savedAt : null};
+  return {
+    id:       typeof obj.id === "string" ? obj.id : uid(),
+    name:     typeof obj.name === "string" ? obj.name : "",
+    location: typeof obj.location === "string" ? obj.location : "",
+    date:     typeof obj.date === "string" ? obj.date : "",
+    dist:     normDist(obj.dist),
+    start, sections,
+    savedAt:  typeof obj.savedAt === "number" ? obj.savedAt : null
+  };
+}
+/** Validate {swim,bike,run} leg distances, falling back to the per-sport defaults. */
+function normDist(d){
+  const def = defaultDist();
+  if(!d || typeof d !== "object") return def;
+  const pick = (v,f) => (typeof v === "number" && isFinite(v) && v >= 0) ? Math.round(v) : f;
+  return {swim: pick(d.swim, def.swim), bike: pick(d.bike, def.bike), run: pick(d.run, def.run)};
 }
 
 function load(){
@@ -401,6 +424,92 @@ function showSaved(){
   el.title = "Stored in this browser. Clearing site data removes it — “Copy backup” gives you a copy.";
 }
 function clockOf(ms){ const d = new Date(ms); return d.getHours()*3600 + d.getMinutes()*60 + d.getSeconds(); }
+
+/* ---- multi-race store ---------------------------------------
+   One light index key lists the library; each race is a blob under
+   its own key. Editing rewrites only the active race blob + the
+   index, never the whole library.                                */
+function storageSet(k, v){
+  try{ localStorage.setItem(k, v); storageOK = true; return true; }
+  catch(e){ storageOK = false; return false; }
+}
+function readIndex(){
+  const raw = storageGet(INDEX_KEY);
+  if(!raw) return [];
+  try{ const a = JSON.parse(raw); return Array.isArray(a) ? a : []; }catch(e){ return []; }
+}
+function writeIndex(arr){ storageSet(INDEX_KEY, JSON.stringify(arr)); }
+function indexEntry(race){
+  return {id:race.id, name:race.name||"", location:race.location||"", date:race.date||"", savedAt:race.savedAt};
+}
+function listRaces(){ return readIndex(); }
+
+function loadRace(id){
+  if(!id) return null;
+  const raw = storageGet(raceKey(id));
+  if(!raw) return null;
+  try{ return normalize(JSON.parse(raw)); }catch(e){ return null; }
+}
+/** Persist a race blob and upsert its index entry. Assigns an id if missing. */
+function saveRace(race){
+  if(!race.id) race.id = uid();
+  race.savedAt = Date.now();
+  storageSet(raceKey(race.id), JSON.stringify(race));
+  const idx = readIndex();
+  const at = idx.findIndex(e => e.id === race.id);
+  if(at >= 0) idx[at] = indexEntry(race); else idx.push(indexEntry(race));
+  writeIndex(idx);
+  return race;
+}
+/** Build + persist a new race: one placeholder checkpoint (empty sections
+    would fail normalize and load back as null), default leg distances. */
+function createRace(fields){
+  fields = fields || {};
+  const race = {
+    id: uid(),
+    name: fields.name || "",
+    location: fields.location || "",
+    date: fields.date || "",
+    dist: fields.dist || defaultDist(),
+    start: typeof fields.start === "number" ? fields.start : 6*3600,
+    sections: (fields.sections && fields.sections.length) ? fields.sections : [sec("", "swim", null, 0)],
+    savedAt: null
+  };
+  return saveRace(race);
+}
+function renameRace(id, name){
+  const race = loadRace(id);
+  if(!race) return null;
+  race.name = name;
+  return saveRace(race);
+}
+function deleteRace(id){
+  try{ localStorage.removeItem(raceKey(id)); }catch(e){}
+  writeIndex(readIndex().filter(e => e.id !== id));
+}
+/** One-time, non-destructive import of the legacy single-race blob.
+    Gated on the sentinel — not on an empty index — so deleting every
+    race later never resurrects the sample race. Legacy key left intact. */
+function migrateLegacy(){
+  if(storageGet(MIGRATED_KEY)) return;
+  let raw = storageGet(KEY);
+  if(!raw){ for(const k of OLD_KEYS){ const l = storageGet(k); if(l){ raw = l; break; } } }
+  if(raw){
+    let legacy = null;
+    try{ legacy = normalize(JSON.parse(raw)); }catch(e){ legacy = null; }
+    if(legacy){
+      createRace({
+        name: "Fodaxman Solo Point Five 2025",
+        location: "Serra do Rio do Rastro, SC",
+        date: "2025-09-27",
+        dist: {swim:2000, bike:87000, run:22000},
+        start: legacy.start,
+        sections: legacy.sections
+      });
+    }
+  }
+  storageSet(MIGRATED_KEY, "1");
+}
 
 let state = load() || RACE();
 let undoStack = [];
