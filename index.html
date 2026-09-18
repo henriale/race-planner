@@ -404,7 +404,6 @@ const KEY = "fodaxman-sp5-2025-v2";          // legacy single-race key (migratio
 const INDEX_KEY = "race-splits:index";        // light [{id,name,location,date,savedAt}] library index
 const MIGRATED_KEY = "race-splits:migrated";  // once-only sentinel for the legacy import
 const raceKey = id => "race-splits:race:" + id;
-const M = 60;
 
 /** Default leg distances for a new race, seeded from the per-sport officials. */
 function defaultDist(){
@@ -414,25 +413,10 @@ function defaultDist(){
 function uid(){ return Math.random().toString(36).slice(2,9); }
 const sec = (name,sport,dist,dur,est) => ({id:uid(), name, sport, dist, dur, est:!!est, note:"", map:""});
 
-/** The race as run: 6:00 gun, 13:44 finish. */
-const RACE = () => ({
-  start: 6*3600,
-  sections: [
-    sec("Fim da natação",       "swim",  2000,  44*M),
-    sec("T1",                   "trans", null,  11*M),
-    sec("Cruzamento ida",       "bike",  14500, 38*M, true),
-    sec("Cruzamento volta",     "bike",  14500, 38*M, true),
-    sec("Fim do retão",         "bike",  14500, 37*M, true),
-    sec("Chegada Lauro Müller", "bike",  14500, 52*M, true),
-    sec("Mirante 13",           "bike",  14500, 30*M, true),
-    sec("Mirante Serra",        "bike",  14500, 80*M, true),
-    sec("T2",                   "trans", null,   5*M),
-    sec("Chegada Mirante",      "run",   22000,129*M)
-  ]
-});
-
 /* ---- storage ------------------------------------------------
-   Everything lives in localStorage under KEY. Writes happen on every
+   The library lives in localStorage as one index key plus one blob per
+   race (see the multi-race store below). KEY / OLD_KEYS are the legacy
+   single-race keys, read once by migrateLegacy(). Writes happen on every
    mutation; the header shows when the last one landed, and says so
    loudly if the browser refuses to store anything.               */
 const OLD_KEYS = ["fodaxman-sp5-2025"];
@@ -474,18 +458,6 @@ function normDist(d){
   if(!d || typeof d !== "object") return def;
   const pick = (v,f) => (typeof v === "number" && isFinite(v) && v >= 0) ? Math.round(v) : f;
   return {swim: pick(d.swim, def.swim), bike: pick(d.bike, def.bike), run: pick(d.run, def.run)};
-}
-
-function load(){
-  let raw = storageGet(KEY);
-  if(!raw){                       // carry over anything left by an earlier version
-    for(const k of OLD_KEYS){
-      const legacy = storageGet(k);
-      if(legacy){ raw = legacy; break; }
-    }
-  }
-  if(!raw) return null;
-  try{ return normalize(JSON.parse(raw)); }catch(e){ return null; }
 }
 
 function save(){
