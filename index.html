@@ -206,6 +206,17 @@ footer{margin-top:30px;color:var(--muted);font-size:12.5px;line-height:1.7}
 .race-card .leg-foot .spread{margin-right:auto}
 .home-empty{padding:44px 20px;text-align:center;color:var(--muted);border:1px dashed var(--rule);border-radius:14px;font-size:14px}
 
+/* ---------- editable masthead name + details dialog ---------- */
+#race-name{border-radius:8px;padding:0 4px;margin:0 -4px}
+#race-name[contenteditable="true"]{cursor:text}
+#race-name[contenteditable="true"]:hover{background:var(--surface-2)}
+#race-name[contenteditable="true"]:focus{outline:none;background:var(--surface);box-shadow:0 0 0 3px color-mix(in srgb,var(--focus) 18%,transparent)}
+#race-name:empty::before{content:attr(data-placeholder);color:var(--muted)}
+.field{display:flex;flex-direction:column;gap:5px;margin-bottom:12px}
+.field span{font-size:12.5px;color:var(--muted)}
+.field-row{display:flex;gap:12px;flex-wrap:wrap}
+.field-row .field{flex:1 1 120px}
+
 @media (max-width:880px){
   .cols{display:none}
   .row{grid-template-columns:26px 1fr 1fr;gap:6px 10px;padding:12px 14px;align-items:start}
@@ -229,12 +240,13 @@ footer{margin-top:30px;color:var(--muted);font-size:12.5px;line-height:1.7}
 
   <header class="masthead">
     <div>
-      <h1 id="race-title"></h1>
+      <h1 id="race-title" tabindex="-1"><span id="race-name" data-placeholder="Untitled race" title="Click to rename"></span></h1>
       <p class="where" id="race-where"></p>
     </div>
     <div class="tools">
       <a class="btn ghost" id="btn-back" href="#/">← Races</a>
       <a class="btn" id="watch-live" href="#/">Watch live</a>
+      <button class="btn" id="btn-details">Race details</button>
       <button class="btn primary" id="btn-import">Paste results</button>
       <button class="btn" id="btn-copy">Copy data</button>
       <span class="sync" id="sync" role="status" aria-live="polite">Not saved yet</span>
@@ -298,6 +310,24 @@ footer{margin-top:30px;color:var(--muted);font-size:12.5px;line-height:1.7}
       <button class="btn ghost spread" id="dlg-backup">Copy backup</button>
       <button class="btn ghost" id="dlg-cancel">Cancel</button>
       <button class="btn primary" id="dlg-apply">Replace splits</button>
+    </div>
+  </div>
+</dialog>
+
+<dialog id="detailsdlg" class="narrow">
+  <div class="dlg">
+    <h3>Race details</h3>
+    <p>Location, date, and the leg distances the even-split importer uses for this race.</p>
+    <label class="field"><span>Location</span><input class="wide" id="det-loc" spellcheck="false"></label>
+    <label class="field"><span>Date</span><input class="wide" id="det-date" type="date"></label>
+    <div class="field-row">
+      <label class="field"><span>Swim (m)</span><input class="wide" id="det-swim" inputmode="decimal"></label>
+      <label class="field"><span>Bike (km)</span><input class="wide" id="det-bike" inputmode="decimal"></label>
+      <label class="field"><span>Run (km)</span><input class="wide" id="det-run" inputmode="decimal"></label>
+    </div>
+    <div class="dlg-foot">
+      <button class="btn ghost" id="det-cancel">Cancel</button>
+      <button class="btn primary" id="det-save">Save</button>
     </div>
   </div>
 </dialog>
@@ -792,8 +822,13 @@ const distKm = m => +(m/1000).toFixed(2);
 
 /** Masthead reflects the active race's identity + leg distances. */
 function renderMasthead(){
-  const t = $("#race-title");
-  if(t) t.textContent = active.name || "Untitled race";
+  const nameEl = $("#race-name");
+  if(nameEl){
+    // Editable in edit mode (empty -> CSS placeholder "Untitled race"); static in follow.
+    nameEl.textContent = readOnly ? (active.name || "Untitled race") : active.name;
+    if(readOnly) nameEl.removeAttribute("contenteditable");
+    else nameEl.setAttribute("contenteditable", "true");
+  }
   const w = $("#race-where");
   if(!w) return;
   const d = active.dist || defaultDist();
@@ -1161,7 +1196,11 @@ function buildSections(events){
   ORDER.forEach(sport => {
     const mine = out.filter(s => s.sport === sport);
     if(!mine.length) return;
-    const each = Math.round(SPORTS[sport].official / mine.length);
+    // Split this race's own leg distance evenly; SPORTS[sport].official is only
+    // the seed default for a brand-new race (never the bare SPORTS.official — F5).
+    const legDist = (active && active.dist && typeof active.dist[sport] === "number")
+      ? active.dist[sport] : SPORTS[sport].official;
+    const each = Math.round(legDist / mine.length);
     mine.forEach(s => { s.dist = each; s.est = mine.length > 1; });
   });
   return {gun, sections: out};
@@ -1285,7 +1324,7 @@ document.addEventListener("keydown", e => {
    blurring fires its change handler, which saves. */
 function flush(){
   const el = document.activeElement;
-  if(el && el.tagName === "INPUT" && el.classList.contains("f")) el.blur();
+  if(el && ((el.tagName === "INPUT" && el.classList.contains("f")) || el.id === "race-name")) el.blur();
 }
 window.addEventListener("pagehide", flush);
 document.addEventListener("visibilitychange", () => { if(document.hidden) flush(); });
@@ -1430,6 +1469,51 @@ $("#rename-save").addEventListener("click", () => {
   renderHome();
 });
 $("#rename-input").addEventListener("keydown", e => { if(e.key === "Enter"){ e.preventDefault(); $("#rename-save").click(); } });
+
+/* ---- editable masthead name (inline, edit mode only) ---- */
+const nameEl = $("#race-name");
+if(nameEl){
+  nameEl.addEventListener("blur", () => {
+    if(!active || readOnly) return;
+    const v = nameEl.textContent.trim();
+    if(v === active.name) return;
+    snapshot(); active.name = v; save(); renderMasthead();
+  });
+  nameEl.addEventListener("keydown", e => {
+    if(e.key === "Enter"){ e.preventDefault(); nameEl.blur(); }
+    else if(e.key === "Escape"){ e.preventDefault(); nameEl.textContent = active ? active.name : ""; nameEl.blur(); }
+  });
+}
+
+/* ---- race details dialog (location, date, per-race leg distances) ---- */
+const detailsdlg = $("#detailsdlg");
+$("#btn-details").addEventListener("click", () => {
+  if(!active) return;
+  $("#det-loc").value = active.location || "";
+  $("#det-date").value = /^\d{4}-\d{2}-\d{2}$/.test(active.date || "") ? active.date : "";
+  const d = active.dist || defaultDist();
+  $("#det-swim").value = d.swim;            // stored + shown in metres
+  $("#det-bike").value = +(d.bike / 1000);  // km
+  $("#det-run").value  = +(d.run / 1000);   // km
+  detailsdlg.showModal();
+  $("#det-loc").focus();
+});
+$("#det-cancel").addEventListener("click", () => detailsdlg.close());
+$("#det-save").addEventListener("click", () => {
+  if(!active){ detailsdlg.close(); return; }
+  const num = (v, f) => { const n = parseFloat(String(v).replace(",", ".")); return (isFinite(n) && n >= 0) ? n : f; };
+  const d = active.dist || defaultDist();
+  snapshot();
+  active.location = $("#det-loc").value.trim();
+  active.date = $("#det-date").value.trim();
+  active.dist = {
+    swim: Math.round(num($("#det-swim").value, d.swim)),
+    bike: Math.round(num($("#det-bike").value, d.bike / 1000) * 1000),
+    run:  Math.round(num($("#det-run").value,  d.run / 1000) * 1000)
+  };
+  save(); renderMasthead(); detailsdlg.close();
+  toast("Race details saved");
+});
 
 function duplicateRace(id){
   const src = loadRace(id);
