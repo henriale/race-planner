@@ -1,17 +1,20 @@
-# Fodaxman Solo Point Five — race splits
+# Race splits
 
-A single-page tool for working with checkpoint times from the
-**FODAXMAN XTRI Solo Point Five** (Serra do Rio do Rastro, SC — 2 km swim,
-87 km bike, 22 km run). It serves two jobs:
+A single-page tool for working with checkpoint times across several races. It
+began as a one-off for the **FODAXMAN XTRI Solo Point Five** (Serra do Rio do
+Rastro, SC — 2 km swim, 87 km bike, 22 km run) and now keeps a library of races
+in the browser. It serves three jobs:
 
-- **Simulation.** The athlete changes a split and watches the rest of the day move.
-- **Race day.** Staff read clock times per checkpoint and open its map link.
+- **Library.** A home list of saved races; create, rename, duplicate, delete.
+- **Simulation (edit).** The athlete changes a split and watches the rest of the day move.
+- **Race day (follow).** A read-only view with a live wall-clock marker showing
+  where the athlete is on the timeline right now.
 
 No build step, no dependencies, no server. Open `index.html`.
 
 ```
 git clone <this repo>
-cd fodaxman-splits
+cd race-splits
 open index.html          # or: python3 -m http.server 8000
 ```
 
@@ -20,15 +23,36 @@ it falls back to the system sans and everything else still works.
 
 ---
 
+## Views & routing
+
+Three views addressed by URL hash, so each is bookmarkable and back-navigable:
+
+| Hash | View |
+|---|---|
+| `#/` | Home — the race library |
+| `#/race/:id/edit` | Edit one race (the full simulation surface) |
+| `#/race/:id/follow` | Follow one race (read-only + live marker) |
+
+An unknown hash, or a well-formed route whose `id` is no longer stored (deleted
+race, stale bookmark), redirects to home with a toast. Each view mounts against
+one race loaded from storage; the module-level `active` race is the mount's only
+mutable context.
+
 ## Data model
 
-One flat, ordered array of sections. A section is a stretch of course ending
-at a checkpoint — not a point in time.
+A **race** wraps identity and metadata around one flat, ordered array of
+sections. A section is a stretch of course ending at a checkpoint — not a point
+in time.
 
 ```js
 {
-  start: 21600,                  // gun time, seconds since midnight
-  savedAt: 1758193200000,        // ms epoch of the last write
+  id:       "h84paun",           // stable per-race id
+  name:     "Fodaxman Solo Point Five 2025",
+  location: "Serra do Rio do Rastro, SC",
+  date:     "2025-09-27",        // ISO, or ""
+  dist:     { swim: 2000, bike: 87000, run: 22000 },  // per-race leg metres
+  start:    21600,               // gun time, seconds since midnight
+  savedAt:  1758193200000,       // ms epoch of the last write
   sections: [
     {
       id:    "k3f9a2p",          // stable, used for DOM keying and drag
@@ -48,6 +72,9 @@ at a checkpoint — not a point in time.
 over `dur`; clock time is `start + elapsed`; pace is `dist / dur`. Legs are
 computed as runs of consecutive sections sharing a `sport`, so nothing stores
 leg membership and inserting a section can never desynchronise it.
+
+The per-race `dist` seeds the even-split importer (below) for that race only;
+new races seed it from the per-sport defaults (2 km / 87 km / 22 km).
 
 ## The two editing rules
 
@@ -91,16 +118,44 @@ The paste dialog takes three things, previewing each before it commits:
 
 Clock times win over parenthetical elapsed times where the two disagree.
 
-Imported bike checkpoints get the 87 km leg split evenly and flagged `est`, so
-the leg pace is right while the per-section numbers are honestly marked as
-guesses. Typing a real distance clears the flag.
+Imported checkpoints get their leg's distance (from the race's own `dist`)
+split evenly and flagged `est`, so the leg pace is right while the per-section
+numbers are honestly marked as guesses. Typing a real distance clears the flag.
+
+Import and JSON-backup restore replace only a race's `start` and `sections` —
+its identity (`id`/`name`/`location`/`date`/`dist`) is preserved, so a restore
+never orphans the race or overwrites its metadata.
+
+## Follow mode
+
+`#/race/:id/follow` renders the same timeline read-only — no inputs, drag
+handles, add/remove, import, or gun-time editing — and overlays a live position
+marker driven by the real wall clock.
+
+Because `start` is stored as seconds-of-day only (no date), before-gun and
+after-finish fall in the same clock region once the elapsed window wraps past
+midnight, and a single `elapsed / total` ratio can't tell them apart. The marker
+is placed piecewise instead: let `d = (now − start) mod 86400`; if `d ≤ total`
+the marker sits at `d / total`, otherwise it snaps to the nearest boundary —
+not-started (0) or finished (`total`). A splitless race shows no marker. The
+marker is `aria-hidden` and its position is announced on a polite live region
+only when the segment changes, not on every tick; the 1 s tick is cleared on
+navigation away and skipped under `prefers-reduced-motion` (one static paint).
 
 ## Persistence
 
-`localStorage`, written on every mutation, validated field by field on read,
-with a migration path from the previous storage key. The header shows the
-clock time of the last write, and turns red if the browser refuses to store
-(private window, blocked site data) instead of failing silently.
+`localStorage`, written on every mutation, validated field by field on read.
+The library is a light **index** key (`race-splits:index`) listing
+`{id, name, location, date, savedAt}`, plus one blob per race under
+`race-splits:race:<id>`; editing rewrites only the active race blob and the
+index. The header shows the clock time of the last write, and turns red if the
+browser refuses to store (private window, blocked site data) instead of failing
+silently.
+
+The single race from the previous version migrates in once, non-destructively:
+gated on a `race-splits:migrated` sentinel (not an empty index, which the user
+can reach by deleting every race), it copies the legacy blob into the new store
+and leaves the old key untouched.
 
 It is per-device by design. *Copy backup* → paste elsewhere is how the data
 moves. The published-artifact runtime also offers a server-backed `db`
@@ -115,14 +170,15 @@ artifact, whose hosting requires a self-contained document. The script is
 sectioned with banner comments in dependency order:
 
 ```
-1. Model            SPORTS table, the seeded race, storage
+1. Model            SPORTS table, per-race store, migration
 2. Time             parsing and formatting (h:mm:ss, 11', 1h15')
 3. Derived          cumulative, totals, pace, leg grouping
 4. Mutations        the two editing rules, move, add, remove
-5. Render           timeline strip, leg tables, rows
+5. Render           timeline strip, leg tables, rows (readOnly-aware)
 6. Map links        coordinate detection and URL validation
-7. Importer         raw-notes parser
+7. Importer         raw-notes parser (per-race leg distances)
 8. Wiring           dialogs, toasts, undo, keyboard
+9. Router + views   hash routing, home library, edit/follow mounts, live marker
 ```
 
 Only `http:` and `https:` URLs are accepted as map links; bare `lat, lng` is
@@ -132,6 +188,8 @@ converted to a Google Maps search URL.
 
 - Elevation per checkpoint, feeding an elevation profile under the timeline.
 - Cut-off times per checkpoint, with the margin shown against each.
-- A live "where is he now" marker for the staff view.
-- Real bike checkpoint distances — the six in the seeded race are still even
-  splits of 87 km, so per-section km/h is not yet meaningful.
+- A projected/target-pace overlay in follow mode (the marker shows *position*,
+  not a projection).
+- Real bike checkpoint distances for the sample race — its six bike checkpoints
+  are still even splits of the leg total, so per-section km/h is not yet
+  meaningful.
