@@ -217,6 +217,30 @@ footer{margin-top:30px;color:var(--muted);font-size:12.5px;line-height:1.7}
 .field-row{display:flex;gap:12px;flex-wrap:wrap}
 .field-row .field{flex:1 1 120px}
 
+/* ---------- follow (read-only) view + live marker ---------- */
+.start-val{display:none;font-variant-numeric:tabular-nums}
+.static{padding:6px 8px;font-size:14px;color:var(--ink)}
+.static.num{text-align:right}
+.static.est{color:var(--muted);font-style:italic}
+.marker{position:absolute;top:0;height:58px;width:2px;background:var(--ink);transform:translateX(-1px);z-index:5;pointer-events:none;transition:left .9s linear}
+.marker::before{content:"";position:absolute;top:-4px;left:-4px;width:10px;height:10px;border-radius:50%;background:var(--ink);box-shadow:0 0 0 3px var(--surface)}
+.marker[hidden]{display:none}
+.marker-status{display:none;margin-top:12px;color:var(--ink-2);font-size:13.5px;font-variation-settings:"wdth" 100,"wght" 560}
+/* chrome that only makes sense while editing is hidden in follow mode */
+#open-edit,
+#race-view.readonly #watch-live,
+#race-view.readonly #btn-details,
+#race-view.readonly #btn-import,
+#race-view.readonly #btn-copy,
+#race-view.readonly #sync,
+#race-view.readonly #start,
+#race-view.readonly .addbar,
+#race-view.readonly .legend .hint,
+#race-view.readonly footer{display:none}
+#race-view.readonly #open-edit{display:inline-block}
+#race-view.readonly .start-val{display:inline}
+#race-view.readonly .marker-status{display:block}
+
 @media (max-width:880px){
   .cols{display:none}
   .row{grid-template-columns:26px 1fr 1fr;gap:6px 10px;padding:12px 14px;align-items:start}
@@ -246,6 +270,7 @@ footer{margin-top:30px;color:var(--muted);font-size:12.5px;line-height:1.7}
     <div class="tools">
       <a class="btn ghost" id="btn-back" href="#/">← Races</a>
       <a class="btn" id="watch-live" href="#/">Watch live</a>
+      <a class="btn" id="open-edit" href="#/">Open in edit</a>
       <button class="btn" id="btn-details">Race details</button>
       <button class="btn primary" id="btn-import">Paste results</button>
       <button class="btn" id="btn-copy">Copy data</button>
@@ -258,6 +283,7 @@ footer{margin-top:30px;color:var(--muted);font-size:12.5px;line-height:1.7}
       <label class="startline">
         Gun time
         <input class="f num" id="start" style="width:104px" aria-label="Race start clock time">
+        <span class="start-val" id="start-text"></span>
       </label>
       <div class="finish">
         <span class="lab">Finish</span>
@@ -266,8 +292,10 @@ footer{margin-top:30px;color:var(--muted);font-size:12.5px;line-height:1.7}
     </div>
     <div class="strip">
       <div class="bar" id="bar"></div>
+      <div class="marker" id="marker" aria-hidden="true" hidden></div>
       <div class="ticks" id="ticks"></div>
     </div>
+    <div class="marker-status" id="marker-status" role="status" aria-live="polite"></div>
     <div class="chips" id="chips"></div>
   </section>
 
@@ -843,7 +871,9 @@ function render(){
   if(!active) return;
   renderMasthead();
   const startEl = $("#start");
-  if(startEl) startEl.value = fmtClock(active.start);   // static text in follow mode (no input#start)
+  if(startEl) startEl.value = fmtClock(active.start);
+  const startText = $("#start-text");                    // static gun time shown in follow mode
+  if(startText) startText.textContent = fmtClock(active.start);
   renderBoard();
   renderLegs();
 }
@@ -856,7 +886,9 @@ function renderBoard(){
 
   if(!t){
     bar.classList.add("empty");
-    bar.innerHTML = "<p>No times yet — paste your results or type a split below.</p>";
+    // Follow mode has no editing controls, so it must not tell spectators to paste/type (F9).
+    bar.innerHTML = "<p>" + (readOnly ? "This race has no splits yet." :
+      "No times yet — paste your results or type a split below.") + "</p>";
   }else{
     bar.classList.remove("empty");
     active.sections.forEach(s => {
@@ -929,14 +961,16 @@ function renderLegs(){
 
     g.items.forEach(({s,i}) => leg.appendChild(rowFor(s,i)));
 
-    const foot = document.createElement("div");
-    foot.className = "leg-foot";
-    const add = document.createElement("button");
-    add.className = "link";
-    add.textContent = "Add a checkpoint to "+meta.label.toLowerCase();
-    add.addEventListener("click", () => addSection(g.sport, g.items[g.items.length-1].i+1));
-    foot.appendChild(add);
-    leg.appendChild(foot);
+    if(!readOnly){
+      const foot = document.createElement("div");
+      foot.className = "leg-foot";
+      const add = document.createElement("button");
+      add.className = "link";
+      add.textContent = "Add a checkpoint to "+meta.label.toLowerCase();
+      add.addEventListener("click", () => addSection(g.sport, g.items[g.items.length-1].i+1));
+      foot.appendChild(add);
+      leg.appendChild(foot);
+    }
 
     legsEl.appendChild(leg);
   });
@@ -951,17 +985,21 @@ function rowFor(s, i){
   row.className = "row"+(selected===s.id?" on expanded":"")+(s.note?" expanded":"");
   row.dataset.id = s.id;
 
-  const grip = document.createElement("button");
-  grip.type = "button"; grip.className = "grip";
-  grip.innerHTML = GRIP;
-  grip.title = "Drag to reposition — the time and distance are cleared";
-  grip.setAttribute("aria-label", "Reposition "+(s.name||"this checkpoint")+". Arrow up or down to move it.");
-  grip.addEventListener("pointerdown", ev => startDrag(ev, s.id));
-  grip.addEventListener("keydown", ev => {
-    if(ev.key === "ArrowUp" && i > 0){ ev.preventDefault(); moveSection(i, i-1, null); }
-    if(ev.key === "ArrowDown" && i < active.sections.length-1){ ev.preventDefault(); moveSection(i, i+2, null); }
-  });
-  row.appendChild(grip);
+  if(readOnly){
+    row.appendChild(document.createElement("div"));   // empty grip column, keeps the grid aligned
+  }else{
+    const grip = document.createElement("button");
+    grip.type = "button"; grip.className = "grip";
+    grip.innerHTML = GRIP;
+    grip.title = "Drag to reposition — the time and distance are cleared";
+    grip.setAttribute("aria-label", "Reposition "+(s.name||"this checkpoint")+". Arrow up or down to move it.");
+    grip.addEventListener("pointerdown", ev => startDrag(ev, s.id));
+    grip.addEventListener("keydown", ev => {
+      if(ev.key === "ArrowUp" && i > 0){ ev.preventDefault(); moveSection(i, i-1, null); }
+      if(ev.key === "ArrowDown" && i < active.sections.length-1){ ev.preventDefault(); moveSection(i, i+2, null); }
+    });
+    row.appendChild(grip);
+  }
 
   row.appendChild(cell(textField(s.name, "Checkpoint name", v => {
     snapshot(); s.name = v; save(); renderBoard();
@@ -992,23 +1030,24 @@ function rowFor(s, i){
 
   const acts = document.createElement("div");
   acts.className = "acts";
+  if(!readOnly){
+    const pin = document.createElement("button");
+    pin.type = "button";
+    pin.className = "icon"+(s.map?" set":"");
+    pin.innerHTML = s.map ? PIN_IN : PIN_OUT;
+    pin.title = s.map ? "Map link — open or edit" : "Add a map link";
+    pin.setAttribute("aria-label", (s.map?"Map link for ":"Add a map link to ")+(s.name||"this checkpoint"));
+    pin.addEventListener("click", () => openMap(s));
+    acts.appendChild(pin);
 
-  const pin = document.createElement("button");
-  pin.type = "button";
-  pin.className = "icon"+(s.map?" set":"");
-  pin.innerHTML = s.map ? PIN_IN : PIN_OUT;
-  pin.title = s.map ? "Map link — open or edit" : "Add a map link";
-  pin.setAttribute("aria-label", (s.map?"Map link for ":"Add a map link to ")+(s.name||"this checkpoint"));
-  pin.addEventListener("click", () => openMap(s));
-  acts.appendChild(pin);
-
-  const del = document.createElement("button");
-  del.type = "button"; del.className = "icon";
-  del.setAttribute("aria-label", "Remove "+(s.name||"section"));
-  del.textContent = "×";
-  del.style.fontSize = "17px";
-  del.addEventListener("click", () => removeSection(i));
-  acts.appendChild(del);
+    const del = document.createElement("button");
+    del.type = "button"; del.className = "icon";
+    del.setAttribute("aria-label", "Remove "+(s.name||"section"));
+    del.textContent = "×";
+    del.style.fontSize = "17px";
+    del.addEventListener("click", () => removeSection(i));
+    acts.appendChild(del);
+  }
   row.appendChild(acts);
 
   const nr = document.createElement("div");
@@ -1033,8 +1072,16 @@ function cell(inner, label){
   return c;
 }
 function dash(){ const d = document.createElement("div"); d.className="derived"; d.textContent="—"; return d; }
+/** Read-only stand-in for a field: plain text, same cell geometry, no input. */
+function staticText(text, cls){
+  const el = document.createElement("div");
+  el.className = "static "+(cls||"");
+  el.textContent = text;
+  return el;
+}
 
 function textField(value, ph, onCommit, cls){
+  if(readOnly) return staticText(value||"", cls||"");
   const el = document.createElement("input");
   el.className = "f "+(cls||"");
   el.value = value||""; el.placeholder = ph; el.setAttribute("aria-label", ph);
@@ -1043,6 +1090,7 @@ function textField(value, ph, onCommit, cls){
 }
 function distField(s){
   const meta = SPORTS[s.sport];
+  if(readOnly) return staticText(distOut(s) || "", "num"+(s.est?" est":""));
   const el = document.createElement("input");
   el.className = "f num"+(s.est?" est":"");
   el.value = distOut(s); el.inputMode = "decimal"; el.placeholder = meta.unit;
@@ -1057,6 +1105,7 @@ function distField(s){
   return el;
 }
 function timeField(value, label, onCommit, onNudge){
+  if(readOnly) return staticText(value, "num");
   const el = document.createElement("input");
   el.className = "f num"; el.value = value; el.inputMode = "numeric";
   el.setAttribute("aria-label", label);
@@ -1394,9 +1443,59 @@ function mountEdit(race){
   document.title = (race.name || "Untitled race") + " — Splits";
   focusHeading("race-view");
 }
-/* The real follow view arrives in U5; until then follow falls back to edit so
-   the route resolves and the masthead "Watch live" link works. */
-function mountFollow(race){ return mountEdit(race); }
+function mountFollow(race){
+  mode = "follow"; active = race; selected = null; undoStack = [];
+  applyReadOnly(true);
+  const oe = $("#open-edit");
+  if(oe) oe.href = "#/race/" + encodeURIComponent(race.id) + "/edit";
+  show("race-view");
+  render();                 // readOnly render: static fields, no chrome
+  startMarker();
+  document.title = (race.name || "Untitled race") + " — Live";
+  focusHeading("race-view");
+}
+
+/* ---- live position marker (wall-clock driven, KTD5) ---- */
+function nowClockSeconds(){ const n = new Date(); return n.getHours()*3600 + n.getMinutes()*60 + n.getSeconds(); }
+let lastMarkerPhase = null, lastMarkerSeg = null;
+function startMarker(){
+  stopMarker();
+  lastMarkerPhase = null; lastMarkerSeg = null;
+  paintMarker();
+  const reduced = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  if(!reduced) markerTimer = setInterval(paintMarker, 1000);   // reduced motion -> single static paint
+}
+function paintMarker(){
+  const marker = $("#marker"), status = $("#marker-status");
+  if(!marker || !active) return;
+  const t = total();
+  if(t <= 0){ marker.hidden = true; if(status) status.textContent = ""; return; }   // splitless race (F9)
+  // race.start is seconds-of-day only, so before-gun and after-finish share a clock
+  // region once day-wrapped; disambiguate piecewise by nearest boundary (F1), never
+  // with a single elapsed/total formula that would clamp a negative delta to "finished".
+  const d = ((nowClockSeconds() - active.start) % 86400 + 86400) % 86400;
+  let phase, pos, seg = -1, label;
+  if(d <= t){
+    phase = "mid"; pos = d / t;
+    let cum = 0, idx = active.sections.length - 1;
+    for(let i = 0; i < active.sections.length; i++){ cum += active.sections[i].dur; if(d <= cum){ idx = i; break; } }
+    seg = idx;
+    const s = active.sections[idx];
+    label = "On course · " + (s.name || SPORTS[s.sport].label) + " · " + fmtSplit(d - (cum - s.dur)) + " into this segment";
+  }else if((86400 - d) < (d - t)){
+    phase = "before"; pos = 0; label = "Not started — gun at " + fmtClock(active.start);
+  }else{
+    phase = "after"; pos = 1; label = "Finished · " + fmtHMS(t);
+  }
+  marker.hidden = false;
+  marker.style.left = (pos * 100) + "%";
+  // The marker is aria-hidden; announce position on a polite region only when the phase
+  // or segment changes, so the 1 s tick does not spam screen readers (F14).
+  if(phase !== lastMarkerPhase || seg !== lastMarkerSeg){
+    if(status) status.textContent = label;
+    lastMarkerPhase = phase; lastMarkerSeg = seg;
+  }
+}
 
 /* Home / library: every saved race with its identity + finish, and per-race
    Open / Follow / Rename / Duplicate / Delete actions (R1-R4). */
