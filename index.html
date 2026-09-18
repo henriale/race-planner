@@ -195,6 +195,17 @@ input.wide{width:100%;font:inherit;font-size:14px;padding:10px 11px;border-radiu
 
 footer{margin-top:30px;color:var(--muted);font-size:12.5px;line-height:1.7}
 
+/* ---------- home / library ---------- */
+.home-head{margin-bottom:24px}
+.home-sub{margin:8px 0 0;color:var(--ink-2);font-size:14px}
+.race-meta{padding:10px 16px;color:var(--ink-2);font-size:13.5px;border-bottom:1px solid var(--rule)}
+.race-meta .sep{color:var(--muted);margin:0 6px}
+.finish-lab{font-size:12px;color:var(--muted);margin-right:6px}
+.leg-tot .fin{font-variation-settings:"wdth" 104,"wght" 660;color:var(--ink);font-size:16px}
+.race-card .leg-foot{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.race-card .leg-foot .spread{margin-right:auto}
+.home-empty{padding:44px 20px;text-align:center;color:var(--muted);border:1px dashed var(--rule);border-radius:14px;font-size:14px}
+
 @media (max-width:880px){
   .cols{display:none}
   .row{grid-template-columns:26px 1fr 1fr;gap:6px 10px;padding:12px 14px;align-items:start}
@@ -287,6 +298,17 @@ footer{margin-top:30px;color:var(--muted);font-size:12.5px;line-height:1.7}
       <button class="btn ghost spread" id="dlg-backup">Copy backup</button>
       <button class="btn ghost" id="dlg-cancel">Cancel</button>
       <button class="btn primary" id="dlg-apply">Replace splits</button>
+    </div>
+  </div>
+</dialog>
+
+<dialog id="renamedlg" class="narrow">
+  <div class="dlg">
+    <h3>Rename race</h3>
+    <input class="wide" id="rename-input" spellcheck="false" aria-label="Race name" placeholder="Race name">
+    <div class="dlg-foot">
+      <button class="btn ghost" id="rename-cancel">Cancel</button>
+      <button class="btn primary" id="rename-save">Save</button>
     </div>
   </div>
 </dialog>
@@ -589,6 +611,7 @@ function fmtDistLabel(sport, m){
    ============================================================ */
 function cumulative(i){ let t=0; for(let k=0;k<=i;k++) t += active.sections[k].dur; return t; }
 function total(){ return active.sections.reduce((a,s)=>a+s.dur,0); }
+function raceTotal(race){ return race.sections.reduce((a,s)=>a+s.dur,0); }   // finish for an arbitrary race
 
 function paceOf(sport, meters, seconds){
   if(!meters || !seconds) return null;
@@ -1336,37 +1359,98 @@ function mountEdit(race){
    the route resolves and the masthead "Watch live" link works. */
 function mountFollow(race){ return mountEdit(race); }
 
-/* Minimal home list — replaced by the full library view in U3. */
+/* Home / library: every saved race with its identity + finish, and per-race
+   Open / Follow / Rename / Duplicate / Delete actions (R1-R4). */
 function renderHome(){
   const el = $("#home-view");
   if(!el) return;
   const races = listRaces();
-  let html = '<header class="masthead"><div>'+
+  let html = '<header class="masthead home-head"><div>'+
              '<h1 id="home-title">Race splits</h1>'+
-             '<p class="where">Your saved races on this browser.</p></div></header>';
+             '<p class="home-sub">Your saved races on this browser.</p></div>'+
+             '<div class="tools"><button class="btn primary" data-act="new">New race</button></div>'+
+             '</header>';
   if(!races.length){
-    html += '<p class="hint">No races yet — create one to get started.</p>';
+    html += '<div class="home-empty">No races yet. <b>New race</b> starts one.</div>';
   }else{
     html += '<div class="legs">';
     races.forEach(r => {
       const id = encodeURIComponent(r.id);
-      html += '<div class="leg"><div class="leg-head">'+
-              '<div class="leg-title"><span class="t">'+esc(r.name || "Untitled race")+'</span>'+
-              (r.location ? '<span class="d">'+esc(r.location)+'</span>' : '')+'</div>'+
-              '<div class="leg-tot">'+
-              '<a class="btn" href="#/race/'+id+'/edit">Open</a> '+
-              '<a class="btn ghost" href="#/race/'+id+'/follow">Follow</a>'+
-              '</div></div></div>';
+      const race = loadRace(r.id);
+      const t = race ? raceTotal(race) : 0;
+      const meta = [];
+      if(r.location) meta.push(esc(r.location));
+      if(r.date) meta.push(esc(fmtDate(r.date)));
+      html += '<section class="leg race-card">'+
+        '<div class="leg-head">'+
+          '<div class="leg-title"><span class="t">'+esc(r.name || "Untitled race")+'</span></div>'+
+          '<div class="leg-tot"><span class="finish-lab">Finish</span>'+
+            '<span class="fin">'+(t ? fmtHMS(t) : "—")+'</span></div>'+
+        '</div>'+
+        (meta.length ? '<div class="race-meta">'+meta.join('<span class="sep">·</span>')+'</div>' : '')+
+        '<div class="leg-foot">'+
+          '<a class="btn primary" href="#/race/'+id+'/edit">Open</a>'+
+          '<a class="btn" href="#/race/'+id+'/follow">Follow</a>'+
+          '<button class="btn ghost spread" data-act="rename" data-id="'+esc(r.id)+'">Rename</button>'+
+          '<button class="btn ghost" data-act="dup" data-id="'+esc(r.id)+'">Duplicate</button>'+
+          '<button class="btn ghost" data-act="del" data-id="'+esc(r.id)+'">Delete</button>'+
+        '</div>'+
+      '</section>';
     });
     html += '</div>';
   }
-  html += '<div class="addbar"><button class="btn primary" id="home-new">New race</button></div>';
   el.innerHTML = html;
-  const nb = $("#home-new");
-  if(nb) nb.addEventListener("click", () => {
-    const r = createRace({});
-    location.hash = "#/race/" + encodeURIComponent(r.id) + "/edit";
+}
+
+/* One delegated handler on the (persistent) home container survives every
+   renderHome() rebuild — no per-mount rebinding, no listener growth. */
+$("#home-view").addEventListener("click", e => {
+  const btn = e.target.closest("[data-act]");
+  if(!btn) return;
+  const act = btn.dataset.act, id = btn.dataset.id;
+  if(act === "new"){ const r = createRace({}); location.hash = "#/race/" + encodeURIComponent(r.id) + "/edit"; }
+  else if(act === "rename") openRename(id);
+  else if(act === "dup") duplicateRace(id);
+  else if(act === "del") doDeleteRace(id);
+});
+
+const renamedlg = $("#renamedlg");
+let renameId = null;
+function openRename(id){
+  const r = listRaces().find(e => e.id === id);
+  renameId = id;
+  $("#rename-input").value = r ? (r.name || "") : "";
+  renamedlg.showModal();
+  $("#rename-input").focus();
+}
+$("#rename-cancel").addEventListener("click", () => renamedlg.close());
+$("#rename-save").addEventListener("click", () => {
+  if(renameId) renameRace(renameId, $("#rename-input").value.trim());
+  renamedlg.close();
+  renderHome();
+});
+$("#rename-input").addEventListener("keydown", e => { if(e.key === "Enter"){ e.preventDefault(); $("#rename-save").click(); } });
+
+function duplicateRace(id){
+  const src = loadRace(id);
+  if(!src) return;
+  const copy = createRace({
+    name: src.name ? src.name + " copy" : "Untitled race copy",
+    location: src.location, date: src.date,
+    dist: {swim:src.dist.swim, bike:src.dist.bike, run:src.dist.run},
+    start: src.start,
+    sections: src.sections.map(s => ({id:uid(), name:s.name, sport:s.sport, dist:s.dist, dur:s.dur, est:s.est, note:s.note, map:s.map}))
   });
+  renderHome();
+  toast("Duplicated as “" + copy.name + "”");
+}
+
+function doDeleteRace(id){
+  const blob = loadRace(id);              // capture the full blob so undo can restore it
+  deleteRace(id);
+  renderHome();
+  const name = blob ? (blob.name || "Untitled race") : "Race";
+  toast(name + " deleted", blob ? () => { saveRace(blob); renderHome(); } : null);
 }
 
 migrateLegacy();
