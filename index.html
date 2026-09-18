@@ -1,0 +1,1122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fodaxman Solo Point Five 2025 — Splits</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,100..900&display=swap" rel="stylesheet">
+<style>
+/* ---------- tokens ---------- */
+:root{
+  --canvas:#EDF1EF; --surface:#FFFFFF; --surface-2:#F6F9F7;
+  --ink:#131E1C; --ink-2:#3F504C; --muted:#73847F; --rule:#D7DFDB;
+  --swim:#1F6F8B; --bike:#B87F14; --run:#7D3A55; --trans:#8A9994;
+  --focus:#1F6F8B;
+  --shadow:0 10px 30px -22px rgba(19,30,28,.75);
+  --r:10px;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --canvas:#0E1817; --surface:#15201E; --surface-2:#1B2725;
+    --ink:#E9EFEC; --ink-2:#B4C2BD; --muted:#87958F; --rule:#253230;
+    --swim:#5BA8C6; --bike:#DFAC48; --run:#C67A97; --trans:#788884;
+    --focus:#5BA8C6;
+    --shadow:0 10px 30px -22px rgba(0,0,0,.9);
+  }
+}
+:root[data-theme="dark"]{
+  --canvas:#0E1817; --surface:#15201E; --surface-2:#1B2725;
+  --ink:#E9EFEC; --ink-2:#B4C2BD; --muted:#87958F; --rule:#253230;
+  --swim:#5BA8C6; --bike:#DFAC48; --run:#C67A97; --trans:#788884;
+  --focus:#5BA8C6;
+}
+
+*{box-sizing:border-box}
+html,body{margin:0}
+body{
+  background:var(--canvas); color:var(--ink);
+  font-family:"Archivo",system-ui,-apple-system,"Segoe UI",sans-serif;
+  font-variation-settings:"wdth" 100,"wght" 420;
+  font-variant-numeric:tabular-nums;
+  font-feature-settings:"tnum" 1;
+  line-height:1.45;
+  -webkit-text-size-adjust:100%;
+}
+.wrap{max-width:1100px;margin:0 auto;padding:28px 20px 80px}
+
+/* ---------- masthead ---------- */
+.masthead{display:flex;flex-wrap:wrap;align-items:flex-end;gap:16px 24px;justify-content:space-between;margin-bottom:26px}
+h1{margin:0;font-size:clamp(26px,4.4vw,42px);line-height:.98;font-variation-settings:"wdth" 122,"wght" 760;letter-spacing:-.018em}
+h1 .yr{color:var(--muted);font-variation-settings:"wdth" 122,"wght" 500}
+.where{margin:8px 0 0;color:var(--ink-2);font-size:14px}
+.where b{font-variation-settings:"wdth" 100,"wght" 600;color:var(--ink)}
+.tools{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.sync{display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--muted);padding:0 2px}
+.sync::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--muted);flex:none}
+.sync.ok::before{background:#3E9B5F}
+.sync.bad{color:var(--run)}
+.sync.bad::before{background:var(--run)}
+
+button{font:inherit;color:inherit;cursor:pointer}
+.btn{
+  background:var(--surface);border:1px solid var(--rule);border-radius:var(--r);
+  padding:8px 13px;font-size:13.5px;font-variation-settings:"wdth" 100,"wght" 560;
+  transition:border-color .12s ease,background .12s ease;text-decoration:none;color:inherit;display:inline-block;
+}
+.btn:hover{border-color:var(--ink-2)}
+.btn.primary{background:var(--ink);color:var(--canvas);border-color:var(--ink)}
+.btn.primary:hover{opacity:.9}
+.btn.ghost{background:transparent}
+:where(button,input,select,a,[tabindex]):focus-visible{outline:2px solid var(--focus);outline-offset:2px;border-radius:6px}
+
+/* ---------- hero strip ---------- */
+.board{background:var(--surface);border:1px solid var(--rule);border-radius:14px;box-shadow:var(--shadow);padding:20px 20px 16px;margin-bottom:28px}
+.board-top{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:14px;margin-bottom:16px}
+.startline{display:flex;align-items:baseline;gap:8px;color:var(--ink-2);font-size:13.5px}
+.finish{text-align:right}
+.finish .lab{display:block;font-size:12.5px;color:var(--muted);margin-bottom:-2px}
+.finish .val{font-size:clamp(30px,6vw,52px);line-height:1;font-variation-settings:"wdth" 118,"wght" 700;letter-spacing:-.02em}
+
+.strip{position:relative;padding-bottom:26px}
+.bar{display:flex;height:58px;border-radius:8px;overflow:hidden;background:var(--surface-2);border:1px solid var(--rule)}
+.seg{flex-basis:0;min-width:5px;position:relative;display:flex;align-items:center;justify-content:center;border-right:1px solid rgba(255,255,255,.28);cursor:pointer;overflow:hidden}
+.seg:last-child{border-right:0}
+.seg[data-sport="swim"]{background:var(--swim)}
+.seg[data-sport="bike"]{background:var(--bike)}
+.seg[data-sport="run"]{background:var(--run)}
+.seg[data-sport="trans"]{background:var(--trans)}
+.seg span{color:#fff;font-size:12px;white-space:nowrap;padding:0 8px;font-variation-settings:"wdth" 100,"wght" 600;text-shadow:0 1px 2px rgba(0,0,0,.28)}
+.seg.on{filter:brightness(1.12);box-shadow:inset 0 0 0 2px rgba(255,255,255,.8)}
+.seg.pin::after{content:"";position:absolute;top:5px;right:5px;width:6px;height:6px;border-radius:50%;background:rgba(255,255,255,.95)}
+.ticks{position:absolute;left:0;right:0;bottom:0;height:22px}
+.tick{position:absolute;top:0;transform:translateX(-50%);font-size:11px;color:var(--muted);white-space:nowrap}
+.tick::before{content:"";display:block;width:1px;height:6px;background:var(--rule);margin:0 auto 2px}
+.bar.empty{border-style:dashed;align-items:center;justify-content:center}
+.bar.empty p{margin:0;color:var(--muted);font-size:13.5px}
+
+.chips{display:flex;flex-wrap:wrap;gap:10px;margin-top:18px}
+.chip{flex:1 1 170px;border:1px solid var(--rule);border-radius:var(--r);padding:10px 12px;background:var(--surface-2);border-left:3px solid var(--sp,var(--rule))}
+.chip[data-sport="swim"]{--sp:var(--swim)}
+.chip[data-sport="bike"]{--sp:var(--bike)}
+.chip[data-sport="run"]{--sp:var(--run)}
+.chip .name{font-size:12.5px;color:var(--muted)}
+.chip .pace{font-size:20px;font-variation-settings:"wdth" 108,"wght" 680;line-height:1.15}
+.chip .u{font-size:12px;color:var(--muted);font-variation-settings:"wdth" 100,"wght" 400}
+.chip .sub{font-size:12.5px;color:var(--ink-2)}
+
+/* ---------- table ---------- */
+.legend{display:flex;justify-content:space-between;align-items:baseline;margin:0 0 10px;gap:12px;flex-wrap:wrap}
+.legend h2{margin:0;font-size:17px;font-variation-settings:"wdth" 112,"wght" 680}
+.hint{color:var(--muted);font-size:12.5px;margin:0;max-width:62ch}
+
+.legs{display:flex;flex-direction:column;gap:14px}
+.leg{background:var(--surface);border:1px solid var(--rule);border-radius:14px;overflow:hidden}
+.leg-head{display:flex;flex-wrap:wrap;gap:8px 16px;align-items:baseline;justify-content:space-between;padding:12px 16px;background:var(--surface-2);border-bottom:1px solid var(--rule);border-left:4px solid var(--sp,var(--trans))}
+.leg[data-sport="swim"]{--sp:var(--swim)}
+.leg[data-sport="bike"]{--sp:var(--bike)}
+.leg[data-sport="run"]{--sp:var(--run)}
+.leg[data-sport="trans"]{--sp:var(--trans)}
+.leg-title{display:flex;align-items:baseline;gap:10px}
+.leg-title .t{font-size:15.5px;font-variation-settings:"wdth" 110,"wght" 680}
+.leg-title .d{font-size:13px;color:var(--muted)}
+.leg-tot{display:flex;gap:16px;align-items:baseline;font-size:13.5px;color:var(--ink-2)}
+.leg-tot b{font-variation-settings:"wdth" 104,"wght" 660;color:var(--ink);font-size:15px}
+
+.cols,.row{display:grid;grid-template-columns:26px minmax(140px,1fr) 88px 88px 92px 84px 100px 68px;gap:10px;align-items:center}
+.cols{padding:8px 16px;border-bottom:1px solid var(--rule);font-size:11.5px;color:var(--muted)}
+.cols span:nth-child(n+3):nth-child(-n+7){text-align:right}
+.row{padding:7px 16px;border-bottom:1px solid var(--rule)}
+.row:last-of-type{border-bottom:0}
+.row:hover,.row.on{background:var(--surface-2)}
+
+.grip{border:1px solid transparent;background:transparent;color:var(--muted);border-radius:6px;width:24px;height:28px;display:grid;place-items:center;padding:0;cursor:grab;touch-action:none}
+.grip:hover{color:var(--ink);border-color:var(--rule)}
+.grip svg{width:11px;height:16px;display:block;fill:currentColor}
+.row.dragging{position:relative;z-index:20;background:var(--surface);border-radius:10px;box-shadow:0 14px 28px -14px rgba(0,0,0,.5);cursor:grabbing}
+.row.dragging .grip{cursor:grabbing}
+.row.drop-before{box-shadow:inset 0 2px 0 0 var(--focus)}
+.row.drop-after{box-shadow:inset 0 -2px 0 0 var(--focus)}
+body.dragging .leg{overflow:visible}
+body.dragging{cursor:grabbing}
+
+.cell{position:relative}
+.k{display:none;font-size:11px;color:var(--muted)}
+input.f{width:100%;background:transparent;border:1px solid transparent;border-radius:7px;padding:6px 8px;font:inherit;font-size:14px;color:inherit;font-variant-numeric:tabular-nums}
+input.f:hover{border-color:var(--rule)}
+input.f:focus{border-color:var(--focus);background:var(--surface);outline:none;box-shadow:0 0 0 3px color-mix(in srgb,var(--focus) 18%,transparent)}
+input.num{text-align:right}
+input.name{font-variation-settings:"wdth" 100,"wght" 540}
+input.est{color:var(--muted);font-style:italic}
+input.f::placeholder{color:var(--muted);opacity:.7}
+.derived{text-align:right;padding:6px 8px;font-size:14px;color:var(--ink-2)}
+.derived.pace{font-variation-settings:"wdth" 100,"wght" 620;color:var(--ink)}
+.derived .u{font-size:11px;color:var(--muted);margin-left:3px;font-variation-settings:"wdth" 100,"wght" 400}
+.acts{display:flex;gap:2px;justify-content:flex-end}
+.icon{border:1px solid transparent;background:transparent;color:var(--muted);border-radius:7px;width:30px;height:30px;display:grid;place-items:center;padding:0}
+.icon:hover{border-color:var(--rule);color:var(--ink)}
+.icon svg{width:16px;height:16px;display:block}
+.icon.set{color:var(--swim)}
+.icon.set svg path{fill:currentColor}
+.leg-foot{padding:9px 16px;border-top:1px solid var(--rule);background:var(--surface-2)}
+.link{background:none;border:0;padding:4px 0;color:var(--ink-2);font-size:13px;font-variation-settings:"wdth" 100,"wght" 560;text-decoration:underline;text-underline-offset:3px;text-decoration-thickness:1px}
+.link:hover{color:var(--ink)}
+
+.addbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:16px}
+select.f{font:inherit;font-size:13.5px;padding:8px 10px;border-radius:var(--r);border:1px solid var(--rule);background:var(--surface);color:inherit}
+
+.noterow{grid-column:1/-1;display:none;padding-top:2px}
+.row.expanded .noterow{display:block}
+.noterow input{width:100%}
+
+/* ---------- dialogs ---------- */
+dialog{border:1px solid var(--rule);border-radius:14px;background:var(--surface);color:var(--ink);padding:0;max-width:720px;width:calc(100% - 32px);box-shadow:0 30px 60px -30px rgba(0,0,0,.5)}
+dialog.narrow{max-width:460px}
+dialog::backdrop{background:rgba(10,20,18,.42)}
+.dlg{padding:20px}
+.dlg h3{margin:0 0 4px;font-size:19px;font-variation-settings:"wdth" 112,"wght" 700}
+.dlg p{margin:0 0 14px;color:var(--ink-2);font-size:13.5px}
+textarea{width:100%;min-height:170px;font:inherit;font-size:13.5px;line-height:1.5;background:var(--surface-2);color:inherit;border:1px solid var(--rule);border-radius:var(--r);padding:11px;resize:vertical}
+textarea:focus,input.wide:focus{outline:none;border-color:var(--focus);box-shadow:0 0 0 3px color-mix(in srgb,var(--focus) 18%,transparent)}
+input.wide{width:100%;font:inherit;font-size:14px;padding:10px 11px;border-radius:var(--r);border:1px solid var(--rule);background:var(--surface-2);color:inherit}
+.preview{margin-top:14px;border:1px solid var(--rule);border-radius:var(--r);max-height:220px;overflow:auto}
+.preview table{border-collapse:collapse;width:100%;font-size:13px}
+.preview th,.preview td{text-align:left;padding:6px 10px;border-bottom:1px solid var(--rule)}
+.preview th{color:var(--muted);font-variation-settings:"wdth" 100,"wght" 560;position:sticky;top:0;background:var(--surface)}
+.preview td.n{text-align:right;font-variant-numeric:tabular-nums}
+.dlg-foot{display:flex;justify-content:flex-end;gap:8px;margin-top:16px;flex-wrap:wrap}
+.dlg-foot .spread{margin-right:auto}
+.warn{color:var(--run);font-size:13px;margin-top:10px}
+
+.toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);background:var(--ink);color:var(--canvas);border-radius:999px;padding:9px 16px;font-size:13.5px;display:flex;gap:12px;align-items:center;z-index:50;box-shadow:0 14px 30px -14px rgba(0,0,0,.6)}
+.toast button{background:none;border:0;color:inherit;text-decoration:underline;text-underline-offset:3px;font-size:13.5px}
+.toast[hidden]{display:none}
+
+footer{margin-top:30px;color:var(--muted);font-size:12.5px;line-height:1.7}
+
+@media (max-width:880px){
+  .cols{display:none}
+  .row{grid-template-columns:26px 1fr 1fr;gap:6px 10px;padding:12px 14px;align-items:start}
+  .row .cell:nth-child(2){grid-column:2/-1}
+  .row .acts{grid-column:3;justify-self:end;margin-top:-4px}
+  .grip{height:34px;width:26px}
+  .k{display:block;padding:0 8px}
+  input.f{padding:4px 8px}
+  .derived{padding:4px 8px}
+  .leg-tot{width:100%}
+}
+@media (prefers-reduced-motion: reduce){*{transition:none!important;animation:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="masthead">
+    <div>
+      <h1>Fodaxman Solo Point Five <span class="yr">2025</span></h1>
+      <p class="where">Serra do Rio do Rastro, SC · 27 Sep 2025 · <b>2 km</b> swim, <b>87 km</b> bike, <b>22 km</b> run</p>
+    </div>
+    <div class="tools">
+      <button class="btn primary" id="btn-import">Paste results</button>
+      <button class="btn" id="btn-copy">Copy data</button>
+      <button class="btn ghost" id="btn-reset">Reset to race</button>
+      <span class="sync" id="sync" role="status" aria-live="polite">Not saved yet</span>
+    </div>
+  </header>
+
+  <section class="board" aria-label="Race timeline">
+    <div class="board-top">
+      <label class="startline">
+        Gun time
+        <input class="f num" id="start" style="width:104px" aria-label="Race start clock time">
+      </label>
+      <div class="finish">
+        <span class="lab">Finish</span>
+        <span class="val" id="finish">—</span>
+      </div>
+    </div>
+    <div class="strip">
+      <div class="bar" id="bar"></div>
+      <div class="ticks" id="ticks"></div>
+    </div>
+    <div class="chips" id="chips"></div>
+  </section>
+
+  <div class="legend">
+    <h2>Splits</h2>
+    <p class="hint">Edit a <b>split</b> and everything after it shifts — that is the simulation mode. Edit an <b>elapsed</b> or <b>clock</b> time and the next split absorbs the change, so the finish holds. Arrow keys nudge by 1 s, Shift for 1 min. Drag the handle to reposition a checkpoint; its split and distance clear, since both were measured between its old neighbours.</p>
+  </div>
+
+  <div class="legs" id="legs"></div>
+
+  <div class="addbar">
+    <select class="f" id="new-sport" aria-label="Sport for the new section">
+      <option value="swim">Swim</option>
+      <option value="bike">Bike</option>
+      <option value="run" selected>Run</option>
+      <option value="trans">Transition</option>
+    </select>
+    <button class="btn" id="btn-add">Add section at the end</button>
+  </div>
+
+  <footer>
+    Every edit is stored in this browser as you make it — the header shows the last save. It does not follow you to another device: “Paste results → Copy backup” gives you the whole thing as JSON, and pasting that JSON back restores it anywhere.<br>
+    Bike checkpoint distances are estimates split evenly across the leg — type a real distance and the italics clear.<br>
+    Next up for the timeline: elevation per checkpoint, cut-off times, and a live "where is he now" marker for the staff view.
+  </footer>
+</div>
+
+<div class="toast" id="toast" hidden><span id="toast-msg"></span><button id="toast-undo">Undo</button></div>
+
+<dialog id="dlg">
+  <div class="dlg">
+    <h3>Paste your results</h3>
+    <p>Works with the raw race notes — leg headings, <code>6:44 - fim natação (44')</code>, and <code>(T1 = 11')</code> are all understood — or with three columns: clock, name, elapsed.</p>
+    <textarea id="raw" spellcheck="false" placeholder="NATAÇÃO&#10;6:00 - largada&#10;6:44 - fim natação (44')&#10;&#10;(T1 = 11')&#10;&#10;BIKE&#10;6:55 - largada da bike&#10;7:33 - cruzamento ida (38')"></textarea>
+    <div class="preview" id="preview" hidden></div>
+    <p class="warn" id="parse-warn" hidden></p>
+    <div class="dlg-foot">
+      <button class="btn ghost spread" id="dlg-backup">Copy backup</button>
+      <button class="btn ghost" id="dlg-cancel">Cancel</button>
+      <button class="btn primary" id="dlg-apply">Replace splits</button>
+    </div>
+  </div>
+</dialog>
+
+<dialog id="mapdlg" class="narrow">
+  <div class="dlg">
+    <h3 id="map-title">Map link</h3>
+    <p>Paste a Google Maps or Strava link, or just coordinates like <code>-28.3927, -49.5401</code>.</p>
+    <input class="wide" id="map-url" spellcheck="false" placeholder="https://… or lat, lng" aria-label="Map link or coordinates">
+    <p class="warn" id="map-warn" hidden></p>
+    <div class="dlg-foot">
+      <a class="btn spread" id="map-open" href="#" target="_blank" rel="noopener" hidden>Open map</a>
+      <button class="btn ghost" id="map-remove" hidden>Remove</button>
+      <button class="btn ghost" id="map-cancel">Cancel</button>
+      <button class="btn primary" id="map-save">Save link</button>
+    </div>
+  </div>
+</dialog>
+
+<script>
+(function(){
+"use strict";
+
+/* ============================================================
+   1. Model
+   ============================================================ */
+const SPORTS = {
+  swim : {label:"Swim",       unit:"m",  pace:"per100m", official:2000},
+  bike : {label:"Bike",       unit:"km", pace:"kmh",     official:87000},
+  run  : {label:"Run",        unit:"km", pace:"perkm",   official:22000},
+  trans: {label:"Transition", unit:null, pace:null,      official:null}
+};
+const ORDER = ["swim","bike","run"];
+const KEY = "fodaxman-sp5-2025-v2";
+const M = 60;
+
+function uid(){ return Math.random().toString(36).slice(2,9); }
+const sec = (name,sport,dist,dur,est) => ({id:uid(), name, sport, dist, dur, est:!!est, note:"", map:""});
+
+/** The race as run: 6:00 gun, 13:44 finish. */
+const RACE = () => ({
+  start: 6*3600,
+  sections: [
+    sec("Fim da natação",       "swim",  2000,  44*M),
+    sec("T1",                   "trans", null,  11*M),
+    sec("Cruzamento ida",       "bike",  14500, 38*M, true),
+    sec("Cruzamento volta",     "bike",  14500, 38*M, true),
+    sec("Fim do retão",         "bike",  14500, 37*M, true),
+    sec("Chegada Lauro Müller", "bike",  14500, 52*M, true),
+    sec("Mirante 13",           "bike",  14500, 30*M, true),
+    sec("Mirante Serra",        "bike",  14500, 80*M, true),
+    sec("T2",                   "trans", null,   5*M),
+    sec("Chegada Mirante",      "run",   22000,129*M)
+  ]
+});
+
+/* ---- storage ------------------------------------------------
+   Everything lives in localStorage under KEY. Writes happen on every
+   mutation; the header shows when the last one landed, and says so
+   loudly if the browser refuses to store anything.               */
+const OLD_KEYS = ["fodaxman-sp5-2025"];
+let storageOK = true;
+
+function storageGet(k){ try{ return localStorage.getItem(k); }catch(e){ storageOK = false; return null; } }
+
+/** Accepts a stored blob or a pasted backup; returns a clean state or null. */
+function normalize(obj){
+  if(!obj || typeof obj !== "object") return null;
+  if(!Array.isArray(obj.sections) || !obj.sections.length) return null;
+  const sections = obj.sections
+    .filter(x => x && typeof x === "object" && SPORTS[x.sport])
+    .map(x => ({
+      id:   typeof x.id === "string" ? x.id : uid(),
+      name: typeof x.name === "string" ? x.name : "",
+      sport: x.sport,
+      dist: (typeof x.dist === "number" && isFinite(x.dist) && x.dist >= 0) ? x.dist : null,
+      dur:  (typeof x.dur === "number" && isFinite(x.dur) && x.dur >= 0) ? Math.round(x.dur) : 0,
+      est:  !!x.est,
+      note: typeof x.note === "string" ? x.note : "",
+      map:  typeof x.map === "string" ? x.map : ""
+    }));
+  if(!sections.length) return null;
+  const start = (typeof obj.start === "number" && isFinite(obj.start)) ? ((obj.start % 86400) + 86400) % 86400 : 6*3600;
+  return {start, sections, savedAt: typeof obj.savedAt === "number" ? obj.savedAt : null};
+}
+
+function load(){
+  let raw = storageGet(KEY);
+  if(!raw){                       // carry over anything left by an earlier version
+    for(const k of OLD_KEYS){
+      const legacy = storageGet(k);
+      if(legacy){ raw = legacy; break; }
+    }
+  }
+  if(!raw) return null;
+  try{ return normalize(JSON.parse(raw)); }catch(e){ return null; }
+}
+
+function save(){
+  state.savedAt = Date.now();
+  try{
+    localStorage.setItem(KEY, JSON.stringify(state));
+    storageOK = true;
+  }catch(e){ storageOK = false; }
+  showSaved();
+}
+
+function showSaved(){
+  const el = document.getElementById("sync");
+  if(!el) return;
+  if(!storageOK){
+    el.className = "sync bad";
+    el.textContent = "Not saving — this browser blocks storage";
+    el.title = "Private browsing or blocked site data. Use “Copy backup” before you close the tab.";
+    return;
+  }
+  el.className = "sync ok";
+  el.textContent = state.savedAt ? "Saved " + fmtClock(clockOf(state.savedAt)).slice(0,5) : "Saved";
+  el.title = "Stored in this browser. Clearing site data removes it — “Copy backup” gives you a copy.";
+}
+function clockOf(ms){ const d = new Date(ms); return d.getHours()*3600 + d.getMinutes()*60 + d.getSeconds(); }
+
+let state = load() || RACE();
+let undoStack = [];
+let selected = null;
+function snapshot(){
+  undoStack.push(JSON.stringify(state));
+  if(undoStack.length > 60) undoStack.shift();
+}
+function undo(){
+  const prev = undoStack.pop();
+  if(!prev) return;
+  state = JSON.parse(prev); save(); render();
+}
+
+/* ============================================================
+   2. Time + distance parsing / formatting
+   ============================================================ */
+function parseDur(str){
+  if(str == null) return null;
+  const s = String(str).trim().replace(",",":").replace(/\s+/g,"");
+  if(!s) return null;
+  let m = s.match(/^(\d+)h(?:(\d+)(?:min|m)?)?(?:(\d+)s?)?$/i);
+  if(m) return (+m[1])*3600 + (+(m[2]||0))*60 + (+(m[3]||0));
+  const parts = s.split(":");
+  if(parts.some(p => p === "" || !/^\d+(\.\d+)?$/.test(p))) return null;
+  const n = parts.map(Number);
+  if(n.length === 1) return Math.round(n[0]);
+  if(n.length === 2) return Math.round(n[0]*60 + n[1]);
+  if(n.length === 3) return Math.round(n[0]*3600 + n[1]*60 + n[2]);
+  return null;
+}
+/** Also accepts 11', 1h15', 45min. */
+function parseFlexDur(str){
+  const s = String(str||"").trim();
+  if(!s) return null;
+  if(s.indexOf(":") >= 0) return parseDur(s);
+  let m = s.match(/^(\d+)\s*h\s*(\d+)?\s*(?:min|m|')?$/i);
+  if(m) return (+m[1])*3600 + (+(m[2]||0))*60;
+  m = s.match(/^(\d+)\s*(?:min|m|')$/i);
+  if(m) return (+m[1])*60;
+  return null;
+}
+const pad = v => String(v).padStart(2,"0");
+function fmtHMS(s){ s = Math.max(0,Math.round(s)); return Math.floor(s/3600)+":"+pad(Math.floor(s/60)%60)+":"+pad(s%60); }
+function fmtClock(s){ s = Math.round(s)%86400; if(s<0) s += 86400; return pad(Math.floor(s/3600))+":"+pad(Math.floor(s/60)%60)+":"+pad(s%60); }
+function fmtSplit(s){ s = Math.max(0,Math.round(s)); return s>=3600 ? fmtHMS(s) : Math.floor(s/60)+":"+pad(s%60); }
+function fmtMS(s){ s = Math.round(s); return Math.floor(s/60)+":"+pad(s%60); }
+
+function distIn(section, str){
+  const v = parseFloat(String(str).replace(",","."));
+  if(!isFinite(v) || v < 0) return null;
+  return SPORTS[section.sport].unit === "km" ? Math.round(v*1000) : Math.round(v);
+}
+function distOut(section){
+  if(section.dist == null) return "";
+  const u = SPORTS[section.sport].unit;
+  if(!u) return "";
+  return u === "km" ? String(+(section.dist/1000).toFixed(2)) : String(section.dist);
+}
+function fmtDistLabel(sport, m){
+  return SPORTS[sport].unit === "km" ? (+(m/1000).toFixed(2))+" km" : m+" m";
+}
+
+/* ============================================================
+   3. Derived values
+   ============================================================ */
+function cumulative(i){ let t=0; for(let k=0;k<=i;k++) t += state.sections[k].dur; return t; }
+function total(){ return state.sections.reduce((a,s)=>a+s.dur,0); }
+
+function paceOf(sport, meters, seconds){
+  if(!meters || !seconds) return null;
+  if(sport === "swim") return {v:fmtMS(seconds/(meters/100)), u:"/100 m"};
+  if(sport === "bike") return {v:((meters/1000)/(seconds/3600)).toFixed(1), u:"km/h"};
+  if(sport === "run")  return {v:fmtMS(seconds/(meters/1000)), u:"/km"};
+  return null;
+}
+function legTotals(){
+  const out = {};
+  for(const s of state.sections){
+    const t = out[s.sport] || (out[s.sport] = {dur:0, dist:0, est:false});
+    t.dur += s.dur; t.dist += (s.dist||0);
+    if(s.est) t.est = true;
+  }
+  return out;
+}
+function groups(){
+  const g = [];
+  state.sections.forEach((s,i) => {
+    const last = g[g.length-1];
+    if(last && last.sport === s.sport) last.items.push({s,i});
+    else g.push({sport:s.sport, items:[{s,i}]});
+  });
+  return g;
+}
+
+/* ============================================================
+   4. Mutations — the two editing rules
+   ============================================================ */
+function setDur(i, seconds){            // split edit: push everything after
+  snapshot();
+  state.sections[i].dur = Math.max(0, Math.round(seconds));
+  commit();
+}
+function setCumulative(i, seconds){     // elapsed/clock edit: next split absorbs it
+  snapshot();
+  const ss = state.sections;
+  const target = Math.max(0, Math.round(seconds));
+  const before = cumulative(i) - ss[i].dur;
+  const dur = Math.max(0, target - before);
+  const delta = (before + dur) - cumulative(i);
+  ss[i].dur = dur;
+  if(ss[i+1]) ss[i+1].dur = Math.max(0, ss[i+1].dur - delta);
+  commit();
+}
+/**
+ * Move a section to a new slot. Its split and distance were measured
+ * between its old neighbours, so both are cleared — the name, note and
+ * map link describe the place and travel with it.
+ * `sport` adopts the leg it was dropped into; null keeps the current one.
+ */
+function moveSection(from, insertAt, sport){
+  const arr = state.sections;
+  let pos = insertAt;
+  if(pos > from) pos--;
+  pos = Math.max(0, Math.min(arr.length-1, pos));
+  const changesSport = sport && SPORTS[sport] && sport !== arr[from].sport;
+  if(pos === from && !changesSport) return;
+
+  const before = JSON.stringify(state);
+  snapshot();
+  const [s] = arr.splice(from, 1);
+  if(changesSport) s.sport = sport;
+  s.dur = 0;
+  s.dist = null;
+  s.est = false;
+  arr.splice(pos, 0, s);
+  commit();
+  toast((s.name || "Checkpoint") + " moved — split and distance cleared",
+        () => { state = JSON.parse(before); save(); render(); });
+}
+
+/* ---- drag to reorder ----------------------------------------
+   Pointer events rather than HTML5 drag-and-drop, so the handle
+   works the same under a finger on the roadside.               */
+let drag = null;
+
+function rowRects(){
+  return [...document.querySelectorAll(".row")].map(el => ({
+    el, id: el.dataset.id, rect: el.getBoundingClientRect()
+  }));
+}
+function clearDropMarks(){
+  document.querySelectorAll(".drop-before,.drop-after")
+    .forEach(el => el.classList.remove("drop-before","drop-after"));
+}
+function startDrag(ev, id){
+  if(ev.button != null && ev.button !== 0) return;
+  const row = ev.currentTarget.closest(".row");
+  if(!row) return;
+  ev.preventDefault();
+  drag = {id, row, startPageY: ev.clientY + window.scrollY, target:null, before:true, moved:false};
+  row.classList.add("dragging");
+  document.body.classList.add("dragging");
+  try{ ev.currentTarget.setPointerCapture(ev.pointerId); }catch(e){}
+  window.addEventListener("pointermove", moveDrag);
+  window.addEventListener("pointerup", endDrag);
+  window.addEventListener("pointercancel", endDrag);
+}
+function moveDrag(ev){
+  if(!drag) return;
+  const dy = (ev.clientY + window.scrollY) - drag.startPageY;
+  if(Math.abs(dy) > 3) drag.moved = true;
+  drag.row.style.transform = "translateY("+dy+"px)";
+
+  if(ev.clientY < 70) window.scrollBy(0,-14);
+  else if(ev.clientY > window.innerHeight - 70) window.scrollBy(0,14);
+
+  const others = rowRects().filter(r => r.id !== drag.id);
+  if(!others.length) return;
+  let best = others.find(r => ev.clientY >= r.rect.top && ev.clientY <= r.rect.bottom);
+  if(!best) best = ev.clientY < others[0].rect.top ? others[0] : others[others.length-1];
+
+  clearDropMarks();
+  drag.before = ev.clientY < (best.rect.top + best.rect.bottom)/2;
+  drag.target = best;
+  best.el.classList.add(drag.before ? "drop-before" : "drop-after");
+}
+function endDrag(){
+  if(!drag) return;
+  const d = drag; drag = null;
+  window.removeEventListener("pointermove", moveDrag);
+  window.removeEventListener("pointerup", endDrag);
+  window.removeEventListener("pointercancel", endDrag);
+  d.row.style.transform = "";
+  d.row.classList.remove("dragging");
+  document.body.classList.remove("dragging");
+  clearDropMarks();
+  if(!d.moved || !d.target) return;
+
+  const from = state.sections.findIndex(x => x.id === d.id);
+  const t    = state.sections.findIndex(x => x.id === d.target.id);
+  if(from < 0 || t < 0) return;
+
+  // A transition is structural: it keeps its own sport wherever it lands,
+  // and dropping onto one never turns a checkpoint into a transition.
+  const legEl = d.target.el.closest(".leg");
+  const legSport = legEl ? legEl.dataset.sport : null;
+  const sport = (state.sections[from].sport === "trans" || legSport === "trans") ? null : legSport;
+  moveSection(from, d.before ? t : t+1, sport);
+}
+
+function commit(){ save(); render(); }
+
+function addSection(sport, atIndex){
+  snapshot();
+  const s = sec("", sport, null, 0);
+  state.sections.splice(atIndex, 0, s);
+  commit();
+  const el = document.querySelector('[data-id="'+s.id+'"] input.name');
+  if(el) el.focus();
+}
+function removeSection(i){
+  const before = JSON.stringify(state);
+  snapshot();
+  const [gone] = state.sections.splice(i,1);
+  if(!state.sections.length) state.sections.push(sec("", "swim", null, 0));
+  commit();
+  toast((gone.name || "Section")+" removed", () => { state = JSON.parse(before); save(); render(); });
+}
+
+/* ============================================================
+   5. Render
+   ============================================================ */
+const $ = s => document.querySelector(s);
+const legsEl = $("#legs");
+const PIN_OUT = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s7-6.2 7-11a7 7 0 1 0-14 0c0 4.8 7 11 7 11z" fill="none" stroke="currentColor" stroke-width="1.7"/><circle cx="12" cy="10" r="2.4" fill="none" stroke="currentColor" stroke-width="1.7"/></svg>';
+const PIN_IN  = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s7-6.2 7-11a7 7 0 1 0-14 0c0 4.8 7 11 7 11zm0-8.6a2.4 2.4 0 1 1 0-4.8 2.4 2.4 0 0 1 0 4.8z"/></svg>';
+const GRIP = '<svg viewBox="0 0 8 14" aria-hidden="true"><circle cx="2" cy="2" r="1.3"/><circle cx="6" cy="2" r="1.3"/><circle cx="2" cy="7" r="1.3"/><circle cx="6" cy="7" r="1.3"/><circle cx="2" cy="12" r="1.3"/><circle cx="6" cy="12" r="1.3"/></svg>';
+
+function render(){ $("#start").value = fmtClock(state.start); renderBoard(); renderLegs(); }
+
+function renderBoard(){
+  const t = total();
+  $("#finish").textContent = t ? fmtHMS(t) : "—";
+  const bar = $("#bar"), ticks = $("#ticks");
+  bar.innerHTML = ""; ticks.innerHTML = "";
+
+  if(!t){
+    bar.classList.add("empty");
+    bar.innerHTML = "<p>No times yet — paste your results or type a split below.</p>";
+  }else{
+    bar.classList.remove("empty");
+    state.sections.forEach(s => {
+      if(s.dur <= 0) return;
+      const d = document.createElement("div");
+      d.className = "seg" + (selected===s.id?" on":"") + ((s.note||s.map)?" pin":"");
+      d.dataset.sport = s.sport;
+      d.style.flexGrow = s.dur;
+      d.title = (s.name||SPORTS[s.sport].label)+" · "+fmtSplit(s.dur)+(s.note?" · "+s.note:"");
+      if(s.dur/t > 0.07) d.innerHTML = "<span>"+fmtSplit(s.dur)+"</span>";
+      d.addEventListener("click", () => {
+        selected = selected===s.id ? null : s.id;
+        render();
+        const row = document.querySelector('[data-id="'+s.id+'"]');
+        if(row && selected) row.scrollIntoView({block:"center", behavior:"smooth"});
+      });
+      bar.appendChild(d);
+    });
+    const firstHour = Math.ceil(state.start/3600)*3600;
+    for(let c = firstHour; c <= state.start + t; c += 3600){
+      const el = document.createElement("div");
+      el.className = "tick";
+      el.style.left = ((c-state.start)/t*100)+"%";
+      el.textContent = pad(Math.floor(c/3600)%24)+":00";
+      ticks.appendChild(el);
+    }
+  }
+
+  const tot = legTotals(), chips = $("#chips");
+  chips.innerHTML = "";
+  ORDER.forEach(sport => {
+    const v = tot[sport];
+    if(!v) return;
+    const p = paceOf(sport, v.dist, v.dur);
+    const el = document.createElement("div");
+    el.className = "chip"; el.dataset.sport = sport;
+    el.innerHTML =
+      '<div class="name">'+SPORTS[sport].label+'</div>'+
+      '<div class="pace">'+(p ? p.v+' <span class="u">'+p.u+'</span>' : "—")+'</div>'+
+      '<div class="sub">'+fmtHMS(v.dur)+' · '+(v.dist ? fmtDistLabel(sport,v.dist) : "no distance")+(v.est?" (est.)":"")+'</div>';
+    chips.appendChild(el);
+  });
+}
+
+function renderLegs(){
+  legsEl.innerHTML = "";
+  groups().forEach(g => {
+    const meta = SPORTS[g.sport];
+    const dur  = g.items.reduce((a,x)=>a+x.s.dur,0);
+    const dist = g.items.reduce((a,x)=>a+(x.s.dist||0),0);
+    const p = paceOf(g.sport, dist, dur);
+
+    const leg = document.createElement("section");
+    leg.className = "leg"; leg.dataset.sport = g.sport;
+
+    const head = document.createElement("div");
+    head.className = "leg-head";
+    head.innerHTML =
+      '<div class="leg-title"><span class="t">'+meta.label+'</span>'+
+      (dist ? '<span class="d">'+fmtDistLabel(g.sport,dist)+'</span>' : '')+'</div>'+
+      '<div class="leg-tot"><span><b>'+fmtHMS(dur)+'</b></span>'+
+      (p ? '<span><b>'+p.v+'</b> '+p.u+'</span>' : '')+'</div>';
+    leg.appendChild(head);
+
+    const cols = document.createElement("div");
+    cols.className = "cols";
+    cols.innerHTML = "<span></span><span>Checkpoint</span><span>"+(meta.unit||"—")+
+      "</span><span>Split</span><span>Elapsed</span><span>Clock</span><span>Pace</span><span></span>";
+    leg.appendChild(cols);
+
+    g.items.forEach(({s,i}) => leg.appendChild(rowFor(s,i)));
+
+    const foot = document.createElement("div");
+    foot.className = "leg-foot";
+    const add = document.createElement("button");
+    add.className = "link";
+    add.textContent = "Add a checkpoint to "+meta.label.toLowerCase();
+    add.addEventListener("click", () => addSection(g.sport, g.items[g.items.length-1].i+1));
+    foot.appendChild(add);
+    leg.appendChild(foot);
+
+    legsEl.appendChild(leg);
+  });
+}
+
+function rowFor(s, i){
+  const meta = SPORTS[s.sport];
+  const cum = cumulative(i);
+  const p = paceOf(s.sport, s.dist, s.dur);
+
+  const row = document.createElement("div");
+  row.className = "row"+(selected===s.id?" on expanded":"")+(s.note?" expanded":"");
+  row.dataset.id = s.id;
+
+  const grip = document.createElement("button");
+  grip.type = "button"; grip.className = "grip";
+  grip.innerHTML = GRIP;
+  grip.title = "Drag to reposition — the time and distance are cleared";
+  grip.setAttribute("aria-label", "Reposition "+(s.name||"this checkpoint")+". Arrow up or down to move it.");
+  grip.addEventListener("pointerdown", ev => startDrag(ev, s.id));
+  grip.addEventListener("keydown", ev => {
+    if(ev.key === "ArrowUp" && i > 0){ ev.preventDefault(); moveSection(i, i-1, null); }
+    if(ev.key === "ArrowDown" && i < state.sections.length-1){ ev.preventDefault(); moveSection(i, i+2, null); }
+  });
+  row.appendChild(grip);
+
+  row.appendChild(cell(textField(s.name, "Checkpoint name", v => {
+    snapshot(); s.name = v; save(); renderBoard();
+  }, "name"), null));
+
+  row.appendChild(cell(
+    meta.unit
+      ? distField(s)
+      : dash(),
+    meta.unit || "dist"));
+
+  row.appendChild(cell(timeField(fmtSplit(s.dur), "Split",
+    v => { const n = parseFlexDur(v); n!=null ? setDur(i,n) : render(); },
+    n => setDur(i, s.dur+n)), "Split"));
+
+  row.appendChild(cell(timeField(fmtHMS(cum), "Elapsed",
+    v => { const n = parseFlexDur(v); n!=null ? setCumulative(i,n) : render(); },
+    n => setCumulative(i, cum+n)), "Elapsed"));
+
+  row.appendChild(cell(timeField(fmtClock(state.start+cum), "Clock",
+    v => { const n = parseFlexDur(v); n!=null ? setCumulative(i, n-state.start) : render(); },
+    n => setCumulative(i, cum+n)), "Clock"));
+
+  const pc = document.createElement("div");
+  pc.className = "derived pace";
+  pc.innerHTML = p ? p.v+'<span class="u">'+p.u+'</span>' : "—";
+  row.appendChild(cell(pc, "Pace"));
+
+  const acts = document.createElement("div");
+  acts.className = "acts";
+
+  const pin = document.createElement("button");
+  pin.type = "button";
+  pin.className = "icon"+(s.map?" set":"");
+  pin.innerHTML = s.map ? PIN_IN : PIN_OUT;
+  pin.title = s.map ? "Map link — open or edit" : "Add a map link";
+  pin.setAttribute("aria-label", (s.map?"Map link for ":"Add a map link to ")+(s.name||"this checkpoint"));
+  pin.addEventListener("click", () => openMap(s));
+  acts.appendChild(pin);
+
+  const del = document.createElement("button");
+  del.type = "button"; del.className = "icon";
+  del.setAttribute("aria-label", "Remove "+(s.name||"section"));
+  del.textContent = "×";
+  del.style.fontSize = "17px";
+  del.addEventListener("click", () => removeSection(i));
+  acts.appendChild(del);
+  row.appendChild(acts);
+
+  const nr = document.createElement("div");
+  nr.className = "noterow";
+  nr.appendChild(textField(s.note, "Note for the timeline — nutrition, weather, mechanical…", v => {
+    snapshot(); s.note = v; save(); renderBoard();
+  }));
+  row.appendChild(nr);
+
+  return row;
+}
+
+function cell(inner, label){
+  const c = document.createElement("div");
+  c.className = "cell";
+  if(label){
+    const k = document.createElement("div");
+    k.className = "k"; k.textContent = label;
+    c.appendChild(k);
+  }
+  c.appendChild(inner);
+  return c;
+}
+function dash(){ const d = document.createElement("div"); d.className="derived"; d.textContent="—"; return d; }
+
+function textField(value, ph, onCommit, cls){
+  const el = document.createElement("input");
+  el.className = "f "+(cls||"");
+  el.value = value||""; el.placeholder = ph; el.setAttribute("aria-label", ph);
+  el.addEventListener("change", () => onCommit(el.value.trim()));
+  return el;
+}
+function distField(s){
+  const meta = SPORTS[s.sport];
+  const el = document.createElement("input");
+  el.className = "f num"+(s.est?" est":"");
+  el.value = distOut(s); el.inputMode = "decimal"; el.placeholder = meta.unit;
+  el.setAttribute("aria-label", "Distance in "+meta.unit);
+  if(s.est) el.title = "Estimated — the leg distance split evenly. Type the real one to confirm it.";
+  el.addEventListener("change", () => {
+    snapshot();
+    s.dist = distIn(s, el.value.trim());
+    s.est = false;
+    commit();
+  });
+  return el;
+}
+function timeField(value, label, onCommit, onNudge){
+  const el = document.createElement("input");
+  el.className = "f num"; el.value = value; el.inputMode = "numeric";
+  el.setAttribute("aria-label", label);
+  el.addEventListener("change", () => onCommit(el.value.trim()));
+  el.addEventListener("keydown", ev => {
+    if(ev.key === "ArrowUp" || ev.key === "ArrowDown"){
+      ev.preventDefault();
+      onNudge((ev.shiftKey?60:1) * (ev.key === "ArrowUp" ? 1 : -1));
+    }
+    if(ev.key === "Escape"){ el.value = value; el.blur(); }
+  });
+  return el;
+}
+
+/* ============================================================
+   6. Map links
+   ============================================================ */
+const COORDS = /^\s*(-?\d{1,3}(?:\.\d+)?)\s*[,;\s]\s*(-?\d{1,3}(?:\.\d+)?)\s*$/;
+function toMapUrl(raw){
+  const v = String(raw||"").trim();
+  if(!v) return "";
+  const c = v.match(COORDS);
+  if(c) return "https://www.google.com/maps/search/?api=1&query="+c[1]+","+c[2];
+  try{
+    const u = new URL(/^https?:\/\//i.test(v) ? v : "https://"+v);
+    if(u.protocol !== "http:" && u.protocol !== "https:") return null;
+    return u.href;
+  }catch(e){ return null; }
+}
+let mapTarget = null;
+const mapdlg = $("#mapdlg");
+function openMap(s){
+  mapTarget = s;
+  $("#map-title").textContent = s.name || "Map link";
+  $("#map-url").value = s.map || "";
+  $("#map-warn").hidden = true;
+  syncMapDialog();
+  mapdlg.showModal();
+  $("#map-url").focus();
+}
+function syncMapDialog(){
+  const url = toMapUrl($("#map-url").value);
+  const open = $("#map-open");
+  if(url){ open.href = url; open.hidden = false; }
+  else open.hidden = true;
+  $("#map-remove").hidden = !(mapTarget && mapTarget.map);
+}
+$("#map-url").addEventListener("input", syncMapDialog);
+$("#map-cancel").addEventListener("click", () => mapdlg.close());
+$("#map-save").addEventListener("click", () => {
+  const raw = $("#map-url").value.trim();
+  const url = raw ? toMapUrl(raw) : "";
+  if(raw && !url){
+    const w = $("#map-warn");
+    w.hidden = false; w.textContent = "That is not a web address or a lat, lng pair.";
+    return;
+  }
+  snapshot(); mapTarget.map = url; commit(); mapdlg.close();
+  toast(url ? "Map link saved" : "Map link removed");
+});
+$("#map-remove").addEventListener("click", () => {
+  snapshot(); mapTarget.map = ""; commit(); mapdlg.close(); toast("Map link removed");
+});
+
+/* ============================================================
+   7. Importer — understands the raw race notes
+   ============================================================ */
+const RE_TIME = /\b(\d{1,3}):([0-5]\d)(?::([0-5]\d))?\b/g;
+const HEADERS = [[/^nata[çc][ãa]o/i,"swim"],[/^(bike|ciclismo)/i,"bike"],[/^(corrida|run)/i,"run"]];
+const HINTS   = [[/nata[çc]|swim|nado|barrag/i,"swim"],[/\bt\s*[12]\b|transi/i,"trans"],
+                 [/cicl|bike|pedal|serra|rastr|retão|retao|cruzamento/i,"bike"],
+                 [/corr|run|trail|e[óo]lic|mirante|c[âa]nion/i,"run"]];
+const IS_START = /largada|sa[íi]da|\bstart\b|gun/i;
+
+function parseRaw(text){
+  const lines = text.split(/\r?\n/);
+  const events = [];
+  let sport = null;
+  for(const line of lines){
+    const l = line.trim();
+    if(!l) continue;
+
+    const head = HEADERS.find(([re]) => re.test(l) && !/\d/.test(l));
+    if(head){ sport = head[1]; continue; }
+
+    const tm = l.match(/\bT\s*([12])\b/i);
+    if(tm && !/:/.test(l.replace(/\bT\s*[12]\b/i,""))){
+      const d = parseFlexDur(l.replace(/.*?=\s*/,"").replace(/[()]/g,"").trim());
+      if(d != null){ events.push({kind:"trans", name:"T"+tm[1], dur:d}); continue; }
+    }
+
+    RE_TIME.lastIndex = 0;
+    const found = [...l.matchAll(RE_TIME)];
+    if(!found.length) continue;
+
+    let name = l.replace(RE_TIME," ")
+                .replace(/\((?:[^)]*?(?:\d\s*(?:h|'|min))[^)]*?)\)/gi," ")
+                .replace(/[;,\t|]+/g," ").replace(/\s{2,}/g," ")
+                .replace(/^[\s\-–—]+|[\s\-–—]+$/g,"").trim();
+    const toSec = m => (+m[1])*3600 + (+m[2])*60 + (+(m[3]||0));
+    const clock = toSec(found[0]);
+    const elapsed = found.length >= 2 ? toSec(found[found.length-1]) : null;
+
+    if(IS_START.test(name)) events.push({kind:"start", clock, name, sport});
+    else events.push({kind:"cp", clock, elapsed, name, sport: sport || guess(name)});
+  }
+  return events;
+}
+function guess(name){ for(const [re,sp] of HINTS) if(re.test(name)) return sp; return "bike"; }
+
+function buildSections(events){
+  const out = [];
+  let gun = null, cursor = null, tcount = 0;
+  for(const e of events){
+    if(e.kind === "start"){
+      if(gun == null){ gun = e.clock; cursor = e.clock; continue; }
+      if(cursor != null && e.clock > cursor){           // an untyped transition
+        tcount++;
+        out.push(sec("T"+tcount, "trans", null, e.clock - cursor));
+        cursor = e.clock;
+      }
+      continue;
+    }
+    if(e.kind === "trans"){
+      tcount++;
+      out.push(sec(e.name || ("T"+tcount), "trans", null, e.dur));
+      if(cursor != null) cursor += e.dur;
+      continue;
+    }
+    if(gun == null){ gun = e.clock - (e.elapsed||0); cursor = gun; }
+    const dur = cursor != null ? Math.max(0, e.clock - cursor)
+                               : Math.max(0, (e.elapsed||0));
+    if(dur === 0 && !out.length) continue;
+    out.push(sec(e.name || "", e.sport, null, dur));
+    cursor = e.clock;
+  }
+  ORDER.forEach(sport => {
+    const mine = out.filter(s => s.sport === sport);
+    if(!mine.length) return;
+    const each = Math.round(SPORTS[sport].official / mine.length);
+    mine.forEach(s => { s.dist = each; s.est = mine.length > 1; });
+  });
+  return {gun, sections: out};
+}
+
+function previewRows(built){
+  const box = $("#preview");
+  if(!built.sections.length){ box.hidden = true; return; }
+  box.hidden = false;
+  let html = "<table><thead><tr><th>Checkpoint</th><th>Leg</th><th>Split</th><th>Elapsed</th></tr></thead><tbody>";
+  let cum = 0;
+  built.sections.forEach(s => {
+    cum += s.dur;
+    html += "<tr><td>"+esc(s.name||"—")+"</td><td>"+SPORTS[s.sport].label+
+            '</td><td class="n">'+fmtSplit(s.dur)+'</td><td class="n">'+fmtHMS(cum)+"</td></tr>";
+  });
+  box.innerHTML = html+"</tbody></table>";
+}
+function esc(s){ return String(s).replace(/[&<>]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;"}[c])); }
+
+/* ============================================================
+   8. Wiring
+   ============================================================ */
+const dlg = $("#dlg"), raw = $("#raw");
+$("#btn-import").addEventListener("click", () => { dlg.showModal(); raw.focus(); });
+$("#dlg-cancel").addEventListener("click", () => dlg.close());
+raw.addEventListener("input", () => {
+  const w = $("#parse-warn");
+  if(raw.value.trim().charAt(0) === "{"){
+    const restored = tryRestoreBackup(raw.value);
+    previewRows(restored || {sections:[]});
+    w.hidden = !!restored;
+    if(!restored) w.textContent = "That looks like a backup, but it will not parse.";
+    return;
+  }
+  const built = buildSections(parseRaw(raw.value));
+  previewRows(built);
+  if(raw.value.trim() && !built.sections.length){
+    w.hidden = false; w.textContent = "No checkpoints found. Each timed line needs an h:mm or h:mm:ss value.";
+  } else w.hidden = true;
+});
+$("#dlg-backup").addEventListener("click", async () => {
+  const json = JSON.stringify(state);
+  try{ await navigator.clipboard.writeText(json); toast("Backup copied — paste it here to restore"); }
+  catch(e){ raw.value = json; raw.select(); }
+});
+
+/** A pasted backup restores everything, including map links and notes. */
+function tryRestoreBackup(text){
+  const t = text.trim();
+  if(t.charAt(0) !== "{") return null;
+  try{ return normalize(JSON.parse(t)); }catch(e){ return null; }
+}
+
+$("#dlg-apply").addEventListener("click", () => {
+  const restored = tryRestoreBackup(raw.value);
+  if(restored){
+    snapshot(); state = restored; commit(); dlg.close();
+    toast("Backup restored");
+    return;
+  }
+  const built = buildSections(parseRaw(raw.value));
+  if(!built.sections.length){
+    const w = $("#parse-warn"); w.hidden = false; w.textContent = "Nothing to load yet.";
+    return;
+  }
+  snapshot();
+  state = {start: built.gun != null ? built.gun : state.start, sections: built.sections};
+  commit(); dlg.close();
+  toast(built.sections.length+" sections loaded");
+});
+
+$("#start").addEventListener("change", e => {
+  const n = parseFlexDur(e.target.value);
+  if(n == null){ render(); return; }
+  snapshot(); state.start = n % 86400; commit();
+});
+$("#btn-add").addEventListener("click", () => addSection($("#new-sport").value, state.sections.length));
+$("#btn-reset").addEventListener("click", () => {
+  const before = JSON.stringify(state);
+  snapshot(); state = RACE(); commit();
+  toast("Reset to the race as run", () => { state = JSON.parse(before); save(); render(); });
+});
+
+$("#btn-copy").addEventListener("click", async () => {
+  const lines = ["checkpoint\tleg\tdistance_m\tsplit\telapsed\tclock\tpace\tmap\tnote"];
+  state.sections.forEach((s,i) => {
+    const cum = cumulative(i), p = paceOf(s.sport, s.dist, s.dur);
+    lines.push([s.name, s.sport, s.dist ?? "", fmtSplit(s.dur), fmtHMS(cum),
+                fmtClock(state.start+cum), p ? p.v+" "+p.u : "", s.map, s.note].join("\t"));
+  });
+  const text = lines.join("\n");
+  try{ await navigator.clipboard.writeText(text); toast("Copied as a tab-separated table"); }
+  catch(e){ raw.value = text; dlg.showModal(); raw.select(); }
+});
+
+let toastTimer = null, toastAction = null;
+function toast(msg, action){
+  const t = $("#toast");
+  $("#toast-msg").textContent = msg;
+  toastAction = action || null;
+  $("#toast-undo").hidden = !action;
+  t.hidden = false;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => { t.hidden = true; }, action ? 7000 : 2600);
+}
+$("#toast-undo").addEventListener("click", () => { if(toastAction) toastAction(); $("#toast").hidden = true; });
+
+document.addEventListener("keydown", e => {
+  if((e.metaKey||e.ctrlKey) && e.key.toLowerCase()==="z" && !/INPUT|TEXTAREA/.test(document.activeElement.tagName)){
+    e.preventDefault(); undo();
+  }
+});
+
+/* Commit a field that is still focused when the page goes away —
+   blurring fires its change handler, which saves. */
+function flush(){
+  const el = document.activeElement;
+  if(el && el.tagName === "INPUT" && el.classList.contains("f")) el.blur();
+}
+window.addEventListener("pagehide", flush);
+document.addEventListener("visibilitychange", () => { if(document.hidden) flush(); });
+
+render();
+if(state.savedAt || !storageOK) showSaved();
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,27 @@
+FODAXMAN XTRI Solo Point Five 2025 — Serra do Rio do Rastro, SC — 27 Sep 2025
+Raw checkpoint notes, as recorded. Paste straight into the app's import dialog.
+
+NATAÇÃO
+6:00 - largada
+6:44 - fim natação (44')
+
+(T1 = 11')
+
+BIKE
+6:55 - largada da bike
+7:33 - cruzamento ida (38')
+8:11 - cruzamento volta (1h15')
+8:48 - fim do retão (1h52')
+9:40 - chegada lauro muller (2h45')
+10:10 - mirante 13 (3h15')
+11:30 - mirante serra (4h35')
+
+(T2 = 5')
+
+CORRIDA
+11:35 - largada corrida
+13:44 - chegada mirante
+
+Note: the parenthetical elapsed values for "cruzamento volta" and "fim do
+retao" are each a minute off the clock times. The clock times reconcile
+exactly with the 7h44 finish and are treated as authoritative.
