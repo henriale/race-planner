@@ -117,7 +117,8 @@ button{font:inherit;color:inherit;cursor:pointer}
 /* U12: the course board is its own panel, detached from the timeline, and
    lays its legs out as swim|T1 / bike / T2|run in a two-column grid — plain
    source order plus one full-width class does that with no explicit areas. */
-.course-head{display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+.course-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px}
+.course-head .sub{margin-left:auto}
 .course-head h2{margin:0;font-size:17px;font-variation-settings:"wdth" 112,"wght" 680}
 .course-head .sub{color:var(--muted);font-size:12.5px}
 .chips{display:grid;grid-template-columns:1fr 1fr;gap:10px}
@@ -126,25 +127,18 @@ button{font:inherit;color:inherit;cursor:pointer}
 .chip .live{display:flex;gap:8px;align-items:baseline;margin-top:4px;font-size:12.5px;color:var(--ink-2)}
 .chip .live b{font-variation-settings:"wdth" 100,"wght" 660;color:var(--ink)}
 .chip .state{font-size:11px;letter-spacing:.04em;text-transform:uppercase;color:var(--muted);font-variation-settings:"wdth" 100,"wght" 620}
-/* The on-course card carries a rotating ring: a masked conic-gradient turning
-   clockwise around the card. The flat border under it is the fallback for a
-   browser without @property (the gradient then paints at a fixed angle and
-   simply doesn't spin); reduced motion kills the spin via the global rule at
-   the bottom of this sheet. */
-@property --ang{syntax:"<angle>";initial-value:0deg;inherits:false}
-.chip.is-live{position:relative;border-color:var(--live)}
-.chip.is-live::before{
-  content:"";position:absolute;inset:-2px;padding:2px;border-radius:calc(var(--r) + 2px);pointer-events:none;
-  background:conic-gradient(from var(--ang),
-    transparent 0deg, var(--live) 40deg, color-mix(in srgb,var(--live) 25%,#FFFFFF) 90deg, var(--live) 140deg,
-    color-mix(in srgb,var(--live) 45%,transparent) 200deg, transparent 300deg, transparent 360deg);
-  -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);
-  -webkit-mask-composite:xor;
-  mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);
-  mask-composite:exclude;
-  animation:chip-spin 2.6s linear infinite;
+/* The on-course card breathes: its border and halo brighten and fade rather
+   than travelling around the card. Reduced motion leaves it on the bright
+   frame via the global rule at the bottom of this sheet. */
+.chip.is-live{position:relative;border-color:var(--live);animation:chip-glow 2.6s ease-in-out infinite}
+@keyframes chip-glow{
+  0%,100%{border-color:color-mix(in srgb,var(--live) 45%,var(--rule));
+          box-shadow:0 0 0 1px color-mix(in srgb,var(--live) 18%,transparent),
+                     0 0 10px -2px color-mix(in srgb,var(--live) 22%,transparent)}
+  50%    {border-color:var(--live);
+          box-shadow:0 0 0 2px color-mix(in srgb,var(--live) 34%,transparent),
+                     0 0 22px -2px color-mix(in srgb,var(--live) 60%,transparent)}
 }
-@keyframes chip-spin{to{--ang:360deg}}
 .chip.is-live .state{color:var(--live)}
 .chip.is-done .state{color:var(--ink-2)}
 .chip[data-sport="swim"]{--sp:var(--swim)}
@@ -330,9 +324,9 @@ footer{margin-top:30px;color:var(--muted);font-size:12.5px;line-height:1.7}
 /* mid-race the status line says the same thing as #watch-gap; it stays in
    the DOM as the aria-live announcement, but only one of the two is seen */
 /* liveness (U13) ----------------------------------------------------- */
-.marker-status #watch-next,.marker-status #watch-fresh{font-size:13px;color:var(--ink-2)}
+.marker-status #watch-next{font-size:13px;color:var(--ink-2)}
 .marker-status #watch-next b{font-variation-settings:"wdth" 100,"wght" 640;color:var(--ink)}
-.marker-status #watch-next[hidden],.marker-status #watch-fresh[hidden]{display:none}
+.marker-status #watch-next[hidden]{display:none}
 #watch-elapsed{font-variant-numeric:tabular-nums}
 /* a new actual landing is the one moment worth flashing */
 @keyframes gap-flash{
@@ -346,9 +340,7 @@ footer{margin-top:30px;color:var(--muted);font-size:12.5px;line-height:1.7}
   50%    {transform:translateX(-50%) translateY(-3px)}
 }
 .pin-actual{animation:pin-bob 2.2s ease-in-out infinite}
-/* how far through the current segment the athlete is */
-.seg .seg-fill{position:absolute;left:0;top:0;bottom:0;background:rgba(255,255,255,.26);pointer-events:none;transition:width .9s linear}
-/* LIVE badge in the masthead */
+/* LIVE badge — lives in the course panel's header */
 .livebadge{display:inline-flex;align-items:center;gap:6px;padding:5px 11px;border-radius:999px;
   background:color-mix(in srgb,var(--live) 14%,transparent);color:var(--live);
   font-size:12px;letter-spacing:.06em;font-variation-settings:"wdth" 100,"wght" 700}
@@ -461,7 +453,6 @@ footer{margin-top:30px;color:var(--muted);font-size:12.5px;line-height:1.7}
       <p class="where" id="race-where"></p>
     </div>
     <div class="tools">
-      <span class="livebadge" id="live-badge" hidden><i></i>LIVE</span>
       <a class="btn ghost" id="btn-back" href="#/">← Races</a>
       <button class="btn primary" id="watch-live" type="button">Watch live</button>
       <a class="icon" id="open-edit" href="#/" aria-label="Open in edit" title="Open in edit"></a>
@@ -512,13 +503,13 @@ footer{margin-top:30px;color:var(--muted);font-size:12.5px;line-height:1.7}
       <p id="watch-elapsed" hidden></p>
       <p id="watch-gap" hidden></p>
       <p id="watch-next" hidden></p>
-      <p id="watch-fresh" hidden></p>
     </div>
   </section>
 
   <section class="board course" aria-label="Course">
     <div class="course-head">
       <h2>Course</h2>
+      <span class="livebadge" id="live-badge" hidden><i></i>LIVE</span>
       <span class="sub" id="course-sub"></span>
     </div>
     <div class="chips" id="chips"></div>
@@ -2266,7 +2257,6 @@ function stopMarker(){
   releaseWake();
   lastSnap = null;
   lastGapSeconds = undefined;
-  lastTitle = null;
   const badge = $("#live-badge");
   if(badge) badge.hidden = true;
   const jb = $("#jump-live");
@@ -2670,28 +2660,14 @@ function sectionAt(elapsed){
   }
   return active.sections.length - 1;
 }
-/** U12/U13: rings the timeline segment the athlete is inside right now, and
-    fills it left-to-right with how much of that segment is behind them. */
-function markCurrentSegment(idx, frac){
+/** U12: rings the timeline segment the athlete is inside right now. */
+function markCurrentSegment(idx){
   const bar = $("#bar");
   if(!bar) return;
   bar.querySelectorAll(".seg.live").forEach(el => el.classList.remove("live"));
-  bar.querySelectorAll(".seg-fill").forEach(el => el.remove());
   if(idx == null || idx < 0) return;
   const el = bar.querySelector('.seg[data-idx="'+idx+'"]');
-  if(!el) return;
-  el.classList.add("live");
-  const fill = document.createElement("i");
-  fill.className = "seg-fill";
-  fill.style.width = Math.max(0, Math.min(1, frac || 0)) * 100 + "%";
-  el.insertBefore(fill, el.firstChild);
-}
-/** Fraction of the section at `idx` already behind an elapsed-from-gun value. */
-function segFraction(idx, elapsed){
-  const s = active.sections[idx];
-  if(!s || s.dur <= 0) return 0;
-  const startOf = cumulative(idx) - s.dur;
-  return (elapsed - startOf) / s.dur;
+  if(el) el.classList.add("live");
 }
 /** U12: the floating "jump to now" button — it points at the checkpoint row
     for the current segment and hides itself whenever that row is on screen. */
@@ -2766,10 +2742,9 @@ function paintMarker(){
     pinActual.hidden = true;
   }
 
-  // U12/U13: ring + fill the segment the athlete is inside (actual position
-  // when known), and recentre the strip if the reader has stopped panning.
-  markCurrentSegment(phase === "mid" ? snap.curIdx : null,
-                     phase === "mid" ? segFraction(snap.curIdx, snap.pos) : 0);
+  // U12: ring the segment the athlete is inside (actual position when known),
+  // and recentre the strip if the reader has stopped panning.
+  markCurrentSegment(phase === "mid" ? snap.curIdx : null);
   if(phase === "mid") recentreIfIdle(gapSeconds != null ? barPct(Math.min(t, Math.max(0, snap.pos))) : planPct);
 
   // R25: elapsed counter against the gun time, sharing this same tick.
@@ -2814,19 +2789,15 @@ function paintMarker(){
   updateJump();
 }
 
-/* ---- the rest of the live chrome, all on the same 1 s tick (U13) ----
-   next-checkpoint countdown, how stale the last logged split is, the LIVE
-   badge, and the tab title — the last one so a backgrounded tab is itself a
-   read-out of where the athlete is. */
+/* ---- the rest of the live chrome, on the same 1 s tick (U13) ----
+   the next-checkpoint countdown and the LIVE badge in the course panel. */
 let lastGapSeconds;
-let lastTitle = null;
 function updateLiveChrome(snap){
-  const nextEl = $("#watch-next"), freshEl = $("#watch-fresh"), badge = $("#live-badge");
+  const nextEl = $("#watch-next"), badge = $("#live-badge");
   const liveMode = mode === "watch" || mode === "follow";
   if(badge) badge.hidden = !(liveMode && snap && snap.phase === "mid");
   if(!liveMode || !snap || snap.phase === "empty"){
     if(nextEl) nextEl.hidden = true;
-    if(freshEl) freshEl.hidden = true;
     return;
   }
   // Next checkpoint: the one that ends the segment the athlete is in, counted
@@ -2842,25 +2813,6 @@ function updateLiveChrome(snap){
         : "Next <b>" + esc(s.name || SPORTS[s.sport].label) + "</b> — due now";
     }
   }
-  // Freshness of the newest logged split, in race time since it was passed.
-  if(freshEl){
-    const lastIdx = mode === "watch" ? lastActualIndex() : -1;
-    const show = lastIdx >= 0 && snap.phase !== "before";
-    freshEl.hidden = !show;
-    if(show){
-      const ago = Math.max(0, snap.d - activeSession.actuals[String(lastIdx)]);
-      const s = active.sections[lastIdx];
-      freshEl.textContent = "Last split " + (s.name || SPORTS[s.sport].label) + " · " + fmtSplit(ago) + " ago";
-    }
-  }
-  // Tab title doubles as the live read-out.
-  const name = active.name || "Untitled race";
-  let title;
-  if(snap.phase === "mid")
-    title = "⏱ " + fmtHMS(snap.d) + (snap.gapSeconds != null ? " · " + gapLabel(snap.gapSeconds) : "") + " — " + name;
-  else if(snap.phase === "before") title = "Starts in " + fmtHMS(86400 - snap.d) + " — " + name;
-  else title = "Finished " + fmtHMS(snap.t) + " — " + name;
-  if(title !== lastTitle){ document.title = title; lastTitle = title; }
 }
 
 /* Home / library: every saved race with its identity + finish, Watch Live
