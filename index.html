@@ -601,6 +601,7 @@ function migrateLegacy(){
         start: legacy.start,
         sections: legacy.sections
       });
+      if(!storageOK) return;   // import write failed (quota/private mode) — retry next load, don't set the sentinel
     }
   }
   storageSet(MIGRATED_KEY, "1");
@@ -611,6 +612,7 @@ function migrateLegacy(){
     since it runs over the multi-race store rather than a legacy key. */
 function migrateDropMetadata(){
   if(storageGet(MIGRATED_KEY_V2)) return;
+  let ok = true;
   readIndex().forEach(entry => {
     const raw = storageGet(raceKey(entry.id));
     if(!raw) return;
@@ -621,9 +623,11 @@ function migrateDropMetadata(){
     if(Array.isArray(obj.sections)){
       obj.sections.forEach(s => { if(s && typeof s === "object") delete s.est; });
     }
-    storageSet(raceKey(entry.id), JSON.stringify(obj));
+    if(!storageSet(raceKey(entry.id), JSON.stringify(obj))) ok = false;
   });
-  storageSet(MIGRATED_KEY_V2, "1");
+  // A write failure (quota/private mode) leaves some blobs unmigrated — skip
+  // the sentinel so this runs again next load instead of stranding them.
+  if(ok) storageSet(MIGRATED_KEY_V2, "1");
 }
 /** One-time, non-destructive migration: backfills digest/finish/start onto
     every existing index entry (U4). Rewrites only the light index — those
@@ -646,7 +650,9 @@ function migrateBackfillIndex(){
     changed = true;
   });
   if(changed) writeIndex(idx);
-  storageSet(MIGRATED_KEY_V3, "1");
+  // A write failure (quota/private mode) leaves the index only partly
+  // backfilled — skip the sentinel so this runs again next load.
+  if(!changed || storageOK) storageSet(MIGRATED_KEY_V3, "1");
 }
 
 /* ---- watch sessions (U7, KTD5) --------------------------------
@@ -686,12 +692,20 @@ function normalizeWatch(obj){
   if(!obj || typeof obj !== "object") return null;
   if(typeof obj.id !== "string" || !obj.id) return null;
   if(typeof obj.planText !== "string" || !obj.planText) return null;
-  if(parseRaceText(obj.planText).error) return null;   // frozen text must still parse
+  const parsed = parseRaceText(obj.planText);
+  if(parsed.error) return null;   // frozen text must still parse
+  const sectionCount = parsed.sections.length;
   const actuals = {};
   if(obj.actuals && typeof obj.actuals === "object"){
     Object.keys(obj.actuals).forEach(k => {
       const v = obj.actuals[k];
-      if(typeof v === "number" && isFinite(v) && v >= 0) actuals[k] = v;
+      const idx = Number(k);
+      // Keys index into the FROZEN plan's own sections — an index outside
+      // that range (corrupt/tampered storage) would crash cumulative()/
+      // paintMarker() on mount rather than just being ignored, so bound it
+      // here rather than trusting a bare isFinite check.
+      if(typeof v === "number" && isFinite(v) && v >= 0 &&
+         Number.isInteger(idx) && idx >= 0 && idx < sectionCount) actuals[k] = v;
     });
   }
   return {
@@ -743,11 +757,17 @@ function resetWatchSession(){
   if(!activeSession) return;
   const before = JSON.stringify(activeSession);
   const race = activeSession.raceId ? loadRace(activeSession.raceId) : null;
+  const sessionId = activeSession.id;   // captured for the undo guard below
   activeSession.actuals = {};
   if(race) activeSession.planText = toRaceText(race);
   saveWatchSession(activeSession);
   mountWatchFromSession(activeSession);
   toast("Watch session reset", () => {
+    // The toast outlives navigation (it's never hidden by a route change),
+    // so a click after leaving this session must not yank the view back and
+    // rewrite the URL out from under whatever is on screen now (adversarial
+    // review: "reset undo can mount an old session after navigation").
+    if(mode !== "watch" || activeWatchId !== sessionId) return;
     const restored = normalizeWatch(JSON.parse(before));
     if(!restored) return;
     activeSession = restored;
@@ -1029,6 +1049,7 @@ function moveSection(from, insertAt, sport){
   if(pos === from && !changesSport) return;
 
   const before = JSON.stringify(active);
+  const raceRef = active;   // captured for the undo guard below
   snapshot();
   const [s] = arr.splice(from, 1);
   if(changesSport) s.sport = sport;
@@ -1036,8 +1057,13 @@ function moveSection(from, insertAt, sport){
   s.dist = null;
   arr.splice(pos, 0, s);
   commit();
-  toast((s.name || "Checkpoint") + " moved — split and distance cleared",
-        () => { active = JSON.parse(before); save(); render(); refreshUrl(); });
+  toast((s.name || "Checkpoint") + " moved — split and distance cleared", () => {
+    // The toast outlives navigation, so a stale click after leaving this
+    // race (or this race being re-mounted as a fresh object) must not
+    // silently overwrite whatever is on screen now and rewrite its URL.
+    if(mode !== "edit" || active !== raceRef) return;
+    active = JSON.parse(before); save(); render(); refreshUrl();
+  });
 }
 
 /* ---- drag to reorder ----------------------------------------
@@ -1122,11 +1148,15 @@ function addSection(sport, atIndex){
 }
 function removeSection(i){
   const before = JSON.stringify(active);
+  const raceRef = active;   // captured for the undo guard below
   snapshot();
   const [gone] = active.sections.splice(i,1);
   if(!active.sections.length) active.sections.push(sec("", "swim", null, 0));
   commit();
-  toast((gone.name || "Section")+" removed", () => { active = JSON.parse(before); save(); render(); refreshUrl(); });
+  toast((gone.name || "Section")+" removed", () => {
+    if(mode !== "edit" || active !== raceRef) return;
+    active = JSON.parse(before); save(); render(); refreshUrl();
+  });
 }
 
 /* ============================================================
@@ -1599,6 +1629,13 @@ function toRaceText(race){
 
 const DIST_RE = /^\d+(\.\d+)?$/;
 const SPLIT_RE = /^\d+:\d{2}(:\d{2})?$/;
+// SPLIT_RE's leading \d+ has no digit-count limit, so a crafted split (e.g.
+// from a hostile share link) can parse to an enormous number of seconds.
+// Nothing downstream bounds it — the timeline's hourly tick loop in
+// renderBoard() runs from the gun to the total duration, so an unbounded
+// total turns that loop into a browser hang. 30 days is far past any real
+// race this app is for; reject past it instead of trusting the input.
+const MAX_SPLIT_SECONDS = 30 * 86400;
 
 /** Single-pass parser for the canonical text format. Returns
     {name, start, sections} or {error} naming the offending line. */
@@ -1618,7 +1655,9 @@ function parseRaceText(text){
     if(tok === "T"){
       if(parts.length < 3) return {error:"Line "+lineNo+": transition needs a split and a name."};
       if(!SPLIT_RE.test(parts[1])) return {error:"Line "+lineNo+": malformed split."};
-      sections.push(sec(parts.slice(2).join(" "), "trans", null, parseDur(parts[1])));
+      const tDur = parseDur(parts[1]);
+      if(tDur > MAX_SPLIT_SECONDS) return {error:"Line "+lineNo+": split is unreasonably long."};
+      sections.push(sec(parts.slice(2).join(" "), "trans", null, tDur));
       continue;
     }
 
@@ -1627,8 +1666,10 @@ function parseRaceText(text){
     const distTok = parts[1], splitTok = parts[2];
     if(distTok !== "-" && !DIST_RE.test(distTok)) return {error:"Line "+lineNo+": malformed distance."};
     if(!SPLIT_RE.test(splitTok)) return {error:"Line "+lineNo+": malformed split."};
+    const dur = parseDur(splitTok);
+    if(dur > MAX_SPLIT_SECONDS) return {error:"Line "+lineNo+": split is unreasonably long."};
     const dist = distTok === "-" ? null : Math.round(parseFloat(distTok)*1000);
-    sections.push(sec(parts.slice(3).join(" "), SPORT_TOKEN[tok], dist, parseDur(splitTok)));
+    sections.push(sec(parts.slice(3).join(" "), SPORT_TOKEN[tok], dist, dur));
   }
   if(!sections.length) return {error:"No checkpoints found."};
   return {name, start, sections};
@@ -1719,7 +1760,23 @@ async function decodeToken(token){
       const ds = new DecompressionStream("deflate-raw");
       const writer = ds.writable.getWriter();
       writer.write(payload); writer.close();
-      const buf = await new Response(ds.readable).arrayBuffer();
+      // A tiny deflate stream can expand into an enormous output (a
+      // decompression bomb) before parseRaceText ever gets a chance to
+      // reject it — read incrementally and bail out once the output is far
+      // past anything a real race's canonical text could produce (security
+      // review + adversarial review, independently).
+      const MAX_DECOMPRESSED_BYTES = 2 * 1024 * 1024; // 2 MiB, generous for KB-scale race text
+      const reader = ds.readable.getReader();
+      const chunks = []; let total = 0;
+      for(;;){
+        const {done, value} = await reader.read();
+        if(done) break;
+        total += value.length;
+        if(total > MAX_DECOMPRESSED_BYTES){ reader.cancel(); return {error:"corrupt"}; }
+        chunks.push(value);
+      }
+      const buf = new Uint8Array(total);
+      let off = 0; for(const c of chunks){ buf.set(c, off); off += c.length; }
       return {text: new TextDecoder("utf-8", {fatal:true}).decode(buf)};
     }catch(e){ return {error:"corrupt"}; }
   }
@@ -1851,7 +1908,12 @@ $("#btn-copy").addEventListener("click", async () => {
    problem, so it's the simpler and more consistent choice here. */
 $("#watch-live").addEventListener("click", async () => {
   if(!active) return;
+  const mySeq = routeSeq;
   const token = await encodeToken(toRaceText(active));
+  // Navigating away while the encode is in flight must not let this stale
+  // result overwrite wherever the user ended up (adversarial review: "slow
+  // watch-link encoding resurrects an abandoned route").
+  if(routeSeq !== mySeq) return;
   location.hash = "#/race/" + token;
 });
 
@@ -1935,12 +1997,19 @@ function focusHeading(viewId){                       // F11: land AT/keyboard fo
 function parseHash(){
   const h = location.hash.replace(/^#/, "");
   let m;
-  if((m = h.match(/^\/race\/([^/]+)\/watch\/([^/]+)$/)))
-    return {view:"watch", token:decodeURIComponent(m[1]), watchId:decodeURIComponent(m[2])};
-  if((m = h.match(/^\/race\/([^/]+)\/(edit|follow)$/)))
-    return {view:m[2], token:decodeURIComponent(m[1])};
-  if((m = h.match(/^\/race\/([^/]+)$/)))
-    return {view:"watch", token:decodeURIComponent(m[1]), watchId:null};
+  // decodeURIComponent throws on malformed percent-encoding (e.g. a stray
+  // "%" from a corrupted/hand-edited link) — caught here so a bad hash
+  // falls back to home like any other unrecognized route, rather than
+  // throwing inside router()'s async body with nothing to catch it
+  // (api-contract review).
+  try{
+    if((m = h.match(/^\/race\/([^/]+)\/watch\/([^/]+)$/)))
+      return {view:"watch", token:decodeURIComponent(m[1]), watchId:decodeURIComponent(m[2])};
+    if((m = h.match(/^\/race\/([^/]+)\/(edit|follow)$/)))
+      return {view:m[2], token:decodeURIComponent(m[1])};
+    if((m = h.match(/^\/race\/([^/]+)$/)))
+      return {view:"watch", token:decodeURIComponent(m[1]), watchId:null};
+  }catch(e){ return {view:"home", token:null}; }
   return {view:"home", token:null};                  // "", "/", or anything unknown -> home
 }
 
@@ -2054,7 +2123,16 @@ function refreshRaceChrome(){
   const rv = $("#race-view");
   if(rv) rv.classList.toggle("transient-race", transientRace);
   const oe = $("#open-edit");
-  if(oe && !transientRace && active.id) oe.href = "#/race/" + encodeURIComponent(active.id) + "/edit";
+  if(oe){
+    // #open-edit is a persistent DOM node reused across every mount, so a
+    // raceId-less watch session (active.id null, transientRace still false
+    // — a session started from someone else's link) must clear the href
+    // rather than leave it pointing at whatever race was open before
+    // (correctness review: "Open in edit link can point at a stale,
+    // unrelated race in watch mode").
+    if(!transientRace && active.id) oe.href = "#/race/" + encodeURIComponent(active.id) + "/edit";
+    else oe.removeAttribute("href");
+  }
 }
 function renderSaveStrip(){
   const el = $("#save-strip");
@@ -2406,7 +2484,9 @@ $("#home-view").addEventListener("click", async e => {
   else if(act === "watch"){
     const race = loadRace(id);
     if(!race){ toast("That race is no longer here"); renderHome(); return; }
+    const mySeq = routeSeq;
     const token = await encodeToken(toRaceText(race));
+    if(routeSeq !== mySeq) return;   // navigated away while the encode was pending
     location.hash = "#/race/" + token;
   }
   else if(act === "edit") location.hash = "#/race/" + encodeURIComponent(id) + "/edit";
