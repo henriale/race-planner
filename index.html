@@ -127,23 +127,54 @@ button{font:inherit;color:inherit;cursor:pointer}
 .chip .live{display:flex;gap:8px;align-items:baseline;margin-top:4px;font-size:12.5px;color:var(--ink-2)}
 .chip .live b{font-variation-settings:"wdth" 100,"wght" 660;color:var(--ink)}
 .chip .state{font-size:11px;letter-spacing:.04em;text-transform:uppercase;color:var(--muted);font-variation-settings:"wdth" 100,"wght" 620}
-/* The on-course card breathes: its border and halo brighten and fade rather
-   than travelling around the card. Reduced motion leaves it on the bright
-   frame via the global rule at the bottom of this sheet. */
-.chip.is-live{position:relative;border-color:var(--live);animation:chip-glow 2.6s ease-in-out infinite}
-@keyframes chip-glow{
-  0%,100%{border-color:color-mix(in srgb,var(--live) 45%,var(--rule));
-          box-shadow:0 0 0 1px color-mix(in srgb,var(--live) 18%,transparent),
-                     0 0 10px -2px color-mix(in srgb,var(--live) 22%,transparent)}
-  50%    {border-color:var(--live);
-          box-shadow:0 0 0 2px color-mix(in srgb,var(--live) 34%,transparent),
-                     0 0 22px -2px color-mix(in srgb,var(--live) 60%,transparent)}
+/* The on-course card breathes. Only OPACITY is animated — a fixed border and
+   a fixed halo painted on an overlay, faded in and out — because animating
+   border-color/box-shadow repaints the card each frame and visibly steps.
+   Reduced motion leaves the overlay at its resting opacity via the global
+   rule at the bottom of this sheet. */
+.chip.is-live{position:relative;border-color:var(--live)}
+.chip.is-live::before{
+  content:"";position:absolute;inset:-1px;border-radius:calc(var(--r) + 1px);pointer-events:none;
+  border:1px solid var(--live);
+  box-shadow:0 0 0 3px color-mix(in srgb,var(--live) 26%,transparent),
+             0 0 20px 1px color-mix(in srgb,var(--live) 45%,transparent);
+  opacity:.28;
+  animation:chip-glow 3.2s cubic-bezier(.45,0,.55,1) infinite;
+  will-change:opacity;
 }
+@keyframes chip-glow{50%{opacity:1}}
 .chip.is-live .state{color:var(--live)}
 .chip.is-done .state{color:var(--ink-2)}
 .chip[data-sport="swim"]{--sp:var(--swim)}
 .chip[data-sport="bike"]{--sp:var(--bike)}
 .chip[data-sport="run"]{--sp:var(--run)}
+/* Pinned course panel (U14): once the splits scroll under it, the panel
+   sticks to the top and collapses into one row of leg pills — state as a dot,
+   no pace/times — so the splits stay readable underneath. The stuck class is
+   set by an IntersectionObserver on a sentinel above the panel. */
+.course{position:sticky;top:0;z-index:30;transition:padding .16s ease,border-radius .16s ease}
+.course.stuck{display:flex;align-items:center;gap:10px;padding:8px 12px;border-radius:0 0 14px 14px;
+  box-shadow:0 14px 26px -22px rgba(0,0,0,.8)}
+.course.stuck .course-head{margin:0;flex:none}
+.course.stuck .chips{flex:1 1 auto;min-width:0}
+.course.stuck .course-head h2,.course.stuck .course-head .sub{display:none}
+.course.stuck .livebadge{padding:3px 8px;font-size:11px}
+.course.stuck .chips{display:flex;gap:6px;overflow-x:auto;overscroll-behavior-x:contain;-webkit-overflow-scrolling:touch;padding-bottom:2px}
+.course.stuck .chip{flex:0 0 auto;padding:6px 11px;border-radius:999px;overflow:visible;animation:none}
+.course.stuck .chip::before,.course.stuck .chip::after{display:none}
+.course.stuck .chip .pace,.course.stuck .chip .sub,.course.stuck .chip .live,.course.stuck .chip .state{display:none}
+.course.stuck .chip .name{display:flex;align-items:center;gap:7px;font-size:13px;color:var(--ink-2);
+  font-variation-settings:"wdth" 100,"wght" 600;white-space:nowrap}
+.course.stuck .chip.is-live{border-color:var(--live)}
+.course.stuck .chip.is-live .name{color:var(--ink)}
+.course.stuck .chip.is-overdue{border-color:var(--bike)}
+/* state dot, only drawn in the collapsed strip */
+.chip .mark{display:none}
+.course.stuck .chip .mark{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--rule);flex:none}
+.course.stuck .chip.is-done .mark{background:var(--ink-2)}
+.course.stuck .chip.is-past .mark,.course.stuck .chip.is-overdue .mark{background:var(--bike)}
+.course.stuck .chip.is-live .mark{background:var(--live);animation:badge-breathe 2s ease-in-out infinite}
+
 .chip .gap.behind{color:var(--run)}
 .chip .gap.ahead{color:var(--live)}
 /* an expected checkpoint that never came (U13) */
@@ -184,6 +215,8 @@ button{font:inherit;color:inherit;cursor:pointer}
 .card-clocks{padding:0 16px 10px;margin-top:-4px;font-size:12px;color:var(--muted)}
 
 .cols,.row{display:grid;grid-template-columns:26px minmax(140px,1fr) 88px 88px 92px 84px 100px 68px;gap:10px;align-items:center}
+/* watch mode trades some of the plan columns for the one editable field */
+.legs.watch .cols,.legs.watch .row{grid-template-columns:26px minmax(120px,1fr) 72px 78px 88px 172px 84px 60px}
 .cols{padding:8px 16px;border-bottom:1px solid var(--rule);font-size:11.5px;color:var(--muted)}
 .cols span:nth-child(n+3):nth-child(-n+7){text-align:right}
 .row{padding:7px 16px;border-bottom:1px solid var(--rule)}
@@ -506,7 +539,9 @@ footer{margin-top:30px;color:var(--muted);font-size:12.5px;line-height:1.7}
     </div>
   </section>
 
-  <section class="board course" aria-label="Course">
+  <div id="course-sentinel" aria-hidden="true"></div>
+
+  <section class="board course" id="course" aria-label="Course">
     <div class="course-head">
       <h2>Course</h2>
       <span class="livebadge" id="live-badge" hidden><i></i>LIVE</span>
@@ -1495,6 +1530,18 @@ function cardLive(card, snap){
   const off = snap.gapSeconds || 0;
   return {state:"upcoming", main:fmtClock(active.start + planStart + off), sub:off ? "projected start" : "planned start"};
 }
+/* U14: flips the course panel into its collapsed, stuck presentation the
+   moment the sentinel just above it leaves the top of the viewport. An
+   observer (not a scroll handler) so it costs nothing while scrolling. */
+(function watchCourseStick(){
+  const sentinel = $("#course-sentinel"), panel = $("#course");
+  if(!sentinel || !panel || !("IntersectionObserver" in window)) return;
+  new IntersectionObserver(
+    ([e]) => panel.classList.toggle("stuck", e.intersectionRatio === 0),
+    {threshold:[0, 1]}
+  ).observe(sentinel);
+})();
+
 function renderCourse(){
   const chips = $("#chips");
   if(!chips || !active) return;
@@ -1515,7 +1562,8 @@ function renderCourse(){
     const stateLab = live ? ({done:"Done", live:"On course", past:"No time", overdue:"Overdue", upcoming:"Upcoming"})[live.state] : "";
     const gapCls = (live && live.state === "done" && live.gap) ? (live.gap > 0 ? " behind" : " ahead") : "";
     el.innerHTML =
-      '<div class="name">'+esc(c.label)+(stateLab ? ' <span class="state">'+stateLab+'</span>' : '')+'</div>'+
+      '<div class="name"><span class="mark" aria-hidden="true"></span>'+esc(c.label)+
+        (stateLab ? ' <span class="state">'+stateLab+'</span>' : '')+'</div>'+
       '<div class="pace">'+(p ? p.v+' <span class="u">'+p.u+'</span>' : fmtHMS(c.dur))+'</div>'+
       '<div class="sub">'+(p ? fmtHMS(c.dur)+' · ' : '')+
         (SPORTS[c.sport].unit ? (c.dist ? fmtDistLabel(c.sport, c.dist) : "no distance") : "transition")+'</div>'+
@@ -1526,6 +1574,7 @@ function renderCourse(){
 
 function renderLegs(){
   legsEl.innerHTML = "";
+  legsEl.classList.toggle("watch", mode === "watch");
   groups().forEach(g => {
     const meta = SPORTS[g.sport];
     const dur  = g.items.reduce((a,x)=>a+x.s.dur,0);
