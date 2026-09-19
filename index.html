@@ -123,6 +123,7 @@ button{font:inherit;color:inherit;cursor:pointer}
 .leg-title .d{font-size:13px;color:var(--muted)}
 .leg-tot{display:flex;gap:16px;align-items:baseline;font-size:13.5px;color:var(--ink-2)}
 .leg-tot b{font-variation-settings:"wdth" 104,"wght" 660;color:var(--ink);font-size:15px}
+.card-clocks{padding:0 16px 10px;margin-top:-4px;font-size:12px;color:var(--muted)}
 
 .cols,.row{display:grid;grid-template-columns:26px minmax(140px,1fr) 88px 88px 92px 84px 100px 68px;gap:10px;align-items:center}
 .cols{padding:8px 16px;border-bottom:1px solid var(--rule);font-size:11.5px;color:var(--muted)}
@@ -274,6 +275,7 @@ footer{margin-top:30px;color:var(--muted);font-size:12.5px;line-height:1.7}
       <a class="btn" id="open-edit" href="#/">Open in edit</a>
       <button class="btn primary" id="btn-import">Paste results</button>
       <button class="btn" id="btn-copy">Copy data</button>
+      <button class="btn" id="btn-share">Share link</button>
       <span class="sync" id="sync" role="status" aria-live="polite">Not saved yet</span>
     </div>
   </header>
@@ -390,6 +392,7 @@ const KEY = "fodaxman-sp5-2025-v2";          // legacy single-race key (migratio
 const INDEX_KEY = "race-splits:index";        // light [{id,name,savedAt}] library index
 const MIGRATED_KEY = "race-splits:migrated";  // once-only sentinel for the legacy import
 const MIGRATED_KEY_V2 = "race-splits:migrated-v2"; // once-only sentinel: drops per-race location/date/dist + per-section est
+const MIGRATED_KEY_V3 = "race-splits:migrated-v3"; // once-only sentinel: backfills index digest/finish/start (U4)
 const raceKey = id => "race-splits:race:" + id;
 
 function uid(){ return Math.random().toString(36).slice(2,9); }
@@ -472,8 +475,17 @@ function readIndex(){
   try{ const a = JSON.parse(raw); return Array.isArray(a) ? a : []; }catch(e){ return []; }
 }
 function writeIndex(arr){ storageSet(INDEX_KEY, JSON.stringify(arr)); }
+/** Light index entry: digest/finish/start are cached copies of values
+    derivable from the race blob (digestText(toRaceText(race)), raceTotal(race),
+    race.start) — kept here so renderHome() and findRaceByDigest() never need
+    to load every blob just to show a card or match a shared link (U4). */
 function indexEntry(race){
-  return {id:race.id, name:race.name||"", savedAt:race.savedAt};
+  return {
+    id:race.id, name:race.name||"", savedAt:race.savedAt,
+    digest: digestText(toRaceText(race)),
+    finish: raceTotal(race),
+    start: race.start
+  };
 }
 function listRaces(){ return readIndex(); }
 
@@ -556,6 +568,29 @@ function migrateDropMetadata(){
     storageSet(raceKey(entry.id), JSON.stringify(obj));
   });
   storageSet(MIGRATED_KEY_V2, "1");
+}
+/** One-time, non-destructive migration: backfills digest/finish/start onto
+    every existing index entry (U4). Rewrites only the light index — those
+    three fields are derived read-only from each race blob (digestText(
+    toRaceText(race)), raceTotal(race), race.start), so there is nothing to
+    change in the blobs themselves. Must run after migrateDropMetadata() so
+    the canonical text it digests reflects the post-drop shape. Gated on its
+    own sentinel, same shape as migrateDropMetadata(). */
+function migrateBackfillIndex(){
+  if(storageGet(MIGRATED_KEY_V3)) return;
+  const idx = readIndex();
+  let changed = false;
+  idx.forEach(entry => {
+    if(entry.digest != null && entry.finish != null && entry.start != null) return;
+    const race = loadRace(entry.id);
+    if(!race) return;
+    entry.digest = digestText(toRaceText(race));
+    entry.finish = raceTotal(race);
+    entry.start = race.start;
+    changed = true;
+  });
+  if(changed) writeIndex(idx);
+  storageSet(MIGRATED_KEY_V3, "1");
 }
 
 /* The app mounts one race at a time. `active` is the mounted race context;
@@ -1313,12 +1348,18 @@ function digestText(text){
   return (h1 >>> 0).toString(36) + (h2 >>> 0).toString(36);
 }
 
-/** Finds a library race whose canonical text digests to `digest`, computed
-    on the fly (no digest is stored in the index in this unit — see U3
-    report). Ties broken by most-recently-saved (KTD4, R18 test scenario). */
+/** Finds a library race whose canonical text digests to `digest`. Reads the
+    cached entry.digest (U4) first; only an entry missing that field (should
+    not occur once migrateBackfillIndex() has run, but handled for safety)
+    falls back to loading its blob and computing the digest on the fly.
+    Ties broken by most-recently-saved (KTD4, R18 test scenario). */
 function findRaceByDigest(digest){
   const entries = readIndex().slice().sort((a,b) => (b.savedAt||0) - (a.savedAt||0));
   for(const entry of entries){
+    if(entry.digest != null){
+      if(entry.digest === digest) return loadRace(entry.id);
+      continue;
+    }
     const race = loadRace(entry.id);
     if(race && digestText(toRaceText(race)) === digest) return race;
   }
@@ -1403,6 +1444,26 @@ $("#btn-copy").addEventListener("click", async () => {
   const text = toRaceText(active);
   try{ await navigator.clipboard.writeText(text); toast("Copied"); }
   catch(e){ raw.value = text; dlg.showModal(); raw.select(); }
+});
+
+/* R17: copies the bare "#/race/<token>" watch-route form (KTD10) — the
+   same shape the router already resolves for a shared/watched link, not
+   the /edit or /follow form. Warns instead of copying past the ~2000-char
+   shareable-URL budget (KTD3), offering the canonical text as a fallback
+   share mechanism (still copyable/importable via Paste results). */
+$("#btn-share").addEventListener("click", async () => {
+  if(!active) return;
+  const text = toRaceText(active);
+  const token = await encodeToken(text);
+  const url = location.origin + location.pathname + "#/race/" + token;
+  if(url.length > 2000){
+    toast("That race is too big for a link — copying race text instead");
+    try{ await navigator.clipboard.writeText(text); }
+    catch(e){ raw.value = text; dlg.showModal(); raw.select(); }
+    return;
+  }
+  try{ await navigator.clipboard.writeText(url); toast("Link copied"); }
+  catch(e){ raw.value = url; dlg.showModal(); raw.select(); }
 });
 
 const saveStripBtn = $("#save-strip-btn");
@@ -1734,14 +1795,17 @@ function renderHome(){
     html += '<div class="legs">';
     races.forEach(r => {
       const id = encodeURIComponent(r.id);
-      const race = loadRace(r.id);
-      const t = race ? raceTotal(race) : 0;
+      const t = r.finish || 0;
+      const hasStart = typeof r.start === "number";
+      const clocks = hasStart
+        ? '<div class="card-clocks">Gun '+fmtClock(r.start)+(t ? ' · Finish '+fmtClock(r.start + t) : '')+'</div>'
+        : '';
       html += '<section class="leg race-card">'+
         '<div class="leg-head">'+
           '<div class="leg-title"><span class="t">'+esc(r.name || "Untitled race")+'</span></div>'+
           '<div class="leg-tot"><span class="finish-lab">Finish</span>'+
             '<span class="fin">'+(t ? fmtHMS(t) : "—")+'</span></div>'+
-        '</div>'+
+        '</div>'+clocks+
         '<div class="leg-foot">'+
           '<a class="btn primary" href="#/race/'+id+'/edit">Open</a>'+
           '<a class="btn" href="#/race/'+id+'/follow">Follow</a>'+
@@ -1822,6 +1886,7 @@ function doDeleteRace(id){
 
 migrateLegacy();
 migrateDropMetadata();
+migrateBackfillIndex();
 window.addEventListener("hashchange", router);
 router();
 })();
