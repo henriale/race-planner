@@ -234,6 +234,14 @@ footer{margin-top:30px;color:var(--muted);font-size:12.5px;line-height:1.7}
 #race-view.readonly .start-val{display:inline}
 #race-view.readonly .marker-status{display:block}
 
+/* ---- shared-link save strip (R18) — wins over the readonly/edit chrome
+   rules above regardless of mode, since an unsaved race has no id to link
+   Watch live / Open in edit to ---- */
+.save-strip{display:flex;flex-wrap:wrap;align-items:center;gap:10px 16px;justify-content:space-between;margin:-10px 0 20px;padding:12px 16px;border:1px solid var(--rule);border-radius:var(--r);background:var(--surface-2);color:var(--ink-2);font-size:13.5px}
+.save-strip[hidden]{display:none}
+#race-view.transient-race #watch-live,
+#race-view.transient-race #open-edit{display:none}
+
 @media (max-width:880px){
   .cols{display:none}
   .row{grid-template-columns:26px 1fr 1fr;gap:6px 10px;padding:12px 14px;align-items:start}
@@ -269,6 +277,11 @@ footer{margin-top:30px;color:var(--muted);font-size:12.5px;line-height:1.7}
       <span class="sync" id="sync" role="status" aria-live="polite">Not saved yet</span>
     </div>
   </header>
+
+  <div class="save-strip" id="save-strip" hidden role="status">
+    <span>This race is from a link — it is not in your library yet. Saving adds it as a new race.</span>
+    <button class="btn primary" id="save-strip-btn" type="button">Save this race</button>
+  </div>
 
   <section class="board" aria-label="Race timeline">
     <div class="board-top">
@@ -420,13 +433,19 @@ function normalize(obj){
 
 function save(){
   if(!active) return;
-  saveRace(active);            // stamps savedAt, writes blob + upserts index (keyed on active.id)
-  showSaved();
+  if(!transientRace) saveRace(active);   // stamps savedAt, writes blob + upserts index (keyed on active.id)
+  showSaved();                            // a transient race (R18) is never auto-persisted; only the save-strip button does that
 }
 
 function showSaved(){
   const el = document.getElementById("sync");
   if(!el) return;
+  if(transientRace){
+    el.className = "sync";
+    el.textContent = "Not saved — from a link";
+    el.title = "Use “Save this race” to keep it in this browser’s library.";
+    return;
+  }
   if(!storageOK){
     el.className = "sync bad";
     el.textContent = "Not saving — this browser blocks storage";
@@ -541,12 +560,18 @@ function migrateDropMetadata(){
 
 /* The app mounts one race at a time. `active` is the mounted race context;
    `mode` is the current view; `readOnly` suppresses editing (follow mode).
-   undoStack + selected reset on every mount, so nothing leaks across races. */
+   undoStack + selected reset on every mount, so nothing leaks across races.
+   `transientRace` marks a race mounted from a link that is not (yet) saved
+   to this library (R18) — `active.id` is null for as long as it is true.
+   `activeWatchId` is the watch-session id from a "/race/<token>/watch/<id>"
+   route; unused until U7 builds the real watch session. */
 let active = null;
 let mode = "home";
 let readOnly = false;
 let undoStack = [];
 let selected = null;
+let transientRace = false;
+let activeWatchId = null;
 function snapshot(){
   if(!active) return;
   undoStack.push(JSON.stringify(active));
@@ -556,7 +581,7 @@ function undo(){
   if(mode !== "edit") return;
   const prev = undoStack.pop();
   if(!prev) return;
-  active = JSON.parse(prev); save(); render();
+  active = JSON.parse(prev); save(); render(); refreshUrl();
 }
 
 /* ============================================================
@@ -686,7 +711,7 @@ function moveSection(from, insertAt, sport){
   arr.splice(pos, 0, s);
   commit();
   toast((s.name || "Checkpoint") + " moved — split and distance cleared",
-        () => { active = JSON.parse(before); save(); render(); });
+        () => { active = JSON.parse(before); save(); render(); refreshUrl(); });
 }
 
 /* ---- drag to reorder ----------------------------------------
@@ -759,7 +784,7 @@ function endDrag(){
   moveSection(from, d.before ? t : t+1, sport);
 }
 
-function commit(){ save(); render(); }
+function commit(){ save(); render(); refreshUrl(); }
 
 function addSection(sport, atIndex){
   snapshot();
@@ -775,7 +800,7 @@ function removeSection(i){
   const [gone] = active.sections.splice(i,1);
   if(!active.sections.length) active.sections.push(sec("", "swim", null, 0));
   commit();
-  toast((gone.name || "Section")+" removed", () => { active = JSON.parse(before); save(); render(); });
+  toast((gone.name || "Section")+" removed", () => { active = JSON.parse(before); save(); render(); refreshUrl(); });
 }
 
 /* ============================================================
@@ -942,7 +967,7 @@ function rowFor(s, i){
   }
 
   row.appendChild(cell(textField(s.name, "Checkpoint name", v => {
-    snapshot(); s.name = v; save(); renderBoard();
+    snapshot(); s.name = v; save(); renderBoard(); refreshUrl();
   }, "name"), null));
 
   row.appendChild(cell(
@@ -993,7 +1018,7 @@ function rowFor(s, i){
   const nr = document.createElement("div");
   nr.className = "noterow";
   nr.appendChild(textField(s.note, "Note for the timeline — nutrition, weather, mechanical…", v => {
-    snapshot(); s.note = v; save(); renderBoard();
+    snapshot(); s.note = v; save(); renderBoard(); refreshUrl();
   }));
   row.appendChild(nr);
 
@@ -1196,7 +1221,112 @@ function previewRows(built){
 function esc(s){ return String(s).replace(/[&<>]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;"}[c])); }
 
 /* ============================================================
-   8. Wiring
+   8. Content-addressed links — token encode/decode + digest (R15,R18)
+
+   A race's URL fragment carries its canonical text (U2's toRaceText) as a
+   deflate-raw-compressed, base64url-encoded payload behind a one-byte
+   prefix: 1 = deflate-raw compressed, 0 = raw UTF-8 (used only when
+   CompressionStream/DecompressionStream are unavailable, KTD3). The
+   decoder reads the prefix and never has to guess which path produced a
+   given token, so a link made on an older browser still opens correctly
+   everywhere — it is just longer. A link CREATED as compressed can only be
+   READ where DecompressionStream exists; that failure is reported as
+   "needs a newer browser", distinct from a corrupt/malformed token.
+
+   digestText() is a short, synchronous, non-cryptographic hash of the
+   canonical text (not the compressed bytes) — it is how a decoded link is
+   matched against the library (KTD4: the digest addresses a race in a URL
+   but is never its storage key). Collisions are tolerated: link resolution
+   in mountFromToken() prefers the most recently saved match.
+   ============================================================ */
+function bytesToBase64Url(bytes){
+  let bin = "";
+  for(let i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]);
+  return btoa(bin).replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,"");
+}
+function base64UrlToBytes(str){
+  let s = String(str).replace(/-/g,"+").replace(/_/g,"/");
+  while(s.length % 4) s += "=";
+  const bin = atob(s);
+  const bytes = new Uint8Array(bin.length);
+  for(let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+  return bytes;
+}
+const TOKEN_RAW = 0, TOKEN_DEFLATE = 1;   // one-byte token prefix (KTD3)
+
+/** race text -> URL-safe token. Always succeeds; falls back to an
+    uncompressed (longer) token when CompressionStream is absent. */
+async function encodeToken(text){
+  const utf8 = new TextEncoder().encode(text);
+  if(typeof CompressionStream !== "function"){
+    const out = new Uint8Array(utf8.length + 1);
+    out[0] = TOKEN_RAW; out.set(utf8, 1);
+    return bytesToBase64Url(out);
+  }
+  const cs = new CompressionStream("deflate-raw");
+  const writer = cs.writable.getWriter();
+  writer.write(utf8); writer.close();
+  const compressed = new Uint8Array(await new Response(cs.readable).arrayBuffer());
+  const out = new Uint8Array(compressed.length + 1);
+  out[0] = TOKEN_DEFLATE; out.set(compressed, 1);
+  return bytesToBase64Url(out);
+}
+
+/** URL token -> {text} or {error}. error is "needs-newer-browser" for a
+    compressed token read where DecompressionStream is missing, or
+    "corrupt" for anything else that fails to decode. */
+async function decodeToken(token){
+  let bytes;
+  try{ bytes = base64UrlToBytes(token); }catch(e){ return {error:"corrupt"}; }
+  if(!bytes.length) return {error:"corrupt"};
+  const prefix = bytes[0], payload = bytes.slice(1);
+  if(prefix === TOKEN_RAW){
+    try{ return {text: new TextDecoder("utf-8", {fatal:true}).decode(payload)}; }
+    catch(e){ return {error:"corrupt"}; }
+  }
+  if(prefix === TOKEN_DEFLATE){
+    if(typeof DecompressionStream !== "function") return {error:"needs-newer-browser"};
+    try{
+      const ds = new DecompressionStream("deflate-raw");
+      const writer = ds.writable.getWriter();
+      writer.write(payload); writer.close();
+      const buf = await new Response(ds.readable).arrayBuffer();
+      return {text: new TextDecoder("utf-8", {fatal:true}).decode(buf)};
+    }catch(e){ return {error:"corrupt"}; }
+  }
+  return {error:"corrupt"};
+}
+
+/** Short synchronous digest (cyrb128-derived, base36) over canonical
+    text — good enough for link-matching; collisions are handled by the
+    caller, not avoided here. */
+function digestText(text){
+  const str = String(text);
+  let h1 = 0x9e3779b9 ^ str.length, h2 = 0x85ebca6b ^ str.length;
+  for(let i = 0; i < str.length; i++){
+    const ch = str.charCodeAt(i);
+    h1 = Math.imul(h1 ^ ch, 2654435761);
+    h2 = Math.imul(h2 ^ ch, 1597334677);
+  }
+  h1 = Math.imul(h1 ^ (h1 >>> 16), 2246822507) ^ Math.imul(h2 ^ (h2 >>> 13), 3266489909);
+  h2 = Math.imul(h2 ^ (h2 >>> 16), 2246822507) ^ Math.imul(h1 ^ (h1 >>> 13), 3266489909);
+  return (h1 >>> 0).toString(36) + (h2 >>> 0).toString(36);
+}
+
+/** Finds a library race whose canonical text digests to `digest`, computed
+    on the fly (no digest is stored in the index in this unit — see U3
+    report). Ties broken by most-recently-saved (KTD4, R18 test scenario). */
+function findRaceByDigest(digest){
+  const entries = readIndex().slice().sort((a,b) => (b.savedAt||0) - (a.savedAt||0));
+  for(const entry of entries){
+    const race = loadRace(entry.id);
+    if(race && digestText(toRaceText(race)) === digest) return race;
+  }
+  return null;
+}
+
+/* ============================================================
+   9. Wiring
    ============================================================ */
 const dlg = $("#dlg"), raw = $("#raw");
 $("#btn-import").addEventListener("click", () => { dlg.showModal(); raw.focus(); });
@@ -1275,6 +1405,9 @@ $("#btn-copy").addEventListener("click", async () => {
   catch(e){ raw.value = text; dlg.showModal(); raw.select(); }
 });
 
+const saveStripBtn = $("#save-strip-btn");
+if(saveStripBtn) saveStripBtn.addEventListener("click", saveTransientRace);
+
 let toastTimer = null, toastAction = null;
 function toast(msg, action){
   const t = $("#toast");
@@ -1303,7 +1436,7 @@ window.addEventListener("pagehide", flush);
 document.addEventListener("visibilitychange", () => { if(document.hidden) flush(); });
 
 /* ============================================================
-   9. Router + view mounting
+   10. Router + view mounting
    ============================================================ */
 const VIEWS = ["home-view","race-view"];
 function show(id){ VIEWS.forEach(v => { const el = $("#"+v); if(el) el.hidden = v !== id; }); }
@@ -1313,11 +1446,28 @@ function focusHeading(viewId){                       // F11: land AT/keyboard fo
   const h = view.querySelector("h1,h2");
   if(h){ h.setAttribute("tabindex","-1"); h.focus(); }
 }
+/* Route shapes (R15,R19,KTD10):
+     "/"                          -> home
+     "/race/<x>/edit"             -> <x> checked against the library index
+                                      as an id FIRST (legacy bookmark); a
+                                      token only when no index entry matches
+     "/race/<x>/follow"           -> same id-first rule
+     "/race/<token>/watch/<wid>"  -> parses; U7 builds the actual session
+     "/race/<token>"  (bare)      -> watch (KTD10) — parsed, mounted via the
+                                      watch stub below until U7 lands
+   A legacy id and a token are the same URL shape: the existing 7-char
+   uid() is itself valid base64url, so the id-vs-token distinction is
+   resolved by looking the string up in the index, never by its shape. */
 function parseHash(){
   const h = location.hash.replace(/^#/, "");
-  const m = h.match(/^\/race\/([^/]+)\/(edit|follow)$/);
-  if(m) return {view:m[2], id:decodeURIComponent(m[1])};
-  return {view:"home", id:null};                     // "", "/", or anything unknown -> home
+  let m;
+  if((m = h.match(/^\/race\/([^/]+)\/watch\/([^/]+)$/)))
+    return {view:"watch", token:decodeURIComponent(m[1]), watchId:decodeURIComponent(m[2])};
+  if((m = h.match(/^\/race\/([^/]+)\/(edit|follow)$/)))
+    return {view:m[2], token:decodeURIComponent(m[1])};
+  if((m = h.match(/^\/race\/([^/]+)$/)))
+    return {view:"watch", token:decodeURIComponent(m[1]), watchId:null};
+  return {view:"home", token:null};                  // "", "/", or anything unknown -> home
 }
 
 let markerTimer = null;
@@ -1330,17 +1480,87 @@ function teardownActiveView(){
      them — there is nothing to unbind here (F6). */
 }
 
-function router(){
+/* KTD6 ordering: every navigation bumps routeSeq before any await, and
+   every async step below re-checks it on the far side of that await,
+   discarding stale work instead of mounting over whatever navigated in
+   after it. lastMountedHash short-circuits router() when the incoming
+   hash already resolves to what is on screen (including hashes we wrote
+   ourselves via replaceState, which fire no hashchange but should still
+   make a redundant real navigation to the same hash a no-op). */
+let routeSeq = 0;
+let lastMountedHash = null;
+
+async function router(){
+  if(location.hash === lastMountedHash) return;
+  const mySeq = ++routeSeq;
   const route = parseHash();
   teardownActiveView();
-  if(route.view === "home") return mountHome();
-  const race = loadRace(route.id);
-  if(!race){                                         // deleted/unknown id or malformed hash (F3)
-    toast("That race is no longer here");
-    location.hash = "#/";                             // re-fires hashchange -> mountHome
+
+  if(route.view === "home"){
+    mountHome();
+    lastMountedHash = location.hash;
     return;
   }
-  return route.view === "follow" ? mountFollow(race) : mountEdit(race);
+
+  if(route.view === "edit" || route.view === "follow"){
+    const isLegacyId = readIndex().some(e => e.id === route.token);
+    if(isLegacyId){
+      const race = loadRace(route.token);
+      if(!race){                                     // deleted id (F3)
+        toast("That race is no longer here");
+        location.hash = "#/";                        // re-fires hashchange -> mountHome
+        return;
+      }
+      mountRace(race, route.view, mySeq, null, {});
+      lastMountedHash = location.hash;
+      refreshUrl();                                   // R19: rewrite the legacy id URL to token form
+      return;
+    }
+    await mountFromToken(route.token, route.view, null, mySeq);
+    return;
+  }
+
+  await mountFromToken(route.token, "watch", route.watchId, mySeq);
+}
+
+/** Decodes a token route (bare, or one that fell through the legacy-id
+    check) and mounts either the matching library race or a transient one
+    (R18). Every await is re-guarded against routeSeq moving on (KTD7). */
+async function mountFromToken(token, view, watchId, mySeq){
+  const decoded = await decodeToken(token);
+  if(mySeq !== routeSeq) return;                       // navigated away meanwhile
+  if(decoded.error === "needs-newer-browser"){
+    toast("This link needs a newer browser");
+    location.hash = "#/";
+    return;
+  }
+  if(decoded.error){
+    toast("That race link looks corrupted");
+    location.hash = "#/";
+    return;
+  }
+  const parsed = parseRaceText(decoded.text);
+  if(parsed.error){
+    toast("That race link looks corrupted");
+    location.hash = "#/";
+    return;
+  }
+  const digest = digestText(decoded.text);
+  const stored = findRaceByDigest(digest);
+  if(stored){
+    mountRace(stored, view, mySeq, watchId, {});
+  }else{
+    const transient = {id:null, name:parsed.name, start:parsed.start, sections:parsed.sections, savedAt:null};
+    mountRace(transient, view, mySeq, watchId, {transient:true});
+  }
+  lastMountedHash = location.hash;
+}
+
+function mountRace(race, view, mySeq, watchId, opts){
+  if(mySeq !== routeSeq) return;                       // stale by the time decode/lookup settled
+  if(view === "edit") return mountEdit(race, opts);
+  if(view === "follow") return mountFollow(race, opts);
+  return mountWatch(race, watchId, opts);
 }
 
 function applyReadOnly(ro){
@@ -1349,34 +1569,110 @@ function applyReadOnly(ro){
   if(rv) rv.classList.toggle("readonly", ro);
 }
 
+/** Sets watch-live/open-edit hrefs (hidden entirely for a transient race,
+    which has no id to link to) and toggles the CSS hook that hides them. */
+function refreshRaceChrome(){
+  const rv = $("#race-view");
+  if(rv) rv.classList.toggle("transient-race", transientRace);
+  const wl = $("#watch-live");
+  if(wl && !transientRace) wl.href = "#/race/" + encodeURIComponent(active.id) + "/follow";
+  const oe = $("#open-edit");
+  if(oe && !transientRace) oe.href = "#/race/" + encodeURIComponent(active.id) + "/edit";
+}
+function renderSaveStrip(){
+  const el = $("#save-strip");
+  if(el) el.hidden = !transientRace;
+}
+
 function mountHome(){
   mode = "home"; active = null; readOnly = false; selected = null; undoStack = [];
+  transientRace = false; activeWatchId = null;
   renderHome();
   show("home-view");
   document.title = "Race splits";
   focusHeading("home-view");
 }
-function mountEdit(race){
+function mountEdit(race, opts){
+  opts = opts || {};
   mode = "edit"; active = race; selected = null; undoStack = [];
+  transientRace = !!opts.transient; activeWatchId = null;
   applyReadOnly(false);
-  const wl = $("#watch-live");
-  if(wl) wl.href = "#/race/" + encodeURIComponent(race.id) + "/follow";   // F15
+  refreshRaceChrome();
   show("race-view");
   render();
   showSaved();
+  renderSaveStrip();
   document.title = (race.name || "Untitled race") + " — Splits";
   focusHeading("race-view");
 }
-function mountFollow(race){
+function mountFollow(race, opts){
+  opts = opts || {};
   mode = "follow"; active = race; selected = null; undoStack = [];
+  transientRace = !!opts.transient; activeWatchId = null;
   applyReadOnly(true);
-  const oe = $("#open-edit");
-  if(oe) oe.href = "#/race/" + encodeURIComponent(race.id) + "/edit";
+  refreshRaceChrome();
   show("race-view");
   render();                 // readOnly render: static fields, no chrome
+  showSaved();
+  renderSaveStrip();
   startMarker();
   document.title = (race.name || "Untitled race") + " — Live";
   focusHeading("race-view");
+}
+/* Watch mode (KTD10) doesn't exist yet — U7 builds the real session (join
+   by watchId, live position from other viewers). Until then, a bare
+   "#/race/<token>" or a "/watch/<id>" route lands here, which just reuses
+   the read-only follow render so the route has somewhere safe to go
+   instead of crashing. TODO(U7): replace this function's body with the
+   real watch session; parseHash/mountFromToken/mountRace above should not
+   need to change. */
+function mountWatch(race, watchId, opts){
+  activeWatchId = watchId || null;
+  mountFollow(race, opts);
+  mode = "watch";                                      // so refreshUrl() writes a watch-shaped hash
+  activeWatchId = watchId || null;                      // mountFollow reset it; restore after
+}
+
+/** Persists a transient (link-only) race as a new library race (R18) —
+    the only path that ever turns transientRace off, per the explicit-save
+    requirement: edits to a transient race never auto-persist (see save()). */
+function saveTransientRace(){
+  if(!active || !transientRace) return;
+  const savedRace = createRace({name:active.name, start:active.start, sections:active.sections});
+  active = savedRace;
+  transientRace = false;
+  refreshRaceChrome();
+  renderSaveStrip();
+  showSaved();
+  refreshUrl();
+  toast("Saved as a new race");
+}
+
+/** Rewrites the address bar to match active's current canonical text, via
+    replaceState so it fires no hashchange and adds no history entry
+    (KTD6/R16). Async because encodeToken is; the two captured sequence
+    numbers (KTD6) — routeSeq for "did we navigate elsewhere" and
+    commitSeq for "did a later edit supersede this one" — are checked
+    after the await so a stale encode never overwrites a newer one (this
+    is what makes a rapid arrow-key nudge land the URL in the right order). */
+let commitSeq = 0;
+async function refreshUrl(){
+  if(!active) return;
+  if(mode !== "edit" && mode !== "follow" && mode !== "watch") return;
+  const myCommitSeq = ++commitSeq;
+  const myRouteSeq = routeSeq;
+  const raceRef = active;
+  const text = toRaceText(raceRef);
+  const token = await encodeToken(text);
+  if(commitSeq !== myCommitSeq) return;                 // a later edit already refreshed the URL
+  if(routeSeq !== myRouteSeq) return;                    // navigated to a different route meanwhile
+  if(active !== raceRef) return;                          // active swapped under us (e.g. undo, save-transient)
+  let hash;
+  if(mode === "edit") hash = "#/race/" + token + "/edit";
+  else if(mode === "follow") hash = "#/race/" + token + "/follow";
+  else hash = activeWatchId ? "#/race/" + token + "/watch/" + encodeURIComponent(activeWatchId) : "#/race/" + token;
+  if(location.hash !== hash) history.replaceState(null, "", hash);
+  lastMountedHash = location.hash;
 }
 
 /* ---- live position marker (wall-clock driven, KTD5) ---- */
@@ -1496,7 +1792,7 @@ if(nameEl){
     if(!active || readOnly) return;
     const v = nameEl.textContent.trim();
     if(v === active.name) return;
-    snapshot(); active.name = v; save(); renderMasthead();
+    snapshot(); active.name = v; save(); renderMasthead(); refreshUrl();
   });
   nameEl.addEventListener("keydown", e => {
     if(e.key === "Enter"){ e.preventDefault(); nameEl.blur(); }
