@@ -106,6 +106,7 @@ button{font:inherit;color:inherit;cursor:pointer}
 .chip[data-sport="swim"]{--sp:var(--swim)}
 .chip[data-sport="bike"]{--sp:var(--bike)}
 .chip[data-sport="run"]{--sp:var(--run)}
+.chip.trans{flex:0 1 110px}
 .chip .name{font-size:12.5px;color:var(--muted)}
 .chip .pace{font-size:20px;font-variation-settings:"wdth" 108,"wght" 680;line-height:1.15}
 .chip .u{font-size:12px;color:var(--muted);font-variation-settings:"wdth" 100,"wght" 400}
@@ -1251,6 +1252,16 @@ function renderBoard(){
       '<div class="sub">'+fmtHMS(v.dur)+' · '+(v.dist ? fmtDistLabel(sport,v.dist) : "no distance")+'</div>';
     chips.appendChild(el);
   });
+  const trans = tot.trans;
+  if(trans){
+    const el = document.createElement("div");
+    el.className = "chip trans"; el.dataset.sport = "trans";
+    el.innerHTML =
+      '<div class="name">'+SPORTS.trans.label+'</div>'+
+      '<div class="pace">—</div>'+
+      '<div class="sub">'+fmtHMS(trans.dur)+'</div>';
+    chips.appendChild(el);
+  }
 }
 
 function renderLegs(){
@@ -1415,6 +1426,9 @@ function textField(value, ph, onCommit, cls){
   el.className = "f "+(cls||"");
   el.value = value||""; el.placeholder = ph; el.setAttribute("aria-label", ph);
   el.addEventListener("change", () => onCommit(el.value.trim()));
+  el.addEventListener("keydown", ev => {
+    if(ev.key === "Enter"){ ev.preventDefault(); el.blur(); }
+  });
   return el;
 }
 function distField(s){
@@ -1428,6 +1442,9 @@ function distField(s){
     snapshot();
     s.dist = distIn(s, el.value.trim());
     commit();
+  });
+  el.addEventListener("keydown", ev => {
+    if(ev.key === "Enter"){ ev.preventDefault(); el.blur(); }
   });
   return el;
 }
@@ -1443,6 +1460,7 @@ function timeField(value, label, onCommit, onNudge){
       onNudge((ev.shiftKey?60:1) * (ev.key === "ArrowUp" ? 1 : -1));
     }
     if(ev.key === "Escape"){ el.value = value; el.blur(); }
+    if(ev.key === "Enter"){ ev.preventDefault(); el.blur(); }
   });
   return el;
 }
