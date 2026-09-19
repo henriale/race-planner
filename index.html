@@ -104,10 +104,17 @@ button{font:inherit;color:inherit;cursor:pointer}
 /* U12: the segment the athlete is inside right now — a ring in the live
    colour plus a bottom rule, so it reads as "here" independently of the
    selected-segment (.on) styling, which uses a white inset ring. */
-/* The timeline just marks the segment; the animated ring lives on the course
-   card for that leg (see .chip.is-live below). */
-.seg.live{box-shadow:inset 0 0 0 3px var(--live);z-index:3}
-.seg.live::before{content:"";position:absolute;left:0;right:0;bottom:0;height:4px;background:var(--live)}
+/* The on-course segment pulses on live-pulse — the same 2s ease-in-out and
+   the same 1 -> .35 depth as the LIVE badge's dot, so everything live on the
+   page breathes as one. The ring keeps its geometry (the dot's scale step is
+   dropped here: scaling a full-width ring would visibly shrink the box rather
+   than read as a pulse). */
+.seg.live{z-index:3}
+.seg.live::before{
+  content:"";position:absolute;inset:0;pointer-events:none;
+  border:3px solid var(--live);
+  animation:live-pulse 2s ease-in-out infinite}
+@keyframes live-pulse{0%,100%{opacity:1}50%{opacity:.35}}
 .ticks{position:absolute;left:0;right:0;bottom:0;height:22px}
 .tick{position:absolute;top:0;transform:translateX(-50%);font-size:11px;color:var(--muted);white-space:nowrap}
 .tick::before{content:"";display:block;width:1px;height:6px;background:var(--rule);margin:0 auto 2px}
@@ -127,24 +134,9 @@ button{font:inherit;color:inherit;cursor:pointer}
 .chip .live{display:flex;gap:8px;align-items:baseline;margin-top:4px;font-size:12.5px;color:var(--ink-2)}
 .chip .live b{font-variation-settings:"wdth" 100,"wght" 660;color:var(--ink)}
 .chip .state{font-size:11px;letter-spacing:.04em;text-transform:uppercase;color:var(--muted);font-variation-settings:"wdth" 100,"wght" 620}
-/* The on-course card breathes. Only OPACITY is animated — a fixed border and
-   a fixed halo painted on an overlay, faded in and out — because animating
-   border-color/box-shadow repaints the card each frame and visibly steps.
-   Reduced motion leaves the overlay at its resting opacity via the global
-   rule at the bottom of this sheet. */
+/* The on-course card just carries the live border — the pulse lives on the
+   timeline segment and the LIVE badge, not here. */
 .chip.is-live{position:relative;border-color:var(--live)}
-.chip.is-live::before{
-  content:"";position:absolute;inset:-1px;border-radius:calc(var(--r) + 1px);pointer-events:none;
-  border:1px solid var(--live);
-  box-shadow:0 0 0 3px color-mix(in srgb,var(--live) 26%,transparent),
-             0 0 20px 1px color-mix(in srgb,var(--live) 45%,transparent);
-  opacity:1;
-  animation:chip-glow 2s ease-in-out infinite;
-  will-change:opacity;
-}
-/* same cadence and depth as badge-breathe, so the card and the LIVE badge
-   breathe together rather than at two different rates */
-@keyframes chip-glow{0%,100%{opacity:1}50%{opacity:.35}}
 .chip.is-live .state{color:var(--live)}
 .chip.is-done .state{color:var(--ink-2)}
 .chip[data-sport="swim"]{--sp:var(--swim)}
