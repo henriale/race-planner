@@ -971,6 +971,8 @@ en:{
   "err.transNeeds":"Line {n}: transition needs a split and a name.",
   "err.badSplit":"Line {n}: malformed split.",
   "err.longSplit":"Line {n}: split is unreasonably long.",
+  "err.tooManyCheckpoints":"Too many checkpoints (limit {max}).",
+  "err.longRace":"The whole plan is unreasonably long.",
   "err.unknownToken":"Line {n}: unknown sport token “{tok}”. Use S, B, R, or T.",
   "err.cpNeeds":"Line {n}: checkpoint needs a distance, a split, and a name.",
   "err.badDist":"Line {n}: malformed distance.",
@@ -1153,6 +1155,8 @@ en:{
   "err.transNeeds":"Linha {n}: a transição precisa de parcial e nome.",
   "err.badSplit":"Linha {n}: parcial malformada.",
   "err.longSplit":"Linha {n}: parcial longa demais.",
+  "err.tooManyCheckpoints":"Pontos de controle demais (limite {max}).",
+  "err.longRace":"O plano inteiro é longo demais.",
   "err.unknownToken":"Linha {n}: sigla de esporte desconhecida “{tok}”. Use S, B, R ou T.",
   "err.cpNeeds":"Linha {n}: o checkpoint precisa de distância, parcial e nome.",
   "err.badDist":"Linha {n}: distância malformada.",
@@ -2585,6 +2589,13 @@ const SPLIT_RE = /^\d+:\d{2}(:\d{2})?$/;
 // total turns that loop into a browser hang. 30 days is far past any real
 // race this app is for; reject past it instead of trusting the input.
 const MAX_SPLIT_SECONDS = 30 * 86400;
+// The per-split cap alone does not bound their sum: a hostile link can carry
+// many maximal splits (or simply tens of thousands of checkpoints) and the
+// same renderBoard() tick loop — one node per hour from the gun to the total
+// — plus one row per section is back to hanging the browser. Bound the whole
+// plan too, well past any real race this app is for.
+const MAX_SECTIONS = 500;
+const MAX_TOTAL_SECONDS = 30 * 86400;
 
 /** Single-pass parser for the canonical text format. Returns
     {name, start, sections} or {error} naming the offending line. */
@@ -2621,6 +2632,8 @@ function parseRaceText(text){
     sections.push(sec(parts.slice(3).join(" "), SPORT_TOKEN[tok], dist, dur));
   }
   if(!sections.length) return {error:tr("err.noCheckpoints")};
+  if(sections.length > MAX_SECTIONS) return {error:tr("err.tooManyCheckpoints", {max:MAX_SECTIONS})};
+  if(sections.reduce((a,x) => a + x.dur, 0) > MAX_TOTAL_SECONDS) return {error:tr("err.longRace")};
   return {name, start, sections};
 }
 
@@ -3616,7 +3629,11 @@ function raceIsNow(entry){
    which leaves an open card menu and any focus exactly where they were. */
 function refreshHomeLive(){
   document.querySelectorAll("#home-view .btn.live").forEach(btn => {
-    const start = Number(btn.dataset.start), finish = Number(btn.dataset.finish);
+    // dataset.start is "" for a race with no gun time; Number("") is 0, which
+    // would read as a valid midnight start and flash the card live — the
+    // opposite of what the first paint (raceIsNow on the entry) decided.
+    const start = btn.dataset.start === "" ? null : Number(btn.dataset.start);
+    const finish = Number(btn.dataset.finish);
     btn.classList.toggle("is-now", raceIsNow({start, finish}));
   });
 }
