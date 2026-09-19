@@ -12,11 +12,21 @@
 :root{
   --canvas:#EDF1EF; --surface:#FFFFFF; --surface-2:#F6F9F7;
   --ink:#131E1C; --ink-2:#3F504C; --muted:#73847F; --rule:#D7DFDB;
-  --swim:#1F6F8B; --bike:#B87F14; --run:#7D3A55; --trans:#8A9994;
-  --focus:#1F6F8B;
-  /* live/athlete colour — deliberately outside the swim/bike/run/transition
-     palette so the live pin never reads as "the swim leg" (U12) */
-  --live:#0E8F5E;
+  /* sport hues (U15) — swim light blue, bike teal, run purple. These three
+     are reserved: nothing that is not a sport may wear them. */
+  --swim:#2F7FBF; --bike:#0C7E76; --run:#6F45B5;
+  /* transition is deliberately NOT a sport hue and NOT the grey used for
+     faded/past chrome — a cool slate with its own hatch (see .seg/.chip) */
+  --trans:#667381;
+  --on-sport:#FFFFFF;
+  /* live/athlete colour — amber, the one warm hue on the page, so nothing
+     live can be mistaken for a leg (U12/U15) */
+  --live:#D9540C; --on-live:#FFFFFF;
+  /* verdict pair: only ever on a delta (ahead/behind, ok/error) */
+  --ahead:#1E7F4E; --behind:#C43D2E;
+  /* a logged actual is settled, not "good" — neutral ink, never green */
+  --logged:#3F504C;
+  --focus:#131E1C;
   --shadow:0 10px 30px -22px rgba(19,30,28,.75);
   --r:10px;
 }
@@ -24,18 +34,24 @@
   :root:not([data-theme="light"]){
     --canvas:#0E1817; --surface:#15201E; --surface-2:#1B2725;
     --ink:#E9EFEC; --ink-2:#B4C2BD; --muted:#87958F; --rule:#253230;
-    --swim:#5BA8C6; --bike:#DFAC48; --run:#C67A97; --trans:#788884;
-    --focus:#5BA8C6;
-    --live:#46C79A;
+    --swim:#6FB6E8; --bike:#3FC8BC; --run:#B392F0; --trans:#8A97A6;
+    --on-sport:#0C1413;
+    --live:#FF9A45; --on-live:#25120A;
+    --ahead:#4ECB8B; --behind:#F08272;
+    --logged:#B4C2BD;
+    --focus:#E9EFEC;
     --shadow:0 10px 30px -22px rgba(0,0,0,.9);
   }
 }
 :root[data-theme="dark"]{
   --canvas:#0E1817; --surface:#15201E; --surface-2:#1B2725;
   --ink:#E9EFEC; --ink-2:#B4C2BD; --muted:#87958F; --rule:#253230;
-  --swim:#5BA8C6; --bike:#DFAC48; --run:#C67A97; --trans:#788884;
-  --focus:#5BA8C6;
-  --live:#46C79A;
+  --swim:#6FB6E8; --bike:#3FC8BC; --run:#B392F0; --trans:#8A97A6;
+  --on-sport:#0C1413;
+  --live:#FF9A45; --on-live:#25120A;
+  --ahead:#4ECB8B; --behind:#F08272;
+  --logged:#B4C2BD;
+  --focus:#E9EFEC;
 }
 
 *{box-sizing:border-box}
@@ -53,7 +69,7 @@ body{
 
 /* ---------- masthead ---------- */
 .masthead{display:flex;flex-wrap:wrap;align-items:flex-end;gap:16px 24px;justify-content:space-between;margin-bottom:26px}
-h1{margin:0;font-size:clamp(26px,4.4vw,42px);line-height:.98;font-variation-settings:"wdth" 122,"wght" 760;letter-spacing:-.018em}
+h1{margin:0;font-size:clamp(26px,4.4vw,42px);line-height:1.1;font-variation-settings:"wdth" 122,"wght" 760;letter-spacing:-.018em}
 h1 .yr{color:var(--muted);font-variation-settings:"wdth" 122,"wght" 500}
 .where{margin:8px 0 0;color:var(--ink-2);font-size:14px}
 .where b{font-variation-settings:"wdth" 100,"wght" 600;color:var(--ink)}
@@ -61,9 +77,9 @@ h1 .yr{color:var(--muted);font-variation-settings:"wdth" 122,"wght" 500}
 .tools-icons{display:flex;align-items:center;gap:2px;margin-left:4px;padding-left:8px;border-left:1px solid var(--rule)}
 .sync{display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--muted);padding:0 2px;margin-left:4px}
 .sync::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--muted);flex:none}
-.sync.ok::before{background:#3E9B5F}
-.sync.bad{color:var(--run)}
-.sync.bad::before{background:var(--run)}
+.sync.ok::before{background:var(--ahead)}
+.sync.bad{color:var(--behind)}
+.sync.bad::before{background:var(--behind)}
 
 button{font:inherit;color:inherit;cursor:pointer}
 .btn{
@@ -75,8 +91,21 @@ button{font:inherit;color:inherit;cursor:pointer}
 .btn.primary{background:var(--ink);color:var(--canvas);border-color:var(--ink)}
 .btn.primary:hover{opacity:.9}
 .btn.ghost{background:transparent}
+/* the one live-coloured button on the page (U16) — Watch Live on a library
+   card. Amber is the live hue, so the action that opens the live view wears
+   it and nothing else does. Outlined, so a shelf of race cards is not a wall
+   of amber; the dot carries the colour. */
+.btn.live{background:transparent;border-color:var(--live);color:var(--live);
+  display:inline-flex;align-items:center;gap:9px}
+.btn.live:hover{border-color:var(--live);background:color-mix(in srgb,var(--live) 10%,transparent)}
+.btn.live .dot{width:8px;height:8px;border-radius:50%;background:currentColor;flex:none}
+/* inside the race's own window (gun -2 h through the planned finish) the dot
+   breathes on the same 2 s cadence as the LIVE badge and the on-course
+   segment — one heartbeat for everything live on the page (U16). */
+.btn.live.is-now .dot{animation:badge-breathe 2s ease-in-out infinite}
 .btn[hidden]{display:none}
 :where(button,input,select,a,[tabindex]):focus-visible{outline:2px solid var(--focus);outline-offset:2px;border-radius:6px}
+:where(h1,h2)[tabindex="-1"]:focus-visible{outline:none}
 
 /* ---------- hero strip ---------- */
 .board{background:var(--surface);border:1px solid var(--rule);border-radius:14px;box-shadow:var(--shadow);padding:20px 20px 16px;margin-bottom:28px}
@@ -97,8 +126,11 @@ button{font:inherit;color:inherit;cursor:pointer}
 .seg[data-sport="swim"]{background:var(--swim)}
 .seg[data-sport="bike"]{background:var(--bike)}
 .seg[data-sport="run"]{background:var(--run)}
-.seg[data-sport="trans"]{background:var(--trans)}
-.seg span{color:#fff;font-size:12px;white-space:nowrap;padding:0 8px;font-variation-settings:"wdth" 100,"wght" 600;text-shadow:0 1px 2px rgba(0,0,0,.28)}
+/* transition carries a hatch on top of its slate, so it stays legible as
+   "not a sport" even next to a faded/greyed-out past segment (U15) */
+.seg[data-sport="trans"]{background:var(--trans);
+  background-image:repeating-linear-gradient(135deg,rgba(255,255,255,.14) 0 6px,transparent 6px 12px)}
+.seg span{color:var(--on-sport);font-size:12px;white-space:nowrap;padding:0 8px;font-variation-settings:"wdth" 100,"wght" 600}
 .seg.on{filter:brightness(1.12);box-shadow:inset 0 0 0 2px rgba(255,255,255,.8)}
 .seg.pin::after{content:"";position:absolute;top:5px;right:5px;width:6px;height:6px;border-radius:50%;background:rgba(255,255,255,.95)}
 /* U12: the segment the athlete is inside right now — a ring in the live
@@ -138,10 +170,19 @@ button{font:inherit;color:inherit;cursor:pointer}
    timeline segment and the LIVE badge, not here. */
 .chip.is-live{position:relative;border-color:var(--live)}
 .chip.is-live .state{color:var(--live)}
-.chip.is-done .state{color:var(--ink-2)}
+.chip.is-done .state{color:var(--logged)}
 .chip[data-sport="swim"]{--sp:var(--swim)}
 .chip[data-sport="bike"]{--sp:var(--bike)}
 .chip[data-sport="run"]{--sp:var(--run)}
+.chip[data-sport="trans"]{--sp:var(--trans)}
+/* same hatch as the timeline segment: transition never reads as a sport and
+   never reads as "faded out" */
+.chip[data-sport="trans"] .name{color:var(--trans)}
+.leg[data-sport="trans"] .leg-head{
+  border-left-color:transparent;
+  background-image:linear-gradient(var(--surface-2),var(--surface-2)),
+    repeating-linear-gradient(135deg,var(--trans) 0 3px,transparent 3px 7px);
+  background-origin:border-box;background-clip:padding-box,border-box}
 /* Pinned course panel (U14): once the splits scroll under it, the panel
    sticks to the top and collapses into one row of leg pills — state as a dot,
    no pace/times — so the splits stay readable underneath. The stuck class is
@@ -161,22 +202,28 @@ button{font:inherit;color:inherit;cursor:pointer}
   font-variation-settings:"wdth" 100,"wght" 600;white-space:nowrap}
 .course.stuck .chip.is-live{border-color:var(--live)}
 .course.stuck .chip.is-live .name{color:var(--ink)}
-.course.stuck .chip.is-overdue{border-color:var(--bike)}
+.course.stuck .chip.is-overdue{border-color:var(--behind);border-style:dashed}
 /* state dot, only drawn in the collapsed strip */
 .chip .mark{display:none}
 .course.stuck .chip .mark{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--rule);flex:none}
-.course.stuck .chip.is-done .mark{background:var(--ink-2)}
-.course.stuck .chip.is-past .mark,.course.stuck .chip.is-overdue .mark{background:var(--bike)}
+.course.stuck .chip.is-done .mark{background:var(--logged)}
+.course.stuck .chip.is-past .mark{background:var(--rule);box-shadow:inset 0 0 0 2px var(--muted)}
+.course.stuck .chip.is-overdue .mark{background:var(--behind)}
 .course.stuck .chip.is-live .mark{background:var(--live);animation:badge-breathe 2s ease-in-out infinite}
 
-.chip .gap.behind{color:var(--run)}
-.chip .gap.ahead{color:var(--live)}
-/* an expected checkpoint that never came (U13) */
-.chip.is-overdue{border-color:var(--bike)}
-.chip.is-overdue .state{color:var(--bike)}
-.chip.is-overdue .live b{color:var(--bike)}
+.chip .gap.behind{color:var(--behind)}
+.chip .gap.ahead{color:var(--ahead)}
+/* an expected checkpoint that never came (U13) — dashed, so it is told
+   apart from the live ring by shape as well as hue */
+.chip.is-overdue{border-color:var(--behind);border-style:dashed}
+.chip.is-overdue .state{color:var(--behind)}
+.chip.is-overdue .live b{color:var(--behind)}
 /* the card that just received an actual */
 .chip.flash{animation:gap-flash 1.4s ease-out 1}
+/* a leg the athlete is already past with nothing logged: faded AND
+   desaturated, so it can never be mistaken for the transition slate (U15) */
+.chip.is-past{opacity:.62;filter:saturate(.2)}
+.chip.is-past .state{color:var(--muted)}
 /* upcoming cards get a slow sweep, so the panel is never fully still */
 .chip.is-upcoming{overflow:hidden}
 .chip.is-upcoming::after{
@@ -206,7 +253,7 @@ button{font:inherit;color:inherit;cursor:pointer}
 .leg-title .d{font-size:13px;color:var(--muted)}
 .leg-tot{display:flex;gap:16px;align-items:baseline;font-size:13.5px;color:var(--ink-2)}
 .leg-tot b{font-variation-settings:"wdth" 104,"wght" 660;color:var(--ink);font-size:15px}
-.card-clocks{padding:0 16px 10px;margin-top:-4px;font-size:12px;color:var(--muted)}
+.card-clocks{padding:10px 16px 10px;font-size:12px;color:var(--muted)}
 
 .cols,.row{display:grid;grid-template-columns:26px minmax(140px,1fr) 88px 88px 92px 84px 100px 68px;gap:10px;align-items:center}
 /* watch mode trades some of the plan columns for the one editable field */
@@ -242,7 +289,7 @@ input.f::placeholder{color:var(--muted);opacity:.7}
 .icon{border:1px solid transparent;background:transparent;color:var(--muted);border-radius:7px;width:30px;height:30px;display:grid;place-items:center;padding:0}
 .icon:hover{border-color:var(--rule);color:var(--ink)}
 .icon svg{width:16px;height:16px;display:block}
-.icon.set{color:var(--swim)}
+.icon.set{color:var(--ink-2)}
 .icon.set svg path{fill:currentColor}
 .leg-foot{padding:9px 16px;border-top:1px solid var(--rule);background:var(--surface-2)}
 .link{background:none;border:0;padding:4px 0;color:var(--ink-2);font-size:13px;font-variation-settings:"wdth" 100,"wght" 560;text-decoration:underline;text-underline-offset:3px;text-decoration-thickness:1px}
@@ -272,20 +319,20 @@ input.wide{width:100%;font:inherit;font-size:14px;padding:10px 11px;border-radiu
 .preview td.n{text-align:right;font-variant-numeric:tabular-nums}
 .dlg-foot{display:flex;justify-content:flex-end;gap:8px;margin-top:16px;flex-wrap:wrap}
 .dlg-foot .spread{margin-right:auto}
-.warn{color:var(--run);font-size:13px;margin-top:10px}
+.warn{color:var(--behind);font-size:13px;margin-top:10px}
 
 /* U12: jumps to wherever the athlete is now; hidden while that row is
    already on screen, and outside watch/follow entirely. */
 .jump{position:fixed;right:16px;bottom:calc(18px + env(safe-area-inset-bottom,0px));z-index:40;
   display:flex;align-items:center;gap:9px;border:0;border-radius:999px;padding:13px 18px;
-  background:var(--live);color:#fff;font-size:14px;font-variation-settings:"wdth" 100,"wght" 640;
+  background:var(--live);color:var(--on-live);font-size:14px;font-variation-settings:"wdth" 100,"wght" 640;
   box-shadow:0 16px 30px -14px rgba(0,0,0,.55)}
 /* broadcasting dot: a filled centre with two rings breathing outward, so the
    button reads as "something is live down there" rather than "scroll down" */
 .jump .beacon{position:relative;width:14px;height:14px;flex:none}
-.jump .beacon i{position:absolute;inset:0;margin:auto;width:6px;height:6px;border-radius:50%;background:#fff}
+.jump .beacon i{position:absolute;inset:0;margin:auto;width:6px;height:6px;border-radius:50%;background:currentColor}
 .jump .beacon i::before,.jump .beacon i::after{
-  content:"";position:absolute;inset:-4px;border-radius:50%;border:1.5px solid #fff;opacity:0;
+  content:"";position:absolute;inset:-4px;border-radius:50%;border:1.5px solid currentColor;opacity:0;
   animation:beacon 2.4s ease-out infinite}
 .jump .beacon i::after{animation-delay:1.2s}
 @keyframes beacon{
@@ -303,12 +350,46 @@ input.wide{width:100%;font:inherit;font-size:14px;padding:10px 11px;border-radiu
 footer{margin-top:30px;color:var(--muted);font-size:12.5px;line-height:1.7}
 
 /* ---------- home / library ---------- */
+/* Plan preview (U16): one proportional bar per saved race, in the sport
+   palette, so a card is recognisable as a course before it is opened. */
+.card-prev{padding:12px 16px 14px;display:flex;flex-direction:column;gap:9px}
+.mini{display:flex;height:12px;border-radius:999px;overflow:hidden;background:var(--surface-2);
+  border:1px solid var(--rule)}
+.mini span{flex-basis:0;min-width:3px;border-right:1px solid var(--surface)}
+.mini span:last-child{border-right:0}
+.mini span[data-sport="swim"]{background:var(--swim)}
+.mini span[data-sport="bike"]{background:var(--bike)}
+.mini span[data-sport="run"]{background:var(--run)}
+.mini span[data-sport="trans"]{background:var(--trans);
+  background-image:repeating-linear-gradient(135deg,rgba(255,255,255,.18) 0 4px,transparent 4px 8px)}
+.prev-legend{display:flex;flex-wrap:wrap;gap:6px 16px;font-size:12.5px;color:var(--ink-2)}
+.prev-legend .k{display:inline-flex;align-items:center;gap:7px;white-space:nowrap}
+.prev-legend .sw{width:9px;height:9px;border-radius:3px;background:var(--sp,var(--rule));flex:none}
+.prev-legend .k[data-sport="swim"]{--sp:var(--swim)}
+.prev-legend .k[data-sport="bike"]{--sp:var(--bike)}
+.prev-legend .k[data-sport="run"]{--sp:var(--run)}
+.prev-legend b{font-variation-settings:"wdth" 100,"wght" 640;color:var(--ink)}
+.prev-legend .t{color:var(--muted)}
+.btn .bi{width:15px;height:15px;display:inline-block;vertical-align:-2px;margin-right:7px}
+.btn .bi svg{width:100%;height:100%;display:block}
+/* template picker */
+.tpl{display:flex;flex-direction:column;gap:10px}
+.tpl-card{border:1px solid var(--rule);border-radius:var(--r);background:var(--surface-2);padding:12px 14px;
+  display:flex;flex-direction:column;gap:9px;text-align:left;width:100%;font:inherit;color:inherit;cursor:pointer;
+  transition:border-color .12s ease}
+.tpl-card:hover,.tpl-card:focus-visible{border-color:var(--ink-2)}
+.tpl-top{display:flex;align-items:baseline;justify-content:space-between;gap:12px}
+.tpl-top .n{font-size:14.5px;font-variation-settings:"wdth" 104,"wght" 660}
+.tpl-top .f{font-size:13px;color:var(--muted)}
 .home-head{margin-bottom:24px}
 .home-sub{margin:8px 0 0;color:var(--ink-2);font-size:14px}
 .race-meta{padding:10px 16px;color:var(--ink-2);font-size:13.5px;border-bottom:1px solid var(--rule)}
 .race-meta .sep{color:var(--muted);margin:0 6px}
 .finish-lab{font-size:12px;color:var(--muted);margin-right:6px}
 .leg-tot .fin{font-variation-settings:"wdth" 104,"wght" 660;color:var(--ink);font-size:16px}
+/* a library card is not a leg: its head must not wear the transition slate
+   the .leg-head fallback would give it */
+.race-card .leg-head{border-left-color:var(--rule)}
 .race-card .leg-foot{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
 .race-card .leg-foot .spread{margin-right:auto}
 .race-card .leg-foot .btn.primary{padding:9px 18px;font-size:14.5px}
@@ -346,8 +427,8 @@ footer{margin-top:30px;color:var(--muted);font-size:12.5px;line-height:1.7}
 .marker-status p{margin:0}
 .marker-status p+p{margin-top:4px}
 .marker-status #watch-gap{font-size:17px;font-variation-settings:"wdth" 100,"wght" 700;color:var(--ink)}
-.marker-status #watch-gap.behind{color:var(--run)}
-.marker-status #watch-gap.ahead{color:var(--live)}
+.marker-status #watch-gap.behind{color:var(--behind)}
+.marker-status #watch-gap.ahead{color:var(--ahead)}
 /* mid-race the status line says the same thing as #watch-gap; it stays in
    the DOM as the aria-live announcement, but only one of the two is seen */
 /* liveness (U13) ----------------------------------------------------- */
@@ -394,17 +475,19 @@ footer{margin-top:30px;color:var(--muted);font-size:12.5px;line-height:1.7}
 }
 .watch-clock input.f:hover{border-color:var(--live)}
 .watch-clock input.f:focus{border-style:solid;border-color:var(--live);box-shadow:0 0 0 3px color-mix(in srgb,var(--live) 20%,transparent)}
-.watch-clock input.f:not(:placeholder-shown){border-style:solid;border-color:var(--live);color:var(--ink)}
+/* a time you have logged is SETTLED, not "good" — solid neutral ink, no
+   green. Colour on this row is spent on the delta instead (U15). */
+.watch-clock input.f:not(:placeholder-shown){border-style:solid;border-color:var(--logged);color:var(--ink)}
 .watch-clock input.f::placeholder{color:var(--muted);opacity:.55}
 .watch-clock-hint{display:flex;align-items:center;gap:5px;font-size:11.5px;color:var(--muted);padding:0 2px}
 .watch-clock-hint svg{width:13px;height:13px;flex:none}
 .watch-clock-meta{display:flex;gap:8px;font-size:10.5px;color:var(--muted);padding:0 8px;white-space:nowrap}
 .watch-clock-meta .revised{color:var(--live);font-variation-settings:"wdth" 100,"wght" 640}
 
-.row.watch-finished{background:color-mix(in srgb,var(--live) 12%,var(--surface));box-shadow:inset 3px 0 0 0 var(--live)}
-.row.watch-past{opacity:.52}
-.leg.watch-finished .leg-head{background:color-mix(in srgb,var(--live) 16%,var(--surface-2))}
-.leg.watch-past{opacity:.72}
+.row.watch-finished{background:var(--surface-2);box-shadow:inset 3px 0 0 0 var(--logged)}
+.row.watch-past{opacity:.55;filter:saturate(.25)}
+.leg.watch-finished .leg-head{background:color-mix(in srgb,var(--logged) 10%,var(--surface-2))}
+.leg.watch-past{opacity:.72;filter:saturate(.3)}
 /* chrome that only makes sense while editing is hidden in follow mode */
 #open-edit,
 #race-view.readonly #watch-live,
@@ -598,6 +681,17 @@ footer{margin-top:30px;color:var(--muted);font-size:12.5px;line-height:1.7}
     <div class="dlg-foot">
       <button class="btn ghost" id="rename-cancel">Cancel</button>
       <button class="btn primary" id="rename-save">Save</button>
+    </div>
+  </div>
+</dialog>
+
+<dialog id="tpldlg" class="narrow">
+  <div class="dlg">
+    <h3>Start from a template</h3>
+    <p>A template drops a known course in as a new race. Everything stays editable afterwards.</p>
+    <div class="tpl" id="tpl-list"></div>
+    <div class="dlg-foot">
+      <button class="btn ghost" id="tpl-cancel" type="button">Cancel</button>
     </div>
   </div>
 </dialog>
@@ -1066,18 +1160,22 @@ function paceOf(sport, meters, seconds){
 /** Per-sport totals across the race. `complete` is false once any
     distance-bearing section of that sport lacks a distance — R10 then
     withholds the pace while the summed distance still shows what is known. */
-function legTotals(){
+function legTotals(){ return raceLegTotals(active); }
+function raceLegTotals(race){
   const out = {};
-  for(const s of active.sections){
+  for(const s of race.sections){
     const t = out[s.sport] || (out[s.sport] = {dur:0, dist:0, complete:true});
     t.dur += s.dur; t.dist += (s.dist||0);
     if(SPORTS[s.sport].unit && s.dist == null) t.complete = false;
   }
   return out;
 }
-function groups(){
+function groups(){ return raceGroups(active); }
+/** Consecutive same-sport runs of an arbitrary race — `groups()` is this
+    over `active`, and the home preview needs it over a race it has loaded. */
+function raceGroups(race){
   const g = [];
-  active.sections.forEach((s,i) => {
+  race.sections.forEach((s,i) => {
     const last = g[g.length-1];
     if(last && last.sport === s.sport) last.items.push({s,i});
     else g.push({sport:s.sport, items:[{s,i}]});
@@ -1364,6 +1462,8 @@ const ICON_COPY  = '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="8" y="8
 const ICON_PASTE = '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="4" width="12" height="17" rx="2" fill="none" stroke="currentColor" stroke-width="1.7"/><path fill="none" stroke="currentColor" stroke-width="1.7" d="M9 4h6a1 1 0 0 1 1 1v1a1 1 0 0 1-1 1H9a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1z"/><path fill="none" stroke="currentColor" stroke-width="1.7" d="M9 13h6M9 17h4"/></svg>';
 const ICON_SHARE = '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="18" cy="6" r="2.6" fill="none" stroke="currentColor" stroke-width="1.7"/><circle cx="6" cy="12" r="2.6" fill="none" stroke="currentColor" stroke-width="1.7"/><circle cx="18" cy="18" r="2.6" fill="none" stroke="currentColor" stroke-width="1.7"/><path fill="none" stroke="currentColor" stroke-width="1.7" d="M8.3 10.7l7.4-3.4M8.3 13.3l7.4 3.4"/></svg>';
 const ICON_EDIT  = '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="1.7" d="M4 20h4L19.5 8.5a2.1 2.1 0 0 0-3-3L5 17v3z"/><path fill="none" stroke="currentColor" stroke-width="1.7" d="M14.5 6.5l3 3"/></svg>';
+const ICON_PLUS  = '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" d="M12 5v14M5 12h14"/></svg>';
+const ICON_TPL   = '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="4.5" width="17" height="15" rx="2.5" fill="none" stroke="currentColor" stroke-width="1.7"/><path fill="none" stroke="currentColor" stroke-width="1.7" d="M3.5 9.5h17M9 9.5V20"/></svg>';
 const ICON_RESET = '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" d="M4.5 9.5A8 8 0 1 1 4 13.2"/><path fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" d="M3.6 4.8v4.9h4.9"/></svg>';
 (function initMastheadIcons(){
   const ic = document.getElementById("btn-import"), cp = document.getElementById("btn-copy"), sh = document.getElementById("btn-share");
@@ -2858,6 +2958,116 @@ function updateLiveChrome(snap){
   }
 }
 
+/* ---- plan preview (U16) ----------------------------------------
+   A race card carries a proportional bar of its legs in the sport palette
+   plus a per-sport legend. Built from the race blob (the light index entry
+   has no sections), so it is only ever drawn for races the home view is
+   about to list. */
+function previewBarHTML(race){
+  const tot = raceTotal(race);
+  if(!tot) return "";
+  const segs = raceGroups(race).map(g => {
+    const dur = g.items.reduce((a,x) => a + x.s.dur, 0);
+    return '<span data-sport="'+g.sport+'" style="flex-grow:'+(dur/tot)+'"></span>';
+  }).join("");
+  return '<div class="mini" aria-hidden="true">'+segs+'</div>';
+}
+/** Swim/bike/run key under the bar: distance where known, always duration.
+    Transitions are deliberately left out — they are in the bar, but naming
+    them here would push the three sports out of one line on a phone. */
+function previewLegendHTML(race){
+  const tot = raceLegTotals(race);
+  const keys = ORDER.filter(sport => tot[sport] && tot[sport].dur).map(sport => {
+    const t = tot[sport];
+    const dist = (t.dist && t.complete) ? '<b>'+fmtDistLabel(sport, t.dist)+'</b> ' : '';
+    return '<span class="k" data-sport="'+sport+'"><i class="sw"></i>'+dist+
+           SPORTS[sport].label.toLowerCase()+' <span class="t">'+fmtHMS(t.dur)+'</span></span>';
+  });
+  return keys.length ? '<div class="prev-legend">'+keys.join("")+'</div>' : "";
+}
+function previewHTML(race){
+  const bar = previewBarHTML(race);
+  if(!bar) return "";
+  return '<div class="card-prev">'+bar+previewLegendHTML(race)+'</div>';
+}
+
+/* ---- "is this race happening now?" (U16) ------------------------
+   True from two hours before the gun through the planned finish. Both
+   numbers come from the light index entry, and the comparison is done in
+   elapsed-from-gun seconds so a race that runs across midnight still
+   reads as live. */
+const LIVE_LEAD = 2*3600;
+function raceIsNow(entry){
+  if(typeof entry.start !== "number" || !entry.finish) return false;
+  const d = ((nowClockSeconds() - entry.start) % 86400 + 86400) % 86400;
+  return d <= entry.finish || d >= 86400 - LIVE_LEAD;
+}
+/* The home view is rendered once per mount, so the window is re-checked on
+   a slow timer instead — a class toggle on the buttons already in the DOM,
+   which leaves an open card menu and any focus exactly where they were. */
+function refreshHomeLive(){
+  document.querySelectorAll("#home-view .btn.live").forEach(btn => {
+    const start = Number(btn.dataset.start), finish = Number(btn.dataset.finish);
+    btn.classList.toggle("is-now", raceIsNow({start, finish}));
+  });
+}
+setInterval(() => { const h = $("#home-view"); if(h && !h.hidden) refreshHomeLive(); }, 30000);
+
+/* ---- starter templates (U16) ------------------------------------
+   Plain plan text in the same format the paste dialog takes, so a template
+   is nothing more than a canned import: parseRaceText() is the one code
+   path that turns text into sections, here as everywhere else. */
+const TEMPLATES = [{
+  id: "fodaxman-sp5",
+  name: "Fodaxman SP5",
+  text: [
+    "Fodaxman Solo Point Five 2025",
+    "06:00:00",
+    "S 0.7 15:00 Boia",
+    "S 0.7 15:00 Igreja",
+    "S 0.6 14:00 Chegada",
+    "T 10:00 T1",
+    "B 33 1:17:00 Ponto de hidratação 1",
+    "B 41 2:00:00 Ponto de hidratação 2",
+    "B 11 1:15:00 Mirante serra",
+    "T 5:00 T2",
+    "R 3 15:00 Ponto de hidratação 1",
+    "R 7.8 42:00 Ponto de hidratação 2",
+    "R 7.9 52:00 Ponto de hidratação 3",
+    "R 3 15:00 Chegada"
+  ].join("\n")
+}];
+
+/** A template rendered as the race it would create — same preview widget as
+    a library card, so what you pick is what you get. */
+function templateRace(t){
+  const parsed = parseRaceText(t.text);
+  if(parsed.error) return null;
+  return {id:"tpl", name:parsed.name, start:parsed.start, sections:parsed.sections, savedAt:null};
+}
+function openTemplates(){
+  const list = $("#tpl-list");
+  if(!list) return;
+  list.innerHTML = TEMPLATES.map(t => {
+    const race = templateRace(t);
+    if(!race) return "";
+    return '<button class="tpl-card" type="button" data-act="use-tpl" data-tpl="'+esc(t.id)+'">'+
+      '<span class="tpl-top"><span class="n">'+esc(t.name)+'</span>'+
+      '<span class="f">'+fmtHMS(raceTotal(race))+'</span></span>'+
+      previewHTML(race)+
+    '</button>';
+  }).join("");
+  $("#tpldlg").showModal();
+}
+function useTemplate(tplId){
+  const t = TEMPLATES.find(x => x.id === tplId);
+  const parsed = t ? parseRaceText(t.text) : null;
+  if(!parsed || parsed.error){ toast("That template could not be read"); return; }
+  const r = createRace({name:parsed.name, start:parsed.start, sections:parsed.sections});
+  $("#tpldlg").close();
+  location.hash = "#/race/" + encodeURIComponent(r.id) + "/edit";
+}
+
 /* Home / library: every saved race with its identity + finish, Watch Live
    as the dominant action, and Edit / Rename / Duplicate / Delete tucked
    behind one cog menu (R1-R3, U5). */
@@ -2868,10 +3078,14 @@ function renderHome(){
   let html = '<header class="masthead home-head"><div>'+
              '<h1 id="home-title">Race splits</h1>'+
              '<p class="home-sub">Your saved races on this browser.</p></div>'+
-             '<div class="tools"><button class="btn primary" data-act="new">New race</button></div>'+
+             '<div class="tools">'+
+               '<button class="btn" data-act="tpl"><i class="bi">'+ICON_TPL+'</i>From template</button>'+
+               '<button class="btn primary" data-act="new"><i class="bi">'+ICON_PLUS+'</i>New race plan</button>'+
+             '</div>'+
              '</header>';
   if(!races.length){
-    html += '<div class="home-empty">No races yet. <b>New race</b> starts one.</div>';
+    html += '<div class="home-empty">No races yet — <b>New race</b> starts an empty one, '+
+            '<b>From template</b> starts from a known course.</div>';
   }else{
     html += '<div class="legs">';
     races.forEach(r => {
@@ -2881,14 +3095,20 @@ function renderHome(){
       const clocks = hasStart
         ? '<div class="card-clocks">Gun '+fmtClock(r.start)+(t ? ' · Finish '+fmtClock(r.start + t) : '')+'</div>'
         : '';
+      // the blob is loaded only for the preview; the card's own numbers still
+      // come from the light index entry (U4)
+      const blob = loadRace(r.id);
+      const prev = blob ? previewHTML(blob) : '';
       html += '<section class="leg race-card">'+
         '<div class="leg-head">'+
           '<div class="leg-title"><span class="t">'+esc(r.name || "Untitled race")+'</span></div>'+
           '<div class="leg-tot"><span class="finish-lab">Finish</span>'+
             '<span class="fin">'+(t ? fmtHMS(t) : "—")+'</span></div>'+
-        '</div>'+clocks+
+        '</div>'+clocks+prev+
         '<div class="leg-foot">'+
-          '<button class="btn primary spread" type="button" data-act="watch" data-id="'+id+'">Watch Live</button>'+
+          '<button class="btn live spread'+(raceIsNow(r) ? ' is-now' : '')+'" type="button" data-act="watch"'+
+            ' data-id="'+id+'" data-start="'+(hasStart ? r.start : '')+'" data-finish="'+t+'">'+
+            '<i class="dot" aria-hidden="true"></i>Watch Live</button>'+
           '<div class="card-menu-wrap">'+
             '<button class="icon" type="button" data-act="menu" data-id="'+id+'" aria-haspopup="true" aria-expanded="false" aria-label="More actions" title="More actions">'+COG+'</button>'+
             '<div class="card-menu" role="menu" hidden>'+
@@ -2957,6 +3177,7 @@ $("#home-view").addEventListener("click", async e => {
   }
   if(act !== "watch") closeCardMenu(false);
   if(act === "new"){ const r = createRace({}); location.hash = "#/race/" + encodeURIComponent(r.id) + "/edit"; }
+  else if(act === "tpl") openTemplates();
   else if(act === "watch"){
     const race = loadRace(id);
     if(!race){ toast("That race is no longer here"); renderHome(); return; }
@@ -2995,6 +3216,14 @@ function openRename(id){
   $("#rename-input").focus();
 }
 $("#rename-cancel").addEventListener("click", () => renamedlg.close());
+
+/* Template picker lives outside #home-view, so it carries its own two
+   listeners rather than riding the home delegation. */
+$("#tpl-cancel").addEventListener("click", () => $("#tpldlg").close());
+$("#tpl-list").addEventListener("click", e => {
+  const card = e.target.closest('[data-act="use-tpl"]');
+  if(card) useTemplate(card.dataset.tpl);
+});
 $("#rename-save").addEventListener("click", () => {
   if(renameId) renameRace(renameId, $("#rename-input").value.trim());
   renamedlg.close();
