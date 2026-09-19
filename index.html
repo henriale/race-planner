@@ -75,6 +75,23 @@ h1 .yr{color:var(--muted);font-variation-settings:"wdth" 122,"wght" 500}
 .where b{font-variation-settings:"wdth" 100,"wght" 600;color:var(--ink)}
 .tools{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
 .tools-icons{display:flex;align-items:center;gap:2px;margin-left:4px;padding-left:8px;border-left:1px solid var(--rule)}
+/* the share link itself, sitting right of the share icon rather than behind a
+   modal: readonly, selectable, and only present once Share has been pressed */
+.share-url{
+  width:min(320px,38vw);margin-left:4px;background:var(--surface-2);
+  border:1px solid var(--rule);border-radius:7px;padding:5px 8px;
+  font:inherit;font-size:12px;color:var(--ink-2);
+  text-overflow:ellipsis;
+}
+.share-url:focus{outline:none;border-color:var(--focus);color:var(--ink);
+  box-shadow:0 0 0 3px color-mix(in srgb,var(--focus) 18%,transparent)}
+.share-url[hidden]{display:none}
+/* narrow: it keeps its place right after the share icon and takes the next
+   line rather than squeezing the save status off the row */
+@media (max-width:560px){
+  .tools-icons{flex-wrap:wrap}
+  .share-url{width:100%;margin-left:0}
+}
 .sync{display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--muted);padding:0 2px;margin-left:4px}
 .sync::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--muted);flex:none}
 .sync.ok::before{background:var(--ahead)}
@@ -132,21 +149,33 @@ button{font:inherit;color:inherit;cursor:pointer}
   .langpick{top:calc(8px + env(safe-area-inset-top,0px));right:10px}
   .langpick svg{width:19px;height:13px}
 }
-.masthead{padding-right:64px}
+/* Wide enough and the picker sits in the viewport gutter, clear of the
+   1100px content column; narrower than that it would cover the top right
+   of the page, so the page starts lower instead of the masthead giving up
+   its right edge — which is what kept the home buttons off the card edge. */
+@media (max-width:1300px){ .wrap{padding-top:58px} }
 
 /* ---------- hero strip ---------- */
 .board{background:var(--surface);border:1px solid var(--rule);border-radius:14px;box-shadow:var(--shadow);padding:20px 20px 16px;margin-bottom:28px}
-.board-top{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:14px;margin-bottom:16px}
-.startline{display:flex;align-items:baseline;gap:8px;color:var(--ink-2);font-size:13.5px}
+.board-top{display:flex;flex-wrap:wrap;align-items:flex-start;justify-content:space-between;gap:14px;margin-bottom:16px}
+.startline{display:flex;flex-direction:column;align-items:flex-start;gap:2px;color:var(--ink-2);font-size:13.5px}
+.startline .lab{font-size:12.5px;color:var(--muted)}
+.startline .start-val{font-size:20px;line-height:1.2;color:var(--ink);font-variation-settings:"wdth" 112,"wght" 620}
+/* the editable gun time sits directly under its label, so its text starts on
+   the same left edge rather than a field's worth of padding to the right */
+.startline input.f{width:112px;padding-left:2px;text-align:left}
 .finish{text-align:right}
 .finish .lab{display:block;font-size:12.5px;color:var(--muted);margin-bottom:-2px}
 .finish .val{font-size:clamp(30px,6vw,52px);line-height:1;font-variation-settings:"wdth" 118,"wght" 700;letter-spacing:-.02em}
-.finish-clock{margin-top:2px}
+.finish-clock{margin-top:1px}
 .finish-clock .val{font-size:13.5px;color:var(--muted);font-variation-settings:"wdth" 100,"wght" 480;letter-spacing:0}
 .finish-clock[hidden]{display:none}
 
 .strip{position:relative;overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch;overscroll-behavior-x:contain;margin-inline:-12px;padding-inline:12px}
 .strip-inner{position:relative;padding-top:52px;padding-bottom:26px;min-width:0}
+/* the headroom above the bar is there for the live pins; edit mode has none,
+   so it does not pay for the empty band */
+#race-view:not(.readonly) .strip-inner{padding-top:14px}
 .bar{display:flex;height:58px;border-radius:8px;overflow:hidden;background:var(--surface-2);border:1px solid var(--rule)}
 .seg{flex-basis:0;min-width:var(--seg-min,5px);position:relative;display:flex;align-items:center;justify-content:center;border-right:1px solid rgba(255,255,255,.28);cursor:pointer;overflow:hidden}
 .seg:last-child{border-right:0}
@@ -266,7 +295,6 @@ button{font:inherit;color:inherit;cursor:pointer}
 /* ---------- table ---------- */
 .legend{display:flex;justify-content:space-between;align-items:baseline;margin:0 0 10px;gap:12px;flex-wrap:wrap}
 .legend h2{margin:0;font-size:17px;font-variation-settings:"wdth" 112,"wght" 680}
-.hint{color:var(--muted);font-size:12.5px;margin:0;max-width:62ch}
 
 .legs{display:flex;flex-direction:column;gap:14px}
 .leg{background:var(--surface);border:1px solid var(--rule);border-radius:14px;overflow:hidden}
@@ -374,7 +402,6 @@ input.wide{width:100%;font:inherit;font-size:14px;padding:10px 11px;border-radiu
 .toast button{background:none;border:0;color:inherit;text-decoration:underline;text-underline-offset:3px;font-size:13.5px}
 .toast[hidden]{display:none}
 
-footer{margin-top:30px;color:var(--muted);font-size:12.5px;line-height:1.7}
 
 /* ---------- home / library ---------- */
 /* Plan preview (U16): one proportional bar per saved race, in the sport
@@ -409,7 +436,6 @@ footer{margin-top:30px;color:var(--muted);font-size:12.5px;line-height:1.7}
 .tpl-top .n{font-size:14.5px;font-variation-settings:"wdth" 104,"wght" 660}
 .tpl-top .f{font-size:13px;color:var(--muted)}
 .home-head{margin-bottom:24px}
-.home-sub{margin:8px 0 0;color:var(--ink-2);font-size:14px}
 .race-meta{padding:10px 16px;color:var(--ink-2);font-size:13.5px;border-bottom:1px solid var(--rule)}
 .race-meta .sep{color:var(--muted);margin:0 6px}
 .finish-lab{font-size:12px;color:var(--muted);margin-right:6px}
@@ -486,9 +512,10 @@ footer{margin-top:30px;color:var(--muted);font-size:12.5px;line-height:1.7}
 .marker-status .sr-only{position:absolute;width:1px;height:1px;padding:0;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
 
 /* ---------- watch actuals: revised finish + per-row/leg states (U8) ---------- */
-.finish-revised{margin-top:2px;display:flex;gap:6px;align-items:baseline;justify-content:flex-end}
-.finish-revised .lab{font-size:11px;color:var(--muted)}
-.finish-revised .val{font-size:20px;line-height:1;color:var(--live);font-variation-settings:"wdth" 112,"wght" 680;letter-spacing:-.01em}
+.finish-revised{margin-top:8px}
+.finish-revised .lab{display:block;font-size:11px;color:var(--muted)}
+.finish-revised .val{display:block;font-size:20px;line-height:1.1;color:var(--live);font-variation-settings:"wdth" 112,"wght" 680;letter-spacing:-.01em}
+.finish-revised .sub{display:block;font-size:12.5px;color:var(--muted);font-variation-settings:"wdth" 100,"wght" 480}
 .finish-revised[hidden]{display:none}
 
 .watch-clock{display:flex;flex-direction:column;gap:4px}
@@ -506,13 +533,29 @@ footer{margin-top:30px;color:var(--muted);font-size:12.5px;line-height:1.7}
    green. Colour on this row is spent on the delta instead (U15). */
 .watch-clock input.f:not(:placeholder-shown){border-style:solid;border-color:var(--logged);color:var(--ink)}
 .watch-clock input.f::placeholder{color:var(--muted);opacity:.55}
+/* U17: the two one-tap ways to log an arrival — on the planned clock, or on
+   the wall clock right now. Both go through commitActual(), so the ordering
+   checks and the flash/vibrate feedback are the same as typing a time. */
+.watch-acts{display:flex;gap:6px}
+.watch-acts .btn{flex:1;padding:6px 8px;font-size:12px;border-radius:8px;text-align:center;
+  border-color:var(--rule);color:var(--ink-2)}
+.watch-acts .btn:hover{border-color:var(--ink-2)}
+/* the colour marks work still owed: a checkpoint the athlete should already
+   have passed, with nothing logged, wears the live hue on both buttons. */
+.watch-acts.due .btn{border-color:var(--live);color:var(--live);
+  font-variation-settings:"wdth" 100,"wght" 620}
+.watch-acts.due .btn:hover{background:color-mix(in srgb,var(--live) 10%,transparent)}
+/* once a time is in, the pair is settled — quiet grey, still tappable to fix
+   a mistake, but no longer asking for anything. */
+.watch-acts.settled .btn{border-color:var(--rule);color:var(--muted)}
+.watch-acts.settled .btn:hover{color:var(--ink-2);border-color:var(--ink-2)}
 .watch-clock-hint{display:flex;align-items:center;gap:5px;font-size:11.5px;color:var(--muted);padding:0 2px}
 .watch-clock-hint svg{width:13px;height:13px;flex:none}
 .watch-clock-meta{display:flex;gap:8px;font-size:10.5px;color:var(--muted);padding:0 8px;white-space:nowrap}
 .watch-clock-meta .revised{color:var(--live);font-variation-settings:"wdth" 100,"wght" 640}
 
 .row.watch-finished{background:var(--surface-2);box-shadow:inset 3px 0 0 0 var(--logged)}
-.row.watch-past{opacity:.55;filter:saturate(.25)}
+.row.watch-past>*:not(.cell-clock){opacity:.55;filter:saturate(.25)}
 .leg.watch-finished .leg-head{background:color-mix(in srgb,var(--logged) 10%,var(--surface-2))}
 .leg.watch-past{opacity:.72;filter:saturate(.3)}
 /* chrome that only makes sense while editing is hidden in follow mode */
@@ -522,9 +565,7 @@ footer{margin-top:30px;color:var(--muted);font-size:12.5px;line-height:1.7}
 #race-view.readonly #btn-copy,
 #race-view.readonly #sync,
 #race-view.readonly #start,
-#race-view.readonly .addbar,
-#race-view.readonly .legend .hint,
-#race-view.readonly footer{display:none}
+#race-view.readonly .addbar{display:none}
 #race-view.readonly #open-edit{display:grid}
 #race-view.readonly .start-val{display:inline}
 #race-view.readonly .marker-status{display:block}
@@ -544,6 +585,10 @@ footer{margin-top:30px;color:var(--muted);font-size:12.5px;line-height:1.7}
      26px grip column, which is what squashed the distance cell and pushed
      the rest of the row out of alignment. */
   .row{grid-template-columns:26px repeat(3,minmax(0,1fr));gap:10px;padding:12px 14px;align-items:start}
+  /* watch mode's own wider desktop template (.legs.watch .row) outranks the
+     line above on specificity, so it has to be narrowed here too — otherwise
+     the clock cell keeps a desktop-width track and runs off the card. */
+  .legs.watch .cols,.legs.watch .row{grid-template-columns:26px repeat(3,minmax(0,1fr))}
   .row>*:nth-child(2){grid-column:2/-1}
   .row>*:nth-child(3){grid-column:2}
   .row>*:nth-child(4){grid-column:3}
@@ -598,6 +643,7 @@ footer{margin-top:30px;color:var(--muted);font-size:12.5px;line-height:1.7}
         <button class="icon" id="btn-import" type="button" aria-label="Paste results" title="Paste results" data-i18n-aria="masthead.paste" data-i18n-title="masthead.paste"></button>
         <button class="icon" id="btn-copy" type="button" aria-label="Copy data" title="Copy data" data-i18n-aria="masthead.copy" data-i18n-title="masthead.copy"></button>
         <button class="icon" id="btn-share" type="button" aria-label="Share link" title="Share link" data-i18n-aria="masthead.share" data-i18n-title="masthead.share"></button>
+        <input class="share-url" id="share-url" readonly hidden spellcheck="false" aria-label="Share link" data-i18n-aria="dlg.shareAria">
         <span class="sync" id="sync" role="status" aria-live="polite" data-i18n="sync.notSavedYet">Not saved yet</span>
       </div>
     </div>
@@ -611,8 +657,8 @@ footer{margin-top:30px;color:var(--muted);font-size:12.5px;line-height:1.7}
   <section class="board" aria-label="Race timeline" data-i18n-aria="board.aria">
     <div class="board-top">
       <label class="startline">
-        <span data-i18n="board.gunTime">Gun time</span>
-        <input class="f num" id="start" style="width:104px" aria-label="Race start clock time" data-i18n-aria="board.gunAria">
+        <span class="lab" data-i18n="board.gunTime">Gun time</span>
+        <input class="f num" id="start" aria-label="Race start clock time" data-i18n-aria="board.gunAria">
         <span class="start-val" id="start-text"></span>
       </label>
       <div class="finish">
@@ -624,6 +670,7 @@ footer{margin-top:30px;color:var(--muted);font-size:12.5px;line-height:1.7}
         <div class="finish-revised" id="finish-revised" hidden>
           <span class="lab" data-i18n="board.revised">Revised</span>
           <span class="val" id="finish-revised-val">—</span>
+          <span class="sub" id="finish-revised-sub">—</span>
         </div>
       </div>
     </div>
@@ -656,7 +703,6 @@ footer{margin-top:30px;color:var(--muted);font-size:12.5px;line-height:1.7}
 
   <div class="legend">
     <h2 data-i18n="splits.title">Splits</h2>
-    <p class="hint" data-i18n-html="splits.hint">Edit a <b>split</b> and everything after it shifts — that is the simulation mode. Edit an <b>elapsed</b> or <b>clock</b> time and the next split absorbs the change, so the finish holds. Arrow keys nudge by 1 s, Shift for 1 min. Drag the handle to reposition a checkpoint; its split and distance clear, since both were measured between its old neighbours.</p>
   </div>
 
   <div class="legs" id="legs"></div>
@@ -670,11 +716,6 @@ footer{margin-top:30px;color:var(--muted);font-size:12.5px;line-height:1.7}
     </select>
     <button class="btn" id="btn-add" data-i18n="add.btn">Add section at the end</button>
   </div>
-
-  <footer data-i18n-html="footer.text">
-    Every edit is stored in this browser as you make it — the header shows the last save. It does not follow you to another device: “Paste results → Copy backup” gives you the whole thing as JSON, and pasting that JSON back restores it anywhere.<br>
-    Next up for the timeline: elevation per checkpoint, cut-off times, and a live "where is he now" marker for the staff view.
-  </footer>
 
   </div><!-- /#race-view -->
 </div>
@@ -760,7 +801,6 @@ en:{
   "sport.swim":"Swim", "sport.bike":"Bike", "sport.run":"Run", "sport.trans":"Transition",
 
   "app.title":"Race splits",
-  "home.sub":"Your saved races on this browser.",
   "home.fromTemplate":"From template",
   "home.newRace":"New race plan",
   "home.empty":"No races yet — <b>New race</b> starts an empty one, <b>From template</b> starts from a known course.",
@@ -789,6 +829,8 @@ en:{
   "sync.notSavedYet":"Not saved yet",
 
   "toast.watchReset":"Watch session reset",
+  "toast.backfilledOne":"1 earlier checkpoint set to its planned time",
+  "toast.backfilled":"{n} earlier checkpoints set to their planned times",
   "toast.badClock":"Could not read that as a clock time",
   "toast.tooEarly":"That time is earlier than an already-recorded checkpoint — not saved",
   "toast.tooLate":"That time is later than an already-recorded checkpoint — not saved",
@@ -802,6 +844,7 @@ en:{
   "toast.copied":"Copied",
   "toast.tooBig":"That race is too big for a link — copying race text instead",
   "toast.linkCopied":"Link copied",
+  "toast.copyByHand":"Copy it by hand — this browser blocked the clipboard",
   "toast.raceGone":"That race is no longer here",
   "toast.needsNewerBrowser":"This link needs a newer browser",
   "toast.linkCorrupt":"That race link looks corrupted",
@@ -836,7 +879,6 @@ en:{
   "card.nothingLogged":"nothing logged",
 
   "splits.title":"Splits",
-  "splits.hint":"Edit a <b>split</b> and everything after it shifts — that is the simulation mode. Edit an <b>elapsed</b> or <b>clock</b> time and the next split absorbs the change, so the finish holds. Arrow keys nudge by 1 s, Shift for 1 min. Drag the handle to reposition a checkpoint; its split and distance clear, since both were measured between its old neighbours.",
   "leg.addCheckpoint":"Add a checkpoint to {leg}",
   "cols.checkpoint":"Checkpoint",
   "cols.split":"Split",
@@ -861,6 +903,10 @@ en:{
   "watch.tapToLog":"Tap to log the clock time",
   "watch.plan":"plan {clock}",
   "watch.rev":"rev {clock}",
+  "watch.markPlan":"On plan",
+  "watch.markNow":"Now",
+  "watch.markPlanTitle":"Log the planned time {clock}",
+  "watch.markNowTitle":"Log the clock time right now",
   "watch.reset":"Reset watch",
   "watch.live":"LIVE",
 
@@ -887,7 +933,6 @@ en:{
 
   "add.sportAria":"Sport for the new section",
   "add.btn":"Add section at the end",
-  "footer.text":"Every edit is stored in this browser as you make it — the header shows the last save. It does not follow you to another device: “Paste results → Copy backup” gives you the whole thing as JSON, and pasting that JSON back restores it anywhere.<br>Next up for the timeline: elevation per checkpoint, cut-off times, and a live \"where is he now\" marker for the staff view.",
 
   "dlg.pasteTitle":"Paste your results",
   "dlg.pasteHelp":"Name, then gun time, then one line per checkpoint: <code>S|B|R distance split name</code>, or <code>T split name</code> for a transition. Distances are kilometres, or <code>-</code> if unknown.",
@@ -908,6 +953,7 @@ en:{
   "dlg.mapOpen":"Open map",
   "dlg.mapRemove":"Remove",
   "dlg.mapSave":"Save link",
+  "dlg.shareAria":"Share link",
   "map.openOrEdit":"Map link — open or edit",
   "map.add":"Add a map link",
   "map.ariaFor":"Map link for {name}",
@@ -937,7 +983,6 @@ en:{
   "sport.swim":"Natação", "sport.bike":"Ciclismo", "sport.run":"Corrida", "sport.trans":"Transição",
 
   "app.title":"Race Planner",
-  "home.sub":"Suas provas salvas neste navegador.",
   "home.fromTemplate":"Usar template",
   "home.newRace":"Novo plano de prova",
   "home.empty":"Nenhuma prova ainda — <b>Novo plano de prova</b> começa do zero, <b>Usar template</b> começa de um percurso conhecido.",
@@ -966,6 +1011,8 @@ en:{
   "sync.notSavedYet":"Ainda não salva",
 
   "toast.watchReset":"Acompanhamento reiniciado",
+  "toast.backfilledOne":"1 ponto anterior definido pelo horário planejado",
+  "toast.backfilled":"{n} pontos anteriores definidos pelo horário planejado",
   "toast.badClock":"Não deu para ler isso como horário",
   "toast.tooEarly":"Esse horário é anterior a um checkpoint já registrado — não salvo",
   "toast.tooLate":"Esse horário é posterior a um checkpoint já registrado — não salvo",
@@ -979,6 +1026,7 @@ en:{
   "toast.copied":"Copiado",
   "toast.tooBig":"Esta prova é grande demais para um link — copiando o texto da prova",
   "toast.linkCopied":"Link copiado",
+  "toast.copyByHand":"Copie à mão — este navegador bloqueou a área de transferência",
   "toast.raceGone":"Essa prova não está mais aqui",
   "toast.needsNewerBrowser":"Este link precisa de um navegador mais novo",
   "toast.linkCorrupt":"Este link de prova parece corrompido",
@@ -1013,7 +1061,6 @@ en:{
   "card.nothingLogged":"nada registrado",
 
   "splits.title":"Parciais",
-  "splits.hint":"Edite uma <b>parcial</b> e tudo depois dela desloca — esse é o modo simulação. Edite um tempo <b>decorrido</b> ou de <b>relógio</b> e a parcial seguinte absorve a mudança, mantendo a chegada. As setas ajustam 1 s, com Shift 1 min. Arraste a alça para reposicionar um checkpoint; a parcial e a distância dele são apagadas, já que as duas foram medidas entre os vizinhos antigos.",
   "leg.addCheckpoint":"Adicionar checkpoint em {leg}",
   "cols.checkpoint":"checkpoint",
   "cols.split":"Parcial",
@@ -1038,6 +1085,10 @@ en:{
   "watch.tapToLog":"Toque para registrar o horário",
   "watch.plan":"plano {clock}",
   "watch.rev":"rev {clock}",
+  "watch.markPlan":"No plano",
+  "watch.markNow":"Agora",
+  "watch.markPlanTitle":"Registrar o horário planejado {clock}",
+  "watch.markNowTitle":"Registrar o horário de agora",
   "watch.reset":"Reiniciar acompanhamento",
   "watch.live":"AO VIVO",
 
@@ -1064,7 +1115,6 @@ en:{
 
   "add.sportAria":"Esporte do novo trecho",
   "add.btn":"Adicionar trecho no fim",
-  "footer.text":"Cada edição é guardada neste navegador na hora — o cabeçalho mostra o último salvamento. Isso não acompanha você em outro dispositivo: “Colar resultados → Copiar backup” entrega tudo como JSON, e colar esse JSON de volta restaura em qualquer lugar.<br>A seguir na linha do tempo: altimetria por checkpoint, tempos de corte e um marcador ao vivo de \"onde ele está agora\" para a equipe.",
 
   "dlg.pasteTitle":"Cole seus resultados",
   "dlg.pasteHelp":"Nome, depois a largada, depois uma linha por checkpoint: <code>S|B|R distância parcial nome</code>, ou <code>T parcial nome</code> para transição. Distâncias em quilômetros, ou <code>-</code> se não souber.",
@@ -1085,6 +1135,7 @@ en:{
   "dlg.mapOpen":"Abrir mapa",
   "dlg.mapRemove":"Remover",
   "dlg.mapSave":"Salvar link",
+  "dlg.shareAria":"Link de compartilhamento",
   "map.openOrEdit":"Link do mapa — abrir ou editar",
   "map.add":"Adicionar link do mapa",
   "map.ariaFor":"Link do mapa de {name}",
@@ -1769,11 +1820,38 @@ function commitActual(i, raw){
     return;
   }
 
+  /* U18: an arrival settles everything behind it. Nobody at a road crossing
+     logs the checkpoints they already missed, so every earlier checkpoint
+     still blank takes its PLANNED time — clamped to the time just entered
+     (an early arrival must not leave a later plan time sitting in front of
+     it) and to whatever already stands before it, so the sequence the
+     ordering checks depend on stays monotonic either way. */
+  const beforeFill = JSON.stringify(activeSession.actuals);
+  let filled = 0, prev = 0;
+  for(let k = 0; k < i; k++){
+    const had = activeSession.actuals[String(k)];
+    if(had != null){ prev = Math.max(prev, had); continue; }
+    const v = Math.max(prev, Math.min(cumulative(k), elapsed));
+    activeSession.actuals[String(k)] = v;
+    prev = v; filled++;
+  }
+
   activeSession.actuals[key] = elapsed;
   saveWatchSession(activeSession);
   flashIndex = i; flashUntil = Date.now() + 1400;      // U13: mark the new data as new
   try{ if(navigator.vibrate) navigator.vibrate(30); }catch(e){}
   render();
+  if(filled){
+    const sessionId = activeSession.id;
+    // Undo drops only the back-fill; the time actually typed or tapped stays.
+    toast(tr(filled === 1 ? "toast.backfilledOne" : "toast.backfilled", {n: filled}), () => {
+      if(mode !== "watch" || !activeSession || activeSession.id !== sessionId) return;
+      activeSession.actuals = JSON.parse(beforeFill);
+      activeSession.actuals[key] = elapsed;
+      saveWatchSession(activeSession);
+      render();
+    });
+  }
 }
 
 /* ============================================================
@@ -1987,7 +2065,10 @@ function render(){
 
 function renderBoard(){
   const t = total();
-  $("#finish").textContent = t ? fmtHMS(t) : "—";
+  // The headline finish is a CLOCK time — the thing a spectator at the line
+  // actually needs — with the race duration underneath it in small type.
+  // The revised finish reads the same way, so one rule covers the block.
+  $("#finish").textContent = t ? fmtClock(active.start + t) : "—";
   const finLab = $("#finish-lab"), revWrap = $("#finish-revised"), clockWrap = $("#finish-clock");
   const showRevised = mode === "watch" && !!t && lastActualIndex() >= 0;
   if(finLab){
@@ -1995,14 +2076,15 @@ function renderBoard(){
   }
   if(revWrap){
     revWrap.hidden = !showRevised;
-    if(showRevised) $("#finish-revised-val").textContent = fmtHMS(revisedFinishElapsed());
+    if(showRevised){
+      const rev = revisedFinishElapsed();
+      $("#finish-revised-val").textContent = fmtClock(active.start + rev);
+      $("#finish-revised-sub").textContent = fmtHMS(rev);
+    }
   }
-  // Edit mode only (R7) — follow/watch's headline area is already spoken
-  // for by the plan/revised display above.
-  const showClock = mode === "edit";
   if(clockWrap){
-    clockWrap.hidden = !showClock;
-    if(showClock) $("#finish-clock-val").textContent = t ? fmtClock(active.start + t) : "—";
+    clockWrap.hidden = !t;
+    if(t) $("#finish-clock-val").textContent = fmtHMS(t);
   }
   const bar = $("#bar"), ticks = $("#ticks");
   bar.innerHTML = ""; ticks.innerHTML = "";
@@ -2375,6 +2457,23 @@ function watchActualCell(s, i){
     if(ev.key === "Escape"){ input.value = actual != null ? fmtClock(active.start + actual) : ""; input.blur(); }
   });
   wrap.appendChild(input);
+
+  const acts = document.createElement("div");
+  // settled once a time is recorded; "due" for a checkpoint the wall clock is
+  // already past with nothing logged — the only state that earns the live hue.
+  acts.className = "watch-acts " + (actual != null ? "settled" : (watchRowState(i) === "past" ? "due" : "idle"));
+  const onPlan = document.createElement("button");
+  onPlan.type = "button"; onPlan.className = "btn";
+  onPlan.textContent = tr("watch.markPlan");
+  onPlan.title = tr("watch.markPlanTitle", {clock: frozenClock});
+  onPlan.addEventListener("click", () => commitActual(i, frozenClock));
+  const onNow = document.createElement("button");
+  onNow.type = "button"; onNow.className = "btn";
+  onNow.textContent = tr("watch.markNow");
+  onNow.title = tr("watch.markNowTitle");
+  onNow.addEventListener("click", () => commitActual(i, fmtClock(nowClockSeconds())));
+  acts.appendChild(onPlan); acts.appendChild(onNow);
+  wrap.appendChild(acts);
 
   const hint = document.createElement("div");
   hint.className = "watch-clock-hint";
@@ -2784,9 +2883,31 @@ $("#btn-share").addEventListener("click", async () => {
     catch(e){ raw.value = text; dlg.showModal(); raw.select(); }
     return;
   }
-  try{ await navigator.clipboard.writeText(url); toast(tr("toast.linkCopied")); }
-  catch(e){ raw.value = url; dlg.showModal(); raw.select(); }
+  openShare(url);
 });
+
+/* R17: the link is shown as well as copied — a readonly field the reader can
+   read, select and copy by hand, since a clipboard write can be refused (or
+   go unnoticed) and the URL itself is worth seeing. */
+const shareField = $("#share-url");
+/** Reveals the link in the masthead (never a modal), selects it and copies it.
+    Pressing Share again with the same link showing puts it away. */
+async function openShare(url){
+  if(!shareField.hidden && shareField.value === url){ hideShare(); return; }
+  shareField.value = url;
+  shareField.hidden = false;
+  shareField.focus(); shareField.select();
+  shareField.scrollLeft = 0;            // selecting scrolls to the end; the start is the readable part
+  try{ await navigator.clipboard.writeText(url); toast(tr("toast.linkCopied")); }
+  catch(e){ toast(tr("toast.copyByHand")); }
+}
+function hideShare(){
+  if(shareField.hidden) return;
+  shareField.hidden = true;
+  shareField.value = "";
+}
+shareField.addEventListener("focus", e => { e.target.select(); e.target.scrollLeft = 0; });
+shareField.addEventListener("keydown", e => { if(e.key === "Escape") hideShare(); });
 
 const saveStripBtn = $("#save-strip-btn");
 if(saveStripBtn) saveStripBtn.addEventListener("click", saveTransientRace);
@@ -2884,6 +3005,7 @@ function stopMarker(){
 }
 
 function teardownActiveView(){
+  hideShare();                                       // a link belongs to the race that was on screen
   stopMarker();                                      // clears the follow timer (U5)
   /* The document/window handlers (undo keydown, pagehide, visibilitychange) are
      bound once at load and gated by `mode`, so repeated navigation cannot stack
@@ -3133,6 +3255,8 @@ async function refreshUrl(){
   else hash = activeWatchId ? "#/race/" + token + "/watch/" + encodeURIComponent(activeWatchId) : "#/race/" + token;
   if(location.hash !== hash) history.replaceState(null, "", hash);
   lastMountedHash = location.hash;
+  // a revealed share link must follow the edit that just changed the token
+  if(shareField && !shareField.hidden) shareField.value = location.origin + location.pathname + "#/race/" + token;
 }
 
 /* ---- live position marker (wall-clock driven, KTD5) ---- */
@@ -3566,7 +3690,7 @@ function renderHome(){
   const races = listRaces();
   let html = '<header class="masthead home-head"><div>'+
              '<h1 id="home-title">'+esc(tr("app.title"))+'</h1>'+
-             '<p class="home-sub">'+esc(tr("home.sub"))+'</p></div>'+
+             '</div>'+
              '<div class="tools">'+
                '<button class="btn" data-act="tpl"><i class="bi">'+ICON_TPL+'</i>'+esc(tr("home.fromTemplate"))+'</button>'+
                '<button class="btn primary" data-act="new"><i class="bi">'+ICON_PLUS+'</i>'+esc(tr("home.newRace"))+'</button>'+
