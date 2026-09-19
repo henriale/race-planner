@@ -321,8 +321,8 @@ footer{margin-top:30px;color:var(--muted);font-size:12.5px;line-height:1.7}
 <dialog id="dlg">
   <div class="dlg">
     <h3>Paste your results</h3>
-    <p>Works with the raw race notes — leg headings, <code>6:44 - fim natação (44')</code>, and <code>(T1 = 11')</code> are all understood — or with three columns: clock, name, elapsed.</p>
-    <textarea id="raw" spellcheck="false" placeholder="NATAÇÃO&#10;6:00 - largada&#10;6:44 - fim natação (44')&#10;&#10;(T1 = 11')&#10;&#10;BIKE&#10;6:55 - largada da bike&#10;7:33 - cruzamento ida (38')"></textarea>
+    <p>Name, then gun time, then one line per checkpoint: <code>S|B|R distance split name</code>, or <code>T split name</code> for a transition. Distances are kilometres, or <code>-</code> if unknown.</p>
+    <textarea id="raw" spellcheck="false" placeholder="My race&#10;6:00:00&#10;S 1.9 44:00 Swim exit&#10;T 11:00 T1&#10;B 15 38:00 Cruzamento ida"></textarea>
     <div class="preview" id="preview" hidden></div>
     <p class="warn" id="parse-warn" hidden></p>
     <div class="dlg-foot">
@@ -1109,83 +1109,80 @@ $("#map-remove").addEventListener("click", () => {
 });
 
 /* ============================================================
-   7. Importer — understands the raw race notes
+   7. Importer — canonical race text: writer and parser (R11-R13)
+
+   race      := nameLine gunLine entry+
+   nameLine  := <free text, never blank — "Untitled race" for unnamed>
+   gunLine   := <clock, h:mm or h:mm:ss>
+   entry     := sport SP dist SP split SP name   ; sport is S | B | R
+              | "T"   SP split SP name           ; transition, no distance
+   dist      := <kilometres, up to 3 decimals> | "-"   ; "-" = no distance
+   split     := [h:]mm:ss
+   Blank lines are skipped. Distances are km for every sport (KTD2) — the
+   on-screen fields keep rendering swim in metres via SPORTS' unit table;
+   only this text format is km-for-everything. Notes and map links are
+   per-device decoration and never appear here (KTD9, R14).
    ============================================================ */
-const RE_TIME = /\b(\d{1,3}):([0-5]\d)(?::([0-5]\d))?\b/g;
-const HEADERS = [[/^nata[çc][ãa]o/i,"swim"],[/^(bike|ciclismo)/i,"bike"],[/^(corrida|run)/i,"run"]];
-const HINTS   = [[/nata[çc]|swim|nado|barrag/i,"swim"],[/\bt\s*[12]\b|transi/i,"trans"],
-                 [/cicl|bike|pedal|serra|rastr|retão|retao|cruzamento/i,"bike"],
-                 [/corr|run|trail|e[óo]lic|mirante|c[âa]nion/i,"run"]];
-const IS_START = /largada|sa[íi]da|\bstart\b|gun/i;
+const SPORT_TOKEN = {S:"swim", B:"bike", R:"run"};
+const SPORT_LETTER = {swim:"S", bike:"B", run:"R"};
 
-function parseRaw(text){
-  const lines = text.split(/\r?\n/);
-  const events = [];
-  let sport = null;
-  for(const line of lines){
-    const l = line.trim();
-    if(!l) continue;
-
-    const head = HEADERS.find(([re]) => re.test(l) && !/\d/.test(l));
-    if(head){ sport = head[1]; continue; }
-
-    const tm = l.match(/\bT\s*([12])\b/i);
-    if(tm && !/:/.test(l.replace(/\bT\s*[12]\b/i,""))){
-      const d = parseFlexDur(l.replace(/.*?=\s*/,"").replace(/[()]/g,"").trim());
-      if(d != null){ events.push({kind:"trans", name:"T"+tm[1], dur:d}); continue; }
-    }
-
-    RE_TIME.lastIndex = 0;
-    const found = [...l.matchAll(RE_TIME)];
-    if(!found.length) continue;
-
-    let name = l.replace(RE_TIME," ")
-                .replace(/\((?:[^)]*?(?:\d\s*(?:h|'|min))[^)]*?)\)/gi," ")
-                .replace(/[;,\t|]+/g," ").replace(/\s{2,}/g," ")
-                .replace(/^[\s\-–—]+|[\s\-–—]+$/g,"").trim();
-    const toSec = m => (+m[1])*3600 + (+m[2])*60 + (+(m[3]||0));
-    const clock = toSec(found[0]);
-    const elapsed = found.length >= 2 ? toSec(found[found.length-1]) : null;
-
-    if(IS_START.test(name)) events.push({kind:"start", clock, name, sport});
-    else events.push({kind:"cp", clock, elapsed, name, sport: sport || guess(name)});
-  }
-  return events;
+function kmStr(meters){
+  if(meters == null) return "-";
+  let s = (meters/1000).toFixed(3);
+  s = s.replace(/0+$/,"").replace(/\.$/,"");
+  return s === "" ? "0" : s;
 }
-function guess(name){ for(const [re,sp] of HINTS) if(re.test(name)) return sp; return "bike"; }
 
-function buildSections(events){
-  const out = [];
-  let gun = null, cursor = null, tcount = 0;
-  for(const e of events){
-    if(e.kind === "start"){
-      if(gun == null){ gun = e.clock; cursor = e.clock; continue; }
-      if(cursor != null && e.clock > cursor){           // an untyped transition
-        tcount++;
-        out.push(sec("T"+tcount, "trans", null, e.clock - cursor));
-        cursor = e.clock;
-      }
+function toRaceText(race){
+  const lines = [race.name || "Untitled race", fmtClock(race.start)];
+  race.sections.forEach(s => {
+    lines.push(s.sport === "trans"
+      ? ["T", fmtSplit(s.dur), s.name || ""].join(" ")
+      : [SPORT_LETTER[s.sport], kmStr(s.dist), fmtSplit(s.dur), s.name || ""].join(" "));
+  });
+  return lines.join("\n");
+}
+
+const DIST_RE = /^\d+(\.\d+)?$/;
+const SPLIT_RE = /^\d+:\d{2}(:\d{2})?$/;
+
+/** Single-pass parser for the canonical text format. Returns
+    {name, start, sections} or {error} naming the offending line. */
+function parseRaceText(text){
+  const lines = text.split(/\r?\n/).map(l => l.trim()).filter(l => l.length);
+  if(lines.length < 2) return {error:"Need a name line and a gun time line."};
+  const name = lines[0];
+  const start = parseDur(lines[1]);
+  if(start == null) return {error:"Line 2: gun time must be h:mm or h:mm:ss."};
+
+  const sections = [];
+  for(let i = 2; i < lines.length; i++){
+    const lineNo = i + 1;
+    const parts = lines[i].split(/\s+/);
+    const tok = parts[0].toUpperCase();
+
+    if(tok === "T"){
+      if(parts.length < 3) return {error:"Line "+lineNo+": transition needs a split and a name."};
+      if(!SPLIT_RE.test(parts[1])) return {error:"Line "+lineNo+": malformed split."};
+      sections.push(sec(parts.slice(2).join(" "), "trans", null, parseDur(parts[1])));
       continue;
     }
-    if(e.kind === "trans"){
-      tcount++;
-      out.push(sec(e.name || ("T"+tcount), "trans", null, e.dur));
-      if(cursor != null) cursor += e.dur;
-      continue;
-    }
-    if(gun == null){ gun = e.clock - (e.elapsed||0); cursor = gun; }
-    const dur = cursor != null ? Math.max(0, e.clock - cursor)
-                               : Math.max(0, (e.elapsed||0));
-    if(dur === 0 && !out.length) continue;
-    out.push(sec(e.name || "", e.sport, null, dur));
-    cursor = e.clock;
+
+    if(!SPORT_TOKEN[tok]) return {error:"Line "+lineNo+": unknown sport token “"+parts[0]+"”. Use S, B, R, or T."};
+    if(parts.length < 4) return {error:"Line "+lineNo+": checkpoint needs a distance, a split, and a name."};
+    const distTok = parts[1], splitTok = parts[2];
+    if(distTok !== "-" && !DIST_RE.test(distTok)) return {error:"Line "+lineNo+": malformed distance."};
+    if(!SPLIT_RE.test(splitTok)) return {error:"Line "+lineNo+": malformed split."};
+    const dist = distTok === "-" ? null : Math.round(parseFloat(distTok)*1000);
+    sections.push(sec(parts.slice(3).join(" "), SPORT_TOKEN[tok], dist, parseDur(splitTok)));
   }
-  return {gun, sections: out};
+  if(!sections.length) return {error:"No checkpoints found."};
+  return {name, start, sections};
 }
 
 function previewRows(built){
   const box = $("#preview");
-  if(!built.sections.length){ box.hidden = true; return; }
+  if(!built.sections || !built.sections.length){ box.hidden = true; return; }
   box.hidden = false;
   let html = "<table><thead><tr><th>Checkpoint</th><th>Leg</th><th>Split</th><th>Elapsed</th></tr></thead><tbody>";
   let cum = 0;
@@ -1213,11 +1210,15 @@ raw.addEventListener("input", () => {
     if(!restored) w.textContent = "That looks like a backup, but it will not parse.";
     return;
   }
-  const built = buildSections(parseRaw(raw.value));
-  previewRows(built);
-  if(raw.value.trim() && !built.sections.length){
-    w.hidden = false; w.textContent = "No checkpoints found. Each timed line needs an h:mm or h:mm:ss value.";
-  } else w.hidden = true;
+  const parsed = parseRaceText(raw.value);
+  if(parsed.error){
+    previewRows({sections:[]});
+    if(raw.value.trim()){ w.hidden = false; w.textContent = parsed.error; }
+    else w.hidden = true;
+    return;
+  }
+  previewRows(parsed);
+  w.hidden = true;
 });
 $("#dlg-backup").addEventListener("click", async () => {
   const json = JSON.stringify(active);
@@ -1243,16 +1244,17 @@ $("#dlg-apply").addEventListener("click", () => {
     toast("Backup restored");
     return;
   }
-  const built = buildSections(parseRaw(raw.value));
-  if(!built.sections.length){
-    const w = $("#parse-warn"); w.hidden = false; w.textContent = "Nothing to load yet.";
+  const parsed = parseRaceText(raw.value);
+  if(parsed.error){
+    const w = $("#parse-warn"); w.hidden = false; w.textContent = parsed.error;
     return;
   }
   snapshot();
-  active.start = built.gun != null ? built.gun : active.start;
-  active.sections = built.sections;
+  active.name = parsed.name;
+  active.start = parsed.start;
+  active.sections = parsed.sections;
   commit(); dlg.close();
-  toast(built.sections.length+" sections loaded");
+  toast(parsed.sections.length+" sections loaded");
 });
 
 $("#start").addEventListener("change", e => {
@@ -1268,14 +1270,8 @@ $("#btn-add").addEventListener("click", () => { if(active) addSection($("#new-sp
 
 $("#btn-copy").addEventListener("click", async () => {
   if(!active) return;
-  const lines = ["checkpoint\tleg\tdistance_m\tsplit\telapsed\tclock\tpace\tmap\tnote"];
-  active.sections.forEach((s,i) => {
-    const cum = cumulative(i), p = paceOf(s.sport, s.dist, s.dur);
-    lines.push([s.name, s.sport, s.dist ?? "", fmtSplit(s.dur), fmtHMS(cum),
-                fmtClock(active.start+cum), p ? p.v+" "+p.u : "", s.map, s.note].join("\t"));
-  });
-  const text = lines.join("\n");
-  try{ await navigator.clipboard.writeText(text); toast("Copied as a tab-separated table"); }
+  const text = toRaceText(active);
+  try{ await navigator.clipboard.writeText(text); toast("Copied"); }
   catch(e){ raw.value = text; dlg.showModal(); raw.select(); }
 });
 

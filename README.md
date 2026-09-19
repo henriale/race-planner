@@ -106,25 +106,19 @@ dropping onto one never converts a checkpoint into a transition.
 
 ## Importing
 
-The paste dialog takes three things, previewing each before it commits:
+*Copy data* and the paste dialog share one canonical text format: a name
+line, a gun-time line, then one line per checkpoint — `S|B|R distance split
+name` (`T split name` for a transition, which never carries a distance).
+Distances are kilometres for every sport, up to three decimals; `-` marks a
+checkpoint whose distance isn't known. The preview shows what will import;
+a malformed line surfaces a warning naming it and commits nothing.
 
-1. **Raw race notes** — leg headings, `6:44 - fim natação (44')`,
-   `(T1 = 11')`. Parenthetical durations are ignored as redundant; a
-   `largada da bike` line following an explicit `T1` is recognised as the same
-   moment rather than a duplicate checkpoint.
-2. **Three columns** — clock, name, elapsed (tab or comma separated).
-3. **A JSON backup** produced by *Copy backup*, which restores map links and
-   notes too.
+The paste dialog also accepts **a JSON backup** produced by *Copy backup*,
+which restores map links and notes too — those are per-device decoration and
+never appear in the canonical text format.
 
-Clock times win over parenthetical elapsed times where the two disagree.
-
-Imported checkpoints get their leg's distance (from the race's own `dist`)
-split evenly and flagged `est`, so the leg pace is right while the per-section
-numbers are honestly marked as guesses. Typing a real distance clears the flag.
-
-Import and JSON-backup restore replace only a race's `start` and `sections` —
-its identity (`id`/`name`/`location`/`date`/`dist`) is preserved, so a restore
-never orphans the race or overwrites its metadata.
+Importing replaces a race's `name`, `start` and `sections`, keeping its place
+in the library — a restore never orphans the race.
 
 ## Follow mode
 
