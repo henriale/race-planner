@@ -53,7 +53,8 @@ h1 .yr{color:var(--muted);font-variation-settings:"wdth" 122,"wght" 500}
 .where{margin:8px 0 0;color:var(--ink-2);font-size:14px}
 .where b{font-variation-settings:"wdth" 100,"wght" 600;color:var(--ink)}
 .tools{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
-.sync{display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--muted);padding:0 2px}
+.tools-icons{display:flex;align-items:center;gap:2px;margin-left:4px;padding-left:8px;border-left:1px solid var(--rule)}
+.sync{display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--muted);padding:0 2px;margin-left:4px}
 .sync::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--muted);flex:none}
 .sync.ok::before{background:#3E9B5F}
 .sync.bad{color:var(--run)}
@@ -69,6 +70,7 @@ button{font:inherit;color:inherit;cursor:pointer}
 .btn.primary{background:var(--ink);color:var(--canvas);border-color:var(--ink)}
 .btn.primary:hover{opacity:.9}
 .btn.ghost{background:transparent}
+.btn[hidden]{display:none}
 :where(button,input,select,a,[tabindex]):focus-visible{outline:2px solid var(--focus);outline-offset:2px;border-radius:6px}
 
 /* ---------- hero strip ---------- */
@@ -78,6 +80,9 @@ button{font:inherit;color:inherit;cursor:pointer}
 .finish{text-align:right}
 .finish .lab{display:block;font-size:12.5px;color:var(--muted);margin-bottom:-2px}
 .finish .val{font-size:clamp(30px,6vw,52px);line-height:1;font-variation-settings:"wdth" 118,"wght" 700;letter-spacing:-.02em}
+.finish-clock{margin-top:2px}
+.finish-clock .val{font-size:13.5px;color:var(--muted);font-variation-settings:"wdth" 100,"wght" 480;letter-spacing:0}
+.finish-clock[hidden]{display:none}
 
 .strip{position:relative;padding-top:52px;padding-bottom:26px}
 .bar{display:flex;height:58px;border-radius:8px;overflow:hidden;background:var(--surface-2);border:1px solid var(--rule)}
@@ -287,6 +292,7 @@ footer{margin-top:30px;color:var(--muted);font-size:12.5px;line-height:1.7}
   input.f{padding:4px 8px}
   .derived{padding:4px 8px}
   .leg-tot{width:100%}
+  .tools-icons{margin-left:0;padding-left:0;border-left:0}
 }
 @media (prefers-reduced-motion: reduce){*{transition:none!important;animation:none!important}}
 </style>
@@ -305,13 +311,15 @@ footer{margin-top:30px;color:var(--muted);font-size:12.5px;line-height:1.7}
     </div>
     <div class="tools">
       <a class="btn ghost" id="btn-back" href="#/">← Races</a>
-      <a class="btn" id="watch-live" href="#/">Watch live</a>
+      <button class="btn primary" id="watch-live" type="button">Watch live</button>
       <a class="btn" id="open-edit" href="#/">Open in edit</a>
       <button class="btn ghost" id="btn-watch-reset" type="button" hidden>Reset watch</button>
-      <button class="btn primary" id="btn-import">Paste results</button>
-      <button class="btn" id="btn-copy">Copy data</button>
-      <button class="btn" id="btn-share">Share link</button>
-      <span class="sync" id="sync" role="status" aria-live="polite">Not saved yet</span>
+      <div class="tools-icons">
+        <button class="icon" id="btn-import" type="button" aria-label="Paste results" title="Paste results"></button>
+        <button class="icon" id="btn-copy" type="button" aria-label="Copy data" title="Copy data"></button>
+        <button class="icon" id="btn-share" type="button" aria-label="Share link" title="Share link"></button>
+        <span class="sync" id="sync" role="status" aria-live="polite">Not saved yet</span>
+      </div>
     </div>
   </header>
 
@@ -330,6 +338,9 @@ footer{margin-top:30px;color:var(--muted);font-size:12.5px;line-height:1.7}
       <div class="finish">
         <span class="lab" id="finish-lab">Finish</span>
         <span class="val" id="finish">—</span>
+        <div class="finish-clock" id="finish-clock" hidden>
+          <span class="val" id="finish-clock-val">—</span>
+        </div>
         <div class="finish-revised" id="finish-revised" hidden>
           <span class="lab">Revised</span>
           <span class="val" id="finish-revised-val">—</span>
@@ -1122,6 +1133,18 @@ const PIN_OUT = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s7-6
 const PIN_IN  = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s7-6.2 7-11a7 7 0 1 0-14 0c0 4.8 7 11 7 11zm0-8.6a2.4 2.4 0 1 1 0-4.8 2.4 2.4 0 0 1 0 4.8z"/></svg>';
 const GRIP = '<svg viewBox="0 0 8 14" aria-hidden="true"><circle cx="2" cy="2" r="1.3"/><circle cx="6" cy="2" r="1.3"/><circle cx="2" cy="7" r="1.3"/><circle cx="6" cy="7" r="1.3"/><circle cx="2" cy="12" r="1.3"/><circle cx="6" cy="12" r="1.3"/></svg>';
 const COG = '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="1.7" d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7z"/><path fill="none" stroke="currentColor" stroke-width="1.7" d="M19.4 13.5c.04-.33.06-.66.06-1s-.02-.67-.06-1l2.02-1.58a.5.5 0 0 0 .12-.64l-1.92-3.32a.5.5 0 0 0-.6-.22l-2.38.96a7.4 7.4 0 0 0-1.73-1l-.36-2.53a.5.5 0 0 0-.5-.42h-3.84a.5.5 0 0 0-.5.42l-.36 2.53c-.63.24-1.21.58-1.73 1l-2.38-.96a.5.5 0 0 0-.6.22L2.7 9.28a.5.5 0 0 0 .12.64L4.84 11.5c-.04.33-.06.66-.06 1s.02.67.06 1L2.82 15.08a.5.5 0 0 0-.12.64l1.92 3.32a.5.5 0 0 0 .6.22l2.38-.96c.52.42 1.1.76 1.73 1l.36 2.53a.5.5 0 0 0 .5.42h3.84a.5.5 0 0 0 .5-.42l.36-2.53c.63-.24 1.21-.58 1.73-1l2.38.96a.5.5 0 0 0 .6-.22l1.92-3.32a.5.5 0 0 0-.12-.64L19.4 13.5z"/></svg>';
+/* U6: masthead icon controls (Copy/Paste/Share) — same stroke vocabulary as
+   PIN_OUT/PIN_IN/COG (viewBox 0 0 24 24, aria-hidden, name lives on the
+   parent .icon button via aria-label/title). */
+const ICON_COPY  = '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="8" y="8" width="12" height="12" rx="2" fill="none" stroke="currentColor" stroke-width="1.7"/><path fill="none" stroke="currentColor" stroke-width="1.7" d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"/></svg>';
+const ICON_PASTE = '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="4" width="12" height="17" rx="2" fill="none" stroke="currentColor" stroke-width="1.7"/><path fill="none" stroke="currentColor" stroke-width="1.7" d="M9 4h6a1 1 0 0 1 1 1v1a1 1 0 0 1-1 1H9a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1z"/><path fill="none" stroke="currentColor" stroke-width="1.7" d="M9 13h6M9 17h4"/></svg>';
+const ICON_SHARE = '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="18" cy="6" r="2.6" fill="none" stroke="currentColor" stroke-width="1.7"/><circle cx="6" cy="12" r="2.6" fill="none" stroke="currentColor" stroke-width="1.7"/><circle cx="18" cy="18" r="2.6" fill="none" stroke="currentColor" stroke-width="1.7"/><path fill="none" stroke="currentColor" stroke-width="1.7" d="M8.3 10.7l7.4-3.4M8.3 13.3l7.4 3.4"/></svg>';
+(function initMastheadIcons(){
+  const ic = document.getElementById("btn-import"), cp = document.getElementById("btn-copy"), sh = document.getElementById("btn-share");
+  if(ic) ic.innerHTML = ICON_PASTE;
+  if(cp) cp.innerHTML = ICON_COPY;
+  if(sh) sh.innerHTML = ICON_SHARE;
+})();
 // U9: pin icons are static per page load — set once rather than every paintMarker() tick.
 (function initTimelinePins(){
   const pp = document.getElementById("pin-plan"), pa = document.getElementById("pin-actual");
@@ -1162,12 +1185,21 @@ function render(){
 function renderBoard(){
   const t = total();
   $("#finish").textContent = t ? fmtHMS(t) : "—";
-  const finLab = $("#finish-lab"), revWrap = $("#finish-revised");
+  const finLab = $("#finish-lab"), revWrap = $("#finish-revised"), clockWrap = $("#finish-clock");
   const showRevised = mode === "watch" && !!t && lastActualIndex() >= 0;
-  if(finLab) finLab.textContent = showRevised ? "Finish (plan)" : "Finish";
+  if(finLab){
+    finLab.textContent = showRevised ? "Finish (plan)" : (mode === "edit" ? "Finish Estimate" : "Finish");
+  }
   if(revWrap){
     revWrap.hidden = !showRevised;
     if(showRevised) $("#finish-revised-val").textContent = fmtHMS(revisedFinishElapsed());
+  }
+  // Edit mode only (R7) — follow/watch's headline area is already spoken
+  // for by the plan/revised display above.
+  const showClock = mode === "edit";
+  if(clockWrap){
+    clockWrap.hidden = !showClock;
+    if(showClock) $("#finish-clock-val").textContent = t ? fmtClock(active.start + t) : "—";
   }
   const bar = $("#bar"), ticks = $("#ticks");
   bar.innerHTML = ""; ticks.innerHTML = "";
@@ -1781,6 +1813,21 @@ $("#btn-copy").addEventListener("click", async () => {
   catch(e){ raw.value = text; dlg.showModal(); raw.select(); }
 });
 
+/* U6: the edit masthead's Watch Live is the primary action — resolved to a
+   bare-token watch entry point at click time, mirroring the home-card
+   Watch Live button (U5) rather than the old .../follow route, so it opens
+   a real watch session instead of the plain read-only view. A plain <a
+   href> populated reactively would need refreshRaceChrome() to await the
+   async encodeToken before every render (a stale/absent-href window on
+   first paint); a button with a click-time-only async resolve has no such
+   window and matches U5's already-established pattern for the identical
+   problem, so it's the simpler and more consistent choice here. */
+$("#watch-live").addEventListener("click", async () => {
+  if(!active) return;
+  const token = await encodeToken(toRaceText(active));
+  location.hash = "#/race/" + token;
+});
+
 /* R17: copies the bare "#/race/<token>" watch-route form (KTD10) — the
    same shape the router already resolves for a shared/watched link, not
    the /edit or /follow form. Warns instead of copying past the ~2000-char
@@ -1979,8 +2026,6 @@ function applyReadOnly(ro){
 function refreshRaceChrome(){
   const rv = $("#race-view");
   if(rv) rv.classList.toggle("transient-race", transientRace);
-  const wl = $("#watch-live");
-  if(wl && !transientRace && active.id) wl.href = "#/race/" + encodeURIComponent(active.id) + "/follow";
   const oe = $("#open-edit");
   if(oe && !transientRace && active.id) oe.href = "#/race/" + encodeURIComponent(active.id) + "/edit";
 }
