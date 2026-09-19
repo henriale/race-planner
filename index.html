@@ -148,7 +148,6 @@ input.f:hover{border-color:var(--rule)}
 input.f:focus{border-color:var(--focus);background:var(--surface);outline:none;box-shadow:0 0 0 3px color-mix(in srgb,var(--focus) 18%,transparent)}
 input.num{text-align:right}
 input.name{font-variation-settings:"wdth" 100,"wght" 540}
-input.est{color:var(--muted);font-style:italic}
 input.f::placeholder{color:var(--muted);opacity:.7}
 .derived{text-align:right;padding:6px 8px;font-size:14px;color:var(--ink-2)}
 .derived.pace{font-variation-settings:"wdth" 100,"wght" 620;color:var(--ink)}
@@ -206,22 +205,17 @@ footer{margin-top:30px;color:var(--muted);font-size:12.5px;line-height:1.7}
 .race-card .leg-foot .spread{margin-right:auto}
 .home-empty{padding:44px 20px;text-align:center;color:var(--muted);border:1px dashed var(--rule);border-radius:14px;font-size:14px}
 
-/* ---------- editable masthead name + details dialog ---------- */
+/* ---------- editable masthead name ---------- */
 #race-name{border-radius:8px;padding:0 4px;margin:0 -4px}
 #race-name[contenteditable="true"]{cursor:text}
 #race-name[contenteditable="true"]:hover{background:var(--surface-2)}
 #race-name[contenteditable="true"]:focus{outline:none;background:var(--surface);box-shadow:0 0 0 3px color-mix(in srgb,var(--focus) 18%,transparent)}
 #race-name:empty::before{content:attr(data-placeholder);color:var(--muted)}
-.field{display:flex;flex-direction:column;gap:5px;margin-bottom:12px}
-.field span{font-size:12.5px;color:var(--muted)}
-.field-row{display:flex;gap:12px;flex-wrap:wrap}
-.field-row .field{flex:1 1 120px}
 
 /* ---------- follow (read-only) view + live marker ---------- */
 .start-val{display:none;font-variant-numeric:tabular-nums}
 .static{padding:6px 8px;font-size:14px;color:var(--ink)}
 .static.num{text-align:right}
-.static.est{color:var(--muted);font-style:italic}
 .marker{position:absolute;top:0;height:58px;width:2px;background:var(--ink);transform:translateX(-1px);z-index:5;pointer-events:none;transition:left .9s linear}
 .marker::before{content:"";position:absolute;top:-4px;left:-4px;width:10px;height:10px;border-radius:50%;background:var(--ink);box-shadow:0 0 0 3px var(--surface)}
 .marker[hidden]{display:none}
@@ -229,7 +223,6 @@ footer{margin-top:30px;color:var(--muted);font-size:12.5px;line-height:1.7}
 /* chrome that only makes sense while editing is hidden in follow mode */
 #open-edit,
 #race-view.readonly #watch-live,
-#race-view.readonly #btn-details,
 #race-view.readonly #btn-import,
 #race-view.readonly #btn-copy,
 #race-view.readonly #sync,
@@ -271,7 +264,6 @@ footer{margin-top:30px;color:var(--muted);font-size:12.5px;line-height:1.7}
       <a class="btn ghost" id="btn-back" href="#/">← Races</a>
       <a class="btn" id="watch-live" href="#/">Watch live</a>
       <a class="btn" id="open-edit" href="#/">Open in edit</a>
-      <button class="btn" id="btn-details">Race details</button>
       <button class="btn primary" id="btn-import">Paste results</button>
       <button class="btn" id="btn-copy">Copy data</button>
       <span class="sync" id="sync" role="status" aria-live="polite">Not saved yet</span>
@@ -318,7 +310,6 @@ footer{margin-top:30px;color:var(--muted);font-size:12.5px;line-height:1.7}
 
   <footer>
     Every edit is stored in this browser as you make it — the header shows the last save. It does not follow you to another device: “Paste results → Copy backup” gives you the whole thing as JSON, and pasting that JSON back restores it anywhere.<br>
-    Bike checkpoint distances are estimates split evenly across the leg — type a real distance and the italics clear.<br>
     Next up for the timeline: elevation per checkpoint, cut-off times, and a live "where is he now" marker for the staff view.
   </footer>
 
@@ -338,24 +329,6 @@ footer{margin-top:30px;color:var(--muted);font-size:12.5px;line-height:1.7}
       <button class="btn ghost spread" id="dlg-backup">Copy backup</button>
       <button class="btn ghost" id="dlg-cancel">Cancel</button>
       <button class="btn primary" id="dlg-apply">Replace splits</button>
-    </div>
-  </div>
-</dialog>
-
-<dialog id="detailsdlg" class="narrow">
-  <div class="dlg">
-    <h3>Race details</h3>
-    <p>Location, date, and the leg distances the even-split importer uses for this race.</p>
-    <label class="field"><span>Location</span><input class="wide" id="det-loc" spellcheck="false"></label>
-    <label class="field"><span>Date</span><input class="wide" id="det-date" type="date"></label>
-    <div class="field-row">
-      <label class="field"><span>Swim (m)</span><input class="wide" id="det-swim" inputmode="decimal"></label>
-      <label class="field"><span>Bike (km)</span><input class="wide" id="det-bike" inputmode="decimal"></label>
-      <label class="field"><span>Run (km)</span><input class="wide" id="det-run" inputmode="decimal"></label>
-    </div>
-    <div class="dlg-foot">
-      <button class="btn ghost" id="det-cancel">Cancel</button>
-      <button class="btn primary" id="det-save">Save</button>
     </div>
   </div>
 </dialog>
@@ -394,24 +367,20 @@ footer{margin-top:30px;color:var(--muted);font-size:12.5px;line-height:1.7}
    1. Model
    ============================================================ */
 const SPORTS = {
-  swim : {label:"Swim",       unit:"m",  pace:"per100m", official:2000},
-  bike : {label:"Bike",       unit:"km", pace:"kmh",     official:87000},
-  run  : {label:"Run",        unit:"km", pace:"perkm",   official:22000},
-  trans: {label:"Transition", unit:null, pace:null,      official:null}
+  swim : {label:"Swim",       unit:"m",  pace:"per100m"},
+  bike : {label:"Bike",       unit:"km", pace:"kmh"},
+  run  : {label:"Run",        unit:"km", pace:"perkm"},
+  trans: {label:"Transition", unit:null, pace:null}
 };
 const ORDER = ["swim","bike","run"];
 const KEY = "fodaxman-sp5-2025-v2";          // legacy single-race key (migration source only)
-const INDEX_KEY = "race-splits:index";        // light [{id,name,location,date,savedAt}] library index
+const INDEX_KEY = "race-splits:index";        // light [{id,name,savedAt}] library index
 const MIGRATED_KEY = "race-splits:migrated";  // once-only sentinel for the legacy import
+const MIGRATED_KEY_V2 = "race-splits:migrated-v2"; // once-only sentinel: drops per-race location/date/dist + per-section est
 const raceKey = id => "race-splits:race:" + id;
 
-/** Default leg distances for a new race, seeded from the per-sport officials. */
-function defaultDist(){
-  return {swim: SPORTS.swim.official, bike: SPORTS.bike.official, run: SPORTS.run.official};
-}
-
 function uid(){ return Math.random().toString(36).slice(2,9); }
-const sec = (name,sport,dist,dur,est) => ({id:uid(), name, sport, dist, dur, est:!!est, note:"", map:""});
+const sec = (name,sport,dist,dur) => ({id:uid(), name, sport, dist, dur, note:"", map:""});
 
 /* ---- storage ------------------------------------------------
    The library lives in localStorage as one index key plus one blob per
@@ -436,7 +405,6 @@ function normalize(obj){
       sport: x.sport,
       dist: (typeof x.dist === "number" && isFinite(x.dist) && x.dist >= 0) ? x.dist : null,
       dur:  (typeof x.dur === "number" && isFinite(x.dur) && x.dur >= 0) ? Math.round(x.dur) : 0,
-      est:  !!x.est,
       note: typeof x.note === "string" ? x.note : "",
       map:  typeof x.map === "string" ? x.map : ""
     }));
@@ -445,19 +413,9 @@ function normalize(obj){
   return {
     id:       typeof obj.id === "string" ? obj.id : uid(),
     name:     typeof obj.name === "string" ? obj.name : "",
-    location: typeof obj.location === "string" ? obj.location : "",
-    date:     typeof obj.date === "string" ? obj.date : "",
-    dist:     normDist(obj.dist),
     start, sections,
     savedAt:  typeof obj.savedAt === "number" ? obj.savedAt : null
   };
-}
-/** Validate {swim,bike,run} leg distances, falling back to the per-sport defaults. */
-function normDist(d){
-  const def = defaultDist();
-  if(!d || typeof d !== "object") return def;
-  const pick = (v,f) => (typeof v === "number" && isFinite(v) && v >= 0) ? Math.round(v) : f;
-  return {swim: pick(d.swim, def.swim), bike: pick(d.bike, def.bike), run: pick(d.run, def.run)};
 }
 
 function save(){
@@ -496,7 +454,7 @@ function readIndex(){
 }
 function writeIndex(arr){ storageSet(INDEX_KEY, JSON.stringify(arr)); }
 function indexEntry(race){
-  return {id:race.id, name:race.name||"", location:race.location||"", date:race.date||"", savedAt:race.savedAt};
+  return {id:race.id, name:race.name||"", savedAt:race.savedAt};
 }
 function listRaces(){ return readIndex(); }
 
@@ -518,15 +476,12 @@ function saveRace(race){
   return race;
 }
 /** Build + persist a new race: one placeholder checkpoint (empty sections
-    would fail normalize and load back as null), default leg distances. */
+    would fail normalize and load back as null). */
 function createRace(fields){
   fields = fields || {};
   const race = {
     id: uid(),
     name: fields.name || "",
-    location: fields.location || "",
-    date: fields.date || "",
-    dist: fields.dist || defaultDist(),
     start: typeof fields.start === "number" ? fields.start : 6*3600,
     sections: (fields.sections && fields.sections.length) ? fields.sections : [sec("", "swim", null, 0)],
     savedAt: null
@@ -556,15 +511,32 @@ function migrateLegacy(){
     if(legacy){
       createRace({
         name: "Fodaxman Solo Point Five 2025",
-        location: "Serra do Rio do Rastro, SC",
-        date: "2025-09-27",
-        dist: {swim:2000, bike:87000, run:22000},
         start: legacy.start,
         sections: legacy.sections
       });
     }
   }
   storageSet(MIGRATED_KEY, "1");
+}
+/** One-time, non-destructive migration: strips the removed per-race
+    (location, date, dist) and per-section (est) fields from every stored
+    race blob. Gated on its own sentinel, separate from migrateLegacy(),
+    since it runs over the multi-race store rather than a legacy key. */
+function migrateDropMetadata(){
+  if(storageGet(MIGRATED_KEY_V2)) return;
+  readIndex().forEach(entry => {
+    const raw = storageGet(raceKey(entry.id));
+    if(!raw) return;
+    let obj;
+    try{ obj = JSON.parse(raw); }catch(e){ return; }
+    if(!obj || typeof obj !== "object") return;
+    delete obj.location; delete obj.date; delete obj.dist;
+    if(Array.isArray(obj.sections)){
+      obj.sections.forEach(s => { if(s && typeof s === "object") delete s.est; });
+    }
+    storageSet(raceKey(entry.id), JSON.stringify(obj));
+  });
+  storageSet(MIGRATED_KEY_V2, "1");
 }
 
 /* The app mounts one race at a time. `active` is the mounted race context;
@@ -650,12 +622,15 @@ function paceOf(sport, meters, seconds){
   if(sport === "run")  return {v:fmtMS(seconds/(meters/1000)), u:"/km"};
   return null;
 }
+/** Per-sport totals across the race. `complete` is false once any
+    distance-bearing section of that sport lacks a distance — R10 then
+    withholds the pace while the summed distance still shows what is known. */
 function legTotals(){
   const out = {};
   for(const s of active.sections){
-    const t = out[s.sport] || (out[s.sport] = {dur:0, dist:0, est:false});
+    const t = out[s.sport] || (out[s.sport] = {dur:0, dist:0, complete:true});
     t.dur += s.dur; t.dist += (s.dist||0);
-    if(s.est) t.est = true;
+    if(SPORTS[s.sport].unit && s.dist == null) t.complete = false;
   }
   return out;
 }
@@ -708,7 +683,6 @@ function moveSection(from, insertAt, sport){
   if(changesSport) s.sport = sport;
   s.dur = 0;
   s.dist = null;
-  s.est = false;
   arr.splice(pos, 0, s);
   commit();
   toast((s.name || "Checkpoint") + " moved — split and distance cleared",
@@ -813,14 +787,8 @@ const PIN_OUT = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s7-6
 const PIN_IN  = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s7-6.2 7-11a7 7 0 1 0-14 0c0 4.8 7 11 7 11zm0-8.6a2.4 2.4 0 1 1 0-4.8 2.4 2.4 0 0 1 0 4.8z"/></svg>';
 const GRIP = '<svg viewBox="0 0 8 14" aria-hidden="true"><circle cx="2" cy="2" r="1.3"/><circle cx="6" cy="2" r="1.3"/><circle cx="2" cy="7" r="1.3"/><circle cx="6" cy="7" r="1.3"/><circle cx="2" cy="12" r="1.3"/><circle cx="6" cy="12" r="1.3"/></svg>';
 
-const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
-function fmtDate(s){
-  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(s||"").trim());
-  return m ? (+m[3])+" "+MONTHS[(+m[2])-1]+" "+m[1] : String(s||"");
-}
-const distKm = m => +(m/1000).toFixed(2);
-
-/** Masthead reflects the active race's identity + leg distances. */
+/** Masthead reflects the active race's identity + leg distances, derived
+    from the sections themselves (R9) rather than any stored per-race total. */
 function renderMasthead(){
   const nameEl = $("#race-name");
   if(nameEl){
@@ -831,12 +799,11 @@ function renderMasthead(){
   }
   const w = $("#race-where");
   if(!w) return;
-  const d = active.dist || defaultDist();
-  const parts = [];
-  if(active.location) parts.push(esc(active.location));
-  if(active.date) parts.push(esc(fmtDate(active.date)));
-  parts.push("<b>"+distKm(d.swim)+" km</b> swim, <b>"+distKm(d.bike)+" km</b> bike, <b>"+distKm(d.run)+" km</b> run");
-  w.innerHTML = parts.join(" · ");
+  const tot = legTotals();
+  const parts = ORDER
+    .filter(sport => tot[sport] && tot[sport].dist)
+    .map(sport => "<b>"+fmtDistLabel(sport, tot[sport].dist)+"</b> "+SPORTS[sport].label.toLowerCase());
+  w.innerHTML = parts.join(", ");
 }
 
 function render(){
@@ -894,13 +861,13 @@ function renderBoard(){
   ORDER.forEach(sport => {
     const v = tot[sport];
     if(!v) return;
-    const p = paceOf(sport, v.dist, v.dur);
+    const p = v.complete ? paceOf(sport, v.dist, v.dur) : null;
     const el = document.createElement("div");
     el.className = "chip"; el.dataset.sport = sport;
     el.innerHTML =
       '<div class="name">'+SPORTS[sport].label+'</div>'+
       '<div class="pace">'+(p ? p.v+' <span class="u">'+p.u+'</span>' : "—")+'</div>'+
-      '<div class="sub">'+fmtHMS(v.dur)+' · '+(v.dist ? fmtDistLabel(sport,v.dist) : "no distance")+(v.est?" (est.)":"")+'</div>';
+      '<div class="sub">'+fmtHMS(v.dur)+' · '+(v.dist ? fmtDistLabel(sport,v.dist) : "no distance")+'</div>';
     chips.appendChild(el);
   });
 }
@@ -911,7 +878,8 @@ function renderLegs(){
     const meta = SPORTS[g.sport];
     const dur  = g.items.reduce((a,x)=>a+x.s.dur,0);
     const dist = g.items.reduce((a,x)=>a+(x.s.dist||0),0);
-    const p = paceOf(g.sport, dist, dur);
+    const complete = !meta.unit || g.items.every(x => x.s.dist != null);
+    const p = complete ? paceOf(g.sport, dist, dur) : null;
 
     const leg = document.createElement("section");
     leg.className = "leg"; leg.dataset.sport = g.sport;
@@ -1062,16 +1030,14 @@ function textField(value, ph, onCommit, cls){
 }
 function distField(s){
   const meta = SPORTS[s.sport];
-  if(readOnly) return staticText(distOut(s) || "", "num"+(s.est?" est":""));
+  if(readOnly) return staticText(distOut(s) || "", "num");
   const el = document.createElement("input");
-  el.className = "f num"+(s.est?" est":"");
+  el.className = "f num";
   el.value = distOut(s); el.inputMode = "decimal"; el.placeholder = meta.unit;
   el.setAttribute("aria-label", "Distance in "+meta.unit);
-  if(s.est) el.title = "Estimated — the leg distance split evenly. Type the real one to confirm it.";
   el.addEventListener("change", () => {
     snapshot();
     s.dist = distIn(s, el.value.trim());
-    s.est = false;
     commit();
   });
   return el;
@@ -1214,16 +1180,6 @@ function buildSections(events){
     out.push(sec(e.name || "", e.sport, null, dur));
     cursor = e.clock;
   }
-  ORDER.forEach(sport => {
-    const mine = out.filter(s => s.sport === sport);
-    if(!mine.length) return;
-    // Split this race's own leg distance evenly; SPORTS[sport].official is only
-    // the seed default for a brand-new race (never the bare SPORTS.official — F5).
-    const legDist = (active && active.dist && typeof active.dist[sport] === "number")
-      ? active.dist[sport] : SPORTS[sport].official;
-    const each = Math.round(legDist / mine.length);
-    mine.forEach(s => { s.dist = each; s.est = mine.length > 1; });
-  });
   return {gun, sections: out};
 }
 
@@ -1280,8 +1236,8 @@ $("#dlg-apply").addEventListener("click", () => {
   if(!active) return;
   const restored = tryRestoreBackup(raw.value);
   if(restored){
-    // Replace only the splits — keep this race's id/name/location/date/dist so it
-    // stays the same race in the index rather than becoming an orphaned blob (F8).
+    // Replace only the splits — keep this race's id/name so it stays the
+    // same race in the index rather than becoming an orphaned blob (F8).
     snapshot(); active.start = restored.start; active.sections = restored.sections;
     commit(); dlg.close();
     toast("Backup restored");
@@ -1488,16 +1444,12 @@ function renderHome(){
       const id = encodeURIComponent(r.id);
       const race = loadRace(r.id);
       const t = race ? raceTotal(race) : 0;
-      const meta = [];
-      if(r.location) meta.push(esc(r.location));
-      if(r.date) meta.push(esc(fmtDate(r.date)));
       html += '<section class="leg race-card">'+
         '<div class="leg-head">'+
           '<div class="leg-title"><span class="t">'+esc(r.name || "Untitled race")+'</span></div>'+
           '<div class="leg-tot"><span class="finish-lab">Finish</span>'+
             '<span class="fin">'+(t ? fmtHMS(t) : "—")+'</span></div>'+
         '</div>'+
-        (meta.length ? '<div class="race-meta">'+meta.join('<span class="sep">·</span>')+'</div>' : '')+
         '<div class="leg-foot">'+
           '<a class="btn primary" href="#/race/'+id+'/edit">Open</a>'+
           '<a class="btn" href="#/race/'+id+'/follow">Follow</a>'+
@@ -1556,45 +1508,13 @@ if(nameEl){
   });
 }
 
-/* ---- race details dialog (location, date, per-race leg distances) ---- */
-const detailsdlg = $("#detailsdlg");
-$("#btn-details").addEventListener("click", () => {
-  if(!active) return;
-  $("#det-loc").value = active.location || "";
-  $("#det-date").value = /^\d{4}-\d{2}-\d{2}$/.test(active.date || "") ? active.date : "";
-  const d = active.dist || defaultDist();
-  $("#det-swim").value = d.swim;            // stored + shown in metres
-  $("#det-bike").value = +(d.bike / 1000);  // km
-  $("#det-run").value  = +(d.run / 1000);   // km
-  detailsdlg.showModal();
-  $("#det-loc").focus();
-});
-$("#det-cancel").addEventListener("click", () => detailsdlg.close());
-$("#det-save").addEventListener("click", () => {
-  if(!active){ detailsdlg.close(); return; }
-  const num = (v, f) => { const n = parseFloat(String(v).replace(",", ".")); return (isFinite(n) && n >= 0) ? n : f; };
-  const d = active.dist || defaultDist();
-  snapshot();
-  active.location = $("#det-loc").value.trim();
-  active.date = $("#det-date").value.trim();
-  active.dist = {
-    swim: Math.round(num($("#det-swim").value, d.swim)),
-    bike: Math.round(num($("#det-bike").value, d.bike / 1000) * 1000),
-    run:  Math.round(num($("#det-run").value,  d.run / 1000) * 1000)
-  };
-  save(); renderMasthead(); detailsdlg.close();
-  toast("Race details saved");
-});
-
 function duplicateRace(id){
   const src = loadRace(id);
   if(!src) return;
   const copy = createRace({
     name: src.name ? src.name + " copy" : "Untitled race copy",
-    location: src.location, date: src.date,
-    dist: {swim:src.dist.swim, bike:src.dist.bike, run:src.dist.run},
     start: src.start,
-    sections: src.sections.map(s => ({id:uid(), name:s.name, sport:s.sport, dist:s.dist, dur:s.dur, est:s.est, note:s.note, map:s.map}))
+    sections: src.sections.map(s => ({id:uid(), name:s.name, sport:s.sport, dist:s.dist, dur:s.dur, note:s.note, map:s.map}))
   });
   renderHome();
   toast("Duplicated as “" + copy.name + "”");
@@ -1609,6 +1529,7 @@ function doDeleteRace(id){
 }
 
 migrateLegacy();
+migrateDropMetadata();
 window.addEventListener("hashchange", router);
 router();
 })();
