@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Fodaxman Solo Point Five 2025 — Splits</title>
+<title>Race splits</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,100..900&display=swap" rel="stylesheet">
@@ -106,6 +106,33 @@ button{font:inherit;color:inherit;cursor:pointer}
 .btn[hidden]{display:none}
 :where(button,input,select,a,[tabindex]):focus-visible{outline:2px solid var(--focus);outline-offset:2px;border-radius:6px}
 :where(h1,h2)[tabindex="-1"]:focus-visible{outline:none}
+
+/* ---------- language picker ----------
+   Two flags, pinned to the top right of the viewport and shared by every
+   view (it is outside .wrap, so no render path has to redraw it). The
+   active language is the opaque one; the other sits back until hovered.
+   .masthead reserves room on its right so a long race title never runs
+   under it. */
+.langpick{
+  position:fixed;z-index:50;
+  top:calc(12px + env(safe-area-inset-top,0px));right:14px;
+  display:flex;gap:2px;padding:3px;
+  background:var(--surface);border:1px solid var(--rule);border-radius:999px;
+  box-shadow:0 6px 18px -12px rgba(19,30,28,.6);
+}
+.langpick button{
+  border:0;background:transparent;padding:4px;border-radius:999px;line-height:0;
+  opacity:.38;filter:saturate(.35);transition:opacity .12s ease,filter .12s ease;
+}
+.langpick button:hover{opacity:.75;filter:saturate(.9)}
+.langpick button[aria-pressed="true"]{opacity:1;filter:none}
+.langpick svg{display:block;width:22px;height:15px;border-radius:2.5px;
+  box-shadow:0 0 0 1px rgba(19,30,28,.16) inset}
+@media (max-width:560px){
+  .langpick{top:calc(8px + env(safe-area-inset-top,0px));right:10px}
+  .langpick svg{width:19px;height:13px}
+}
+.masthead{padding-right:64px}
 
 /* ---------- hero strip ---------- */
 .board{background:var(--surface);border:1px solid var(--rule);border-radius:14px;box-shadow:var(--shadow);padding:20px 20px 16px;margin-bottom:28px}
@@ -559,43 +586,43 @@ footer{margin-top:30px;color:var(--muted);font-size:12.5px;line-height:1.7}
 
   <header class="masthead">
     <div>
-      <h1 id="race-title" tabindex="-1"><span id="race-name" data-placeholder="Untitled race" title="Click to rename"></span></h1>
+      <h1 id="race-title" tabindex="-1"><span id="race-name" data-placeholder="Untitled race" data-i18n-dph="race.untitled" title="Click to rename" data-i18n-title="name.rename"></span></h1>
       <p class="where" id="race-where"></p>
     </div>
     <div class="tools">
-      <a class="btn ghost" id="btn-back" href="#/">← Races</a>
-      <button class="btn primary" id="watch-live" type="button">Watch live</button>
-      <a class="icon" id="open-edit" href="#/" aria-label="Open in edit" title="Open in edit"></a>
-      <button class="icon" id="btn-watch-reset" type="button" aria-label="Reset watch" title="Reset watch" hidden></button>
+      <a class="btn ghost" id="btn-back" href="#/" data-i18n="masthead.back">← Races</a>
+      <button class="btn live" id="watch-live" type="button"><i class="dot" aria-hidden="true"></i><span data-i18n="btn.watchLive">Watch Live</span></button>
+      <a class="icon" id="open-edit" href="#/" aria-label="Open in edit" title="Open in edit" data-i18n-aria="masthead.openEdit" data-i18n-title="masthead.openEdit"></a>
+      <button class="icon" id="btn-watch-reset" type="button" aria-label="Reset watch" title="Reset watch" data-i18n-aria="watch.reset" data-i18n-title="watch.reset" hidden></button>
       <div class="tools-icons">
-        <button class="icon" id="btn-import" type="button" aria-label="Paste results" title="Paste results"></button>
-        <button class="icon" id="btn-copy" type="button" aria-label="Copy data" title="Copy data"></button>
-        <button class="icon" id="btn-share" type="button" aria-label="Share link" title="Share link"></button>
-        <span class="sync" id="sync" role="status" aria-live="polite">Not saved yet</span>
+        <button class="icon" id="btn-import" type="button" aria-label="Paste results" title="Paste results" data-i18n-aria="masthead.paste" data-i18n-title="masthead.paste"></button>
+        <button class="icon" id="btn-copy" type="button" aria-label="Copy data" title="Copy data" data-i18n-aria="masthead.copy" data-i18n-title="masthead.copy"></button>
+        <button class="icon" id="btn-share" type="button" aria-label="Share link" title="Share link" data-i18n-aria="masthead.share" data-i18n-title="masthead.share"></button>
+        <span class="sync" id="sync" role="status" aria-live="polite" data-i18n="sync.notSavedYet">Not saved yet</span>
       </div>
     </div>
   </header>
 
   <div class="save-strip" id="save-strip" hidden role="status">
-    <span>This race is from a link — it is not in your library yet. Saving adds it as a new race.</span>
-    <button class="btn primary" id="save-strip-btn" type="button">Save this race</button>
+    <span data-i18n="strip.save">This race is from a link — it is not in your library yet. Saving adds it as a new race.</span>
+    <button class="btn primary" id="save-strip-btn" type="button" data-i18n="strip.saveBtn">Save this race</button>
   </div>
 
-  <section class="board" aria-label="Race timeline">
+  <section class="board" aria-label="Race timeline" data-i18n-aria="board.aria">
     <div class="board-top">
       <label class="startline">
-        Gun time
-        <input class="f num" id="start" style="width:104px" aria-label="Race start clock time">
+        <span data-i18n="board.gunTime">Gun time</span>
+        <input class="f num" id="start" style="width:104px" aria-label="Race start clock time" data-i18n-aria="board.gunAria">
         <span class="start-val" id="start-text"></span>
       </label>
       <div class="finish">
-        <span class="lab" id="finish-lab">Finish</span>
+        <span class="lab" id="finish-lab" data-i18n="board.finish">Finish</span>
         <span class="val" id="finish">—</span>
         <div class="finish-clock" id="finish-clock" hidden>
           <span class="val" id="finish-clock-val">—</span>
         </div>
         <div class="finish-revised" id="finish-revised" hidden>
-          <span class="lab">Revised</span>
+          <span class="lab" data-i18n="board.revised">Revised</span>
           <span class="val" id="finish-revised-val">—</span>
         </div>
       </div>
@@ -618,33 +645,33 @@ footer{margin-top:30px;color:var(--muted);font-size:12.5px;line-height:1.7}
 
   <div id="course-sentinel" aria-hidden="true"></div>
 
-  <section class="board course" id="course" aria-label="Course">
+  <section class="board course" id="course" aria-label="Course" data-i18n-aria="course.aria">
     <div class="course-head">
-      <h2>Course</h2>
-      <span class="livebadge" id="live-badge" hidden><i></i>LIVE</span>
+      <h2 data-i18n="course.title">Course</h2>
+      <span class="livebadge" id="live-badge" hidden><i></i><span data-i18n="watch.live">LIVE</span></span>
       <span class="sub" id="course-sub"></span>
     </div>
     <div class="chips" id="chips"></div>
   </section>
 
   <div class="legend">
-    <h2>Splits</h2>
-    <p class="hint">Edit a <b>split</b> and everything after it shifts — that is the simulation mode. Edit an <b>elapsed</b> or <b>clock</b> time and the next split absorbs the change, so the finish holds. Arrow keys nudge by 1 s, Shift for 1 min. Drag the handle to reposition a checkpoint; its split and distance clear, since both were measured between its old neighbours.</p>
+    <h2 data-i18n="splits.title">Splits</h2>
+    <p class="hint" data-i18n-html="splits.hint">Edit a <b>split</b> and everything after it shifts — that is the simulation mode. Edit an <b>elapsed</b> or <b>clock</b> time and the next split absorbs the change, so the finish holds. Arrow keys nudge by 1 s, Shift for 1 min. Drag the handle to reposition a checkpoint; its split and distance clear, since both were measured between its old neighbours.</p>
   </div>
 
   <div class="legs" id="legs"></div>
 
   <div class="addbar">
-    <select class="f" id="new-sport" aria-label="Sport for the new section">
-      <option value="swim">Swim</option>
-      <option value="bike">Bike</option>
-      <option value="run" selected>Run</option>
-      <option value="trans">Transition</option>
+    <select class="f" id="new-sport" aria-label="Sport for the new section" data-i18n-aria="add.sportAria">
+      <option value="swim" data-i18n="sport.swim">Swim</option>
+      <option value="bike" data-i18n="sport.bike">Bike</option>
+      <option value="run" selected data-i18n="sport.run">Run</option>
+      <option value="trans" data-i18n="sport.trans">Transition</option>
     </select>
-    <button class="btn" id="btn-add">Add section at the end</button>
+    <button class="btn" id="btn-add" data-i18n="add.btn">Add section at the end</button>
   </div>
 
-  <footer>
+  <footer data-i18n-html="footer.text">
     Every edit is stored in this browser as you make it — the header shows the last save. It does not follow you to another device: “Paste results → Copy backup” gives you the whole thing as JSON, and pasting that JSON back restores it anywhere.<br>
     Next up for the timeline: elevation per checkpoint, cut-off times, and a live "where is he now" marker for the staff view.
   </footer>
@@ -652,46 +679,48 @@ footer{margin-top:30px;color:var(--muted);font-size:12.5px;line-height:1.7}
   </div><!-- /#race-view -->
 </div>
 
+<div class="langpick" id="langpick" role="group"></div>
+
 <button class="jump" id="jump-live" type="button" hidden>
   <span class="beacon" aria-hidden="true"><i></i></span>
-  <span id="jump-live-label">Jump to now</span>
+  <span id="jump-live-label" data-i18n="jump.label">Jump to now</span>
 </button>
 
-<div class="toast" id="toast" hidden><span id="toast-msg"></span><button id="toast-undo">Undo</button></div>
+<div class="toast" id="toast" hidden><span id="toast-msg"></span><button id="toast-undo" data-i18n="toast.undo">Undo</button></div>
 
 <dialog id="dlg">
   <div class="dlg">
-    <h3>Paste your results</h3>
-    <p>Name, then gun time, then one line per checkpoint: <code>S|B|R distance split name</code>, or <code>T split name</code> for a transition. Distances are kilometres, or <code>-</code> if unknown.</p>
-    <textarea id="raw" spellcheck="false" placeholder="My race&#10;6:00:00&#10;S 1.9 44:00 Swim exit&#10;T 11:00 T1&#10;B 15 38:00 Cruzamento ida"></textarea>
+    <h3 data-i18n="dlg.pasteTitle">Paste your results</h3>
+    <p data-i18n-html="dlg.pasteHelp">Name, then gun time, then one line per checkpoint: <code>S|B|R distance split name</code>, or <code>T split name</code> for a transition. Distances are kilometres, or <code>-</code> if unknown.</p>
+    <textarea id="raw" spellcheck="false" data-i18n-ph="dlg.pastePlaceholder" placeholder="My race&#10;6:00:00&#10;S 1.9 44:00 Swim exit&#10;T 11:00 T1&#10;B 15 38:00 Cruzamento ida"></textarea>
     <div class="preview" id="preview" hidden></div>
     <p class="warn" id="parse-warn" hidden></p>
     <div class="dlg-foot">
-      <button class="btn ghost spread" id="dlg-backup">Copy backup</button>
-      <button class="btn ghost" id="dlg-cancel">Cancel</button>
-      <button class="btn primary" id="dlg-apply">Replace splits</button>
+      <button class="btn ghost spread" id="dlg-backup" data-i18n="dlg.copyBackup">Copy backup</button>
+      <button class="btn ghost" id="dlg-cancel" data-i18n="dlg.cancel">Cancel</button>
+      <button class="btn primary" id="dlg-apply" data-i18n="dlg.replace">Replace splits</button>
     </div>
   </div>
 </dialog>
 
 <dialog id="renamedlg" class="narrow">
   <div class="dlg">
-    <h3>Rename race</h3>
-    <input class="wide" id="rename-input" spellcheck="false" aria-label="Race name" placeholder="Race name">
+    <h3 data-i18n="dlg.renameTitle">Rename race</h3>
+    <input class="wide" id="rename-input" spellcheck="false" aria-label="Race name" placeholder="Race name" data-i18n-aria="dlg.renameAria" data-i18n-ph="dlg.renamePlaceholder">
     <div class="dlg-foot">
-      <button class="btn ghost" id="rename-cancel">Cancel</button>
-      <button class="btn primary" id="rename-save">Save</button>
+      <button class="btn ghost" id="rename-cancel" data-i18n="dlg.cancel">Cancel</button>
+      <button class="btn primary" id="rename-save" data-i18n="dlg.save">Save</button>
     </div>
   </div>
 </dialog>
 
 <dialog id="tpldlg" class="narrow">
   <div class="dlg">
-    <h3>Start from a template</h3>
-    <p>A template drops a known course in as a new race. Everything stays editable afterwards.</p>
+    <h3 data-i18n="dlg.tplTitle">Start from a template</h3>
+    <p data-i18n="dlg.tplHelp">A template drops a known course in as a new race. Everything stays editable afterwards.</p>
     <div class="tpl" id="tpl-list"></div>
     <div class="dlg-foot">
-      <button class="btn ghost" id="tpl-cancel" type="button">Cancel</button>
+      <button class="btn ghost" id="tpl-cancel" type="button" data-i18n="dlg.cancel">Cancel</button>
     </div>
   </div>
 </dialog>
@@ -699,14 +728,14 @@ footer{margin-top:30px;color:var(--muted);font-size:12.5px;line-height:1.7}
 <dialog id="mapdlg" class="narrow">
   <div class="dlg">
     <h3 id="map-title">Map link</h3>
-    <p>Paste a Google Maps or Strava link, or just coordinates like <code>-28.3927, -49.5401</code>.</p>
-    <input class="wide" id="map-url" spellcheck="false" placeholder="https://… or lat, lng" aria-label="Map link or coordinates">
+    <p data-i18n-html="dlg.mapHelp">Paste a Google Maps or Strava link, or just coordinates like <code>-28.3927, -49.5401</code>.</p>
+    <input class="wide" id="map-url" spellcheck="false" placeholder="https://… or lat, lng" aria-label="Map link or coordinates" data-i18n-ph="dlg.mapPlaceholder" data-i18n-aria="dlg.mapAria">
     <p class="warn" id="map-warn" hidden></p>
     <div class="dlg-foot">
-      <a class="btn spread" id="map-open" href="#" target="_blank" rel="noopener" hidden>Open map</a>
-      <button class="btn ghost" id="map-remove" hidden>Remove</button>
-      <button class="btn ghost" id="map-cancel">Cancel</button>
-      <button class="btn primary" id="map-save">Save link</button>
+      <a class="btn spread" id="map-open" href="#" target="_blank" rel="noopener" hidden data-i18n="dlg.mapOpen">Open map</a>
+      <button class="btn ghost" id="map-remove" hidden data-i18n="dlg.mapRemove">Remove</button>
+      <button class="btn ghost" id="map-cancel" data-i18n="dlg.cancel">Cancel</button>
+      <button class="btn primary" id="map-save" data-i18n="dlg.mapSave">Save link</button>
     </div>
   </div>
 </dialog>
@@ -716,13 +745,456 @@ footer{margin-top:30px;color:var(--muted);font-size:12.5px;line-height:1.7}
 "use strict";
 
 /* ============================================================
+   0. Language (EN / PT-BR)
+   Every string a reader sees goes through tr(); nothing that is
+   STORED or SHARED does. The canonical race text (toRaceText),
+   its digest and the sport letters S/B/R/T stay English, so a
+   link made in one language opens identically in the other.
+   ============================================================ */
+const LANG_KEY = "race-splits:lang";
+const LANGS = ["en","pt-BR"];
+const I18N = {
+en:{
+  "lang.group":"Language", "lang.en":"English", "lang.pt":"Português (Brasil)",
+
+  "sport.swim":"Swim", "sport.bike":"Bike", "sport.run":"Run", "sport.trans":"Transition",
+
+  "app.title":"Race splits",
+  "home.sub":"Your saved races on this browser.",
+  "home.fromTemplate":"From template",
+  "home.newRace":"New race plan",
+  "home.empty":"No races yet — <b>New race</b> starts an empty one, <b>From template</b> starts from a known course.",
+  "home.finish":"Finish",
+  "home.clocks":"Gun {gun}",
+  "home.clocksBoth":"Gun {gun} · Finish {finish}",
+  "btn.watchLive":"Watch Live",
+  "home.moreActions":"More actions",
+  "menu.edit":"Edit", "menu.rename":"Rename", "menu.dup":"Duplicate", "menu.del":"Delete",
+
+  "race.untitled":"Untitled race",
+  "race.untitledCopy":"Untitled race copy",
+  "race.copySuffix":" copy",
+  "race.fallbackName":"Race",
+  "title.splits":"{name} — Splits",
+  "title.live":"{name} — Live",
+  "title.watch":"{name} — Watch",
+
+  "sync.notSavedLink":"Not saved — from a link",
+  "sync.notSavedLinkTitle":"Use “Save this race” to keep it in this browser’s library.",
+  "sync.blocked":"Not saving — this browser blocks storage",
+  "sync.blockedTitle":"Private browsing or blocked site data. Use “Copy backup” before you close the tab.",
+  "sync.saved":"Saved",
+  "sync.savedAt":"Saved {time}",
+  "sync.savedTitle":"Stored in this browser. Clearing site data removes it — “Copy backup” gives you a copy.",
+  "sync.notSavedYet":"Not saved yet",
+
+  "toast.watchReset":"Watch session reset",
+  "toast.badClock":"Could not read that as a clock time",
+  "toast.tooEarly":"That time is earlier than an already-recorded checkpoint — not saved",
+  "toast.tooLate":"That time is later than an already-recorded checkpoint — not saved",
+  "toast.moved":"{name} moved — split and distance cleared",
+  "toast.removed":"{name} removed",
+  "toast.mapSaved":"Map link saved",
+  "toast.mapRemoved":"Map link removed",
+  "toast.backupCopied":"Backup copied — paste it here to restore",
+  "toast.backupRestored":"Backup restored",
+  "toast.sectionsLoaded":"{n} sections loaded",
+  "toast.copied":"Copied",
+  "toast.tooBig":"That race is too big for a link — copying race text instead",
+  "toast.linkCopied":"Link copied",
+  "toast.raceGone":"That race is no longer here",
+  "toast.needsNewerBrowser":"This link needs a newer browser",
+  "toast.linkCorrupt":"That race link looks corrupted",
+  "toast.watchGone":"That watch session is no longer here — starting a new one",
+  "toast.savedAsNew":"Saved as a new race",
+  "toast.templateUnreadable":"That template could not be read",
+  "toast.duplicated":"Duplicated as “{name}”",
+  "toast.deleted":"{name} deleted",
+  "toast.undo":"Undo",
+
+  "board.gunTime":"Gun time",
+  "board.gunAria":"Race start clock time",
+  "board.finish":"Finish",
+  "board.finishPlan":"Finish (plan)",
+  "board.finishEstimate":"Finish Estimate",
+  "board.revised":"Revised",
+  "board.emptyReadonly":"This race has no splits yet.",
+  "board.emptyEdit":"No times yet — paste your results or type a split below.",
+  "board.aria":"Race timeline",
+
+  "course.title":"Course",
+  "course.aria":"Course",
+  "course.planned":"{time} planned",
+  "chip.done":"Done", "chip.live":"On course", "chip.past":"No time",
+  "chip.overdue":"Overdue", "chip.upcoming":"Upcoming",
+  "chip.noDistance":"no distance",
+  "chip.transition":"transition",
+  "card.plannedStart":"planned start",
+  "card.projectedStart":"projected start",
+  "card.intoLeg":"into this leg",
+  "card.pastPlan":"past its plan",
+  "card.nothingLogged":"nothing logged",
+
+  "splits.title":"Splits",
+  "splits.hint":"Edit a <b>split</b> and everything after it shifts — that is the simulation mode. Edit an <b>elapsed</b> or <b>clock</b> time and the next split absorbs the change, so the finish holds. Arrow keys nudge by 1 s, Shift for 1 min. Drag the handle to reposition a checkpoint; its split and distance clear, since both were measured between its old neighbours.",
+  "leg.addCheckpoint":"Add a checkpoint to {leg}",
+  "cols.checkpoint":"Checkpoint",
+  "cols.split":"Split",
+  "cols.elapsed":"Elapsed",
+  "cols.clock":"Clock",
+  "cols.clockTime":"Clock time",
+  "cols.pace":"Pace",
+
+  "grip.title":"Drag to reposition — the time and distance are cleared",
+  "grip.aria":"Reposition {name}. Arrow up or down to move it.",
+  "row.thisCheckpoint":"this checkpoint",
+  "row.checkpointFallback":"Checkpoint",
+  "row.sectionFallback":"Section",
+  "row.sectionLower":"section",
+  "row.remove":"Remove {name}",
+  "field.checkpointName":"Checkpoint name",
+  "field.distance":"Distance in {unit}",
+  "field.note":"Note for the timeline — nutrition, weather, mechanical…",
+
+  "watch.actualAria":"Actual clock time for {name} — leave blank to clear",
+  "watch.recorded":"Recorded — tap to change",
+  "watch.tapToLog":"Tap to log the clock time",
+  "watch.plan":"plan {clock}",
+  "watch.rev":"rev {clock}",
+  "watch.reset":"Reset watch",
+  "watch.live":"LIVE",
+
+  "marker.startsIn":"Starts in {time}",
+  "marker.elapsed":"Elapsed {time}",
+  "marker.finishedIn":"Finished in {time}",
+  "marker.notStarted":"Not started — gun at {clock}",
+  "marker.finished":"Finished · {time}",
+  "gap.onPace":"On pace",
+  "gap.behind":"{time} behind",
+  "gap.ahead":"{time} ahead",
+  "jump.now":"Now · {name}",
+  "jump.label":"Jump to now",
+  "next.in":"Next <b>{name}</b> in ≈ {time}",
+  "next.due":"Next <b>{name}</b> — due now",
+
+  "masthead.back":"← Races",
+  "masthead.openEdit":"Open in edit",
+  "masthead.paste":"Paste results",
+  "masthead.copy":"Copy data",
+  "masthead.share":"Share link",
+  "strip.save":"This race is from a link — it is not in your library yet. Saving adds it as a new race.",
+  "strip.saveBtn":"Save this race",
+
+  "add.sportAria":"Sport for the new section",
+  "add.btn":"Add section at the end",
+  "footer.text":"Every edit is stored in this browser as you make it — the header shows the last save. It does not follow you to another device: “Paste results → Copy backup” gives you the whole thing as JSON, and pasting that JSON back restores it anywhere.<br>Next up for the timeline: elevation per checkpoint, cut-off times, and a live \"where is he now\" marker for the staff view.",
+
+  "dlg.pasteTitle":"Paste your results",
+  "dlg.pasteHelp":"Name, then gun time, then one line per checkpoint: <code>S|B|R distance split name</code>, or <code>T split name</code> for a transition. Distances are kilometres, or <code>-</code> if unknown.",
+  "dlg.pastePlaceholder":"My race\n6:00:00\nS 1.9 44:00 Swim exit\nT 11:00 T1\nB 15 38:00 Cruzamento ida",
+  "dlg.copyBackup":"Copy backup",
+  "dlg.cancel":"Cancel",
+  "dlg.replace":"Replace splits",
+  "dlg.renameTitle":"Rename race",
+  "dlg.renamePlaceholder":"Race name",
+  "dlg.renameAria":"Race name",
+  "dlg.save":"Save",
+  "dlg.tplTitle":"Start from a template",
+  "dlg.tplHelp":"A template drops a known course in as a new race. Everything stays editable afterwards.",
+  "dlg.mapTitle":"Map link",
+  "dlg.mapHelp":"Paste a Google Maps or Strava link, or just coordinates like <code>-28.3927, -49.5401</code>.",
+  "dlg.mapPlaceholder":"https://… or lat, lng",
+  "dlg.mapAria":"Map link or coordinates",
+  "dlg.mapOpen":"Open map",
+  "dlg.mapRemove":"Remove",
+  "dlg.mapSave":"Save link",
+  "map.openOrEdit":"Map link — open or edit",
+  "map.add":"Add a map link",
+  "map.ariaFor":"Map link for {name}",
+  "map.ariaAdd":"Add a map link to {name}",
+  "map.warnInvalid":"That is not a web address or a lat, lng pair.",
+  "name.rename":"Click to rename",
+
+  "preview.checkpoint":"Checkpoint",
+  "preview.leg":"Leg",
+  "preview.split":"Split",
+  "preview.elapsed":"Elapsed",
+
+  "err.needNameGun":"Need a name line and a gun time line.",
+  "err.gunFormat":"Line 2: gun time must be h:mm or h:mm:ss.",
+  "err.transNeeds":"Line {n}: transition needs a split and a name.",
+  "err.badSplit":"Line {n}: malformed split.",
+  "err.longSplit":"Line {n}: split is unreasonably long.",
+  "err.unknownToken":"Line {n}: unknown sport token “{tok}”. Use S, B, R, or T.",
+  "err.cpNeeds":"Line {n}: checkpoint needs a distance, a split, and a name.",
+  "err.badDist":"Line {n}: malformed distance.",
+  "err.noCheckpoints":"No checkpoints found.",
+  "err.badBackup":"That looks like a backup, but it will not parse."
+},
+"pt-BR":{
+  "lang.group":"Idioma", "lang.en":"Inglês", "lang.pt":"Português (Brasil)",
+
+  "sport.swim":"Natação", "sport.bike":"Ciclismo", "sport.run":"Corrida", "sport.trans":"Transição",
+
+  "app.title":"Race Planner",
+  "home.sub":"Suas provas salvas neste navegador.",
+  "home.fromTemplate":"Usar template",
+  "home.newRace":"Novo plano de prova",
+  "home.empty":"Nenhuma prova ainda — <b>Novo plano de prova</b> começa do zero, <b>Usar template</b> começa de um percurso conhecido.",
+  "home.finish":"Chegada",
+  "home.clocks":"Largada {gun}",
+  "home.clocksBoth":"Largada {gun} · Chegada {finish}",
+  "btn.watchLive":"Acompanhar",
+  "home.moreActions":"Mais ações",
+  "menu.edit":"Editar", "menu.rename":"Renomear", "menu.dup":"Duplicar", "menu.del":"Excluir",
+
+  "race.untitled":"Prova sem nome",
+  "race.untitledCopy":"Prova sem nome (cópia)",
+  "race.copySuffix":" (cópia)",
+  "race.fallbackName":"Prova",
+  "title.splits":"{name} — Parciais",
+  "title.live":"{name} — Ao vivo",
+  "title.watch":"{name} — Acompanhamento",
+
+  "sync.notSavedLink":"Não salva — veio de um link",
+  "sync.notSavedLinkTitle":"Use “Salvar esta prova” para guardá-la na biblioteca deste navegador.",
+  "sync.blocked":"Não está salvando — este navegador bloqueia o armazenamento",
+  "sync.blockedTitle":"Navegação privada ou dados do site bloqueados. Use “Copiar backup” antes de fechar a aba.",
+  "sync.saved":"Salva",
+  "sync.savedAt":"Salvo {time}",
+  "sync.savedTitle":"Guardada neste navegador. Limpar os dados do site apaga tudo — “Copiar backup” gera uma cópia.",
+  "sync.notSavedYet":"Ainda não salva",
+
+  "toast.watchReset":"Acompanhamento reiniciado",
+  "toast.badClock":"Não deu para ler isso como horário",
+  "toast.tooEarly":"Esse horário é anterior a um checkpoint já registrado — não salvo",
+  "toast.tooLate":"Esse horário é posterior a um checkpoint já registrado — não salvo",
+  "toast.moved":"{name} movido — parcial e distância apagadas",
+  "toast.removed":"{name} removido",
+  "toast.mapSaved":"Link do mapa salvo",
+  "toast.mapRemoved":"Link do mapa removido",
+  "toast.backupCopied":"Backup copiado — cole aqui para restaurar",
+  "toast.backupRestored":"Backup restaurado",
+  "toast.sectionsLoaded":"{n} trechos carregados",
+  "toast.copied":"Copiado",
+  "toast.tooBig":"Esta prova é grande demais para um link — copiando o texto da prova",
+  "toast.linkCopied":"Link copiado",
+  "toast.raceGone":"Essa prova não está mais aqui",
+  "toast.needsNewerBrowser":"Este link precisa de um navegador mais novo",
+  "toast.linkCorrupt":"Este link de prova parece corrompido",
+  "toast.watchGone":"Esse acompanhamento não está mais aqui — começando um novo",
+  "toast.savedAsNew":"Salva como nova prova",
+  "toast.templateUnreadable":"Não foi possível ler esse modelo",
+  "toast.duplicated":"Duplicada como “{name}”",
+  "toast.deleted":"{name} excluída",
+  "toast.undo":"Desfazer",
+
+  "board.gunTime":"Largada",
+  "board.gunAria":"Horário de largada",
+  "board.finish":"Chegada",
+  "board.finishPlan":"Chegada (planejado)",
+  "board.finishEstimate":"Chegada estimada",
+  "board.revised":"Revisada",
+  "board.emptyReadonly":"Esta prova ainda não tem parciais.",
+  "board.emptyEdit":"Sem tempos ainda — cole seus resultados ou digite uma parcial abaixo.",
+  "board.aria":"Linha do tempo da prova",
+
+  "course.title":"Percurso",
+  "course.aria":"Percurso",
+  "course.planned":"{time} planejado",
+  "chip.done":"Feito", "chip.live":"No percurso", "chip.past":"Sem tempo",
+  "chip.overdue":"Atrasado", "chip.upcoming":"A seguir",
+  "chip.noDistance":"sem distância",
+  "chip.transition":"transição",
+  "card.plannedStart":"início planejado",
+  "card.projectedStart":"início projetado",
+  "card.intoLeg":"neste trecho",
+  "card.pastPlan":"além do plano",
+  "card.nothingLogged":"nada registrado",
+
+  "splits.title":"Parciais",
+  "splits.hint":"Edite uma <b>parcial</b> e tudo depois dela desloca — esse é o modo simulação. Edite um tempo <b>decorrido</b> ou de <b>relógio</b> e a parcial seguinte absorve a mudança, mantendo a chegada. As setas ajustam 1 s, com Shift 1 min. Arraste a alça para reposicionar um checkpoint; a parcial e a distância dele são apagadas, já que as duas foram medidas entre os vizinhos antigos.",
+  "leg.addCheckpoint":"Adicionar checkpoint em {leg}",
+  "cols.checkpoint":"checkpoint",
+  "cols.split":"Parcial",
+  "cols.elapsed":"Decorrido",
+  "cols.clock":"Relógio",
+  "cols.clockTime":"Horário real",
+  "cols.pace":"Ritmo",
+
+  "grip.title":"Arraste para reposicionar — o tempo e a distância são apagados",
+  "grip.aria":"Reposicionar {name}. Setas para cima ou para baixo movem.",
+  "row.thisCheckpoint":"este checkpoint",
+  "row.checkpointFallback":"checkpoint",
+  "row.sectionFallback":"Trecho",
+  "row.sectionLower":"trecho",
+  "row.remove":"Remover {name}",
+  "field.checkpointName":"Nome do checkpoint",
+  "field.distance":"Distância em {unit}",
+  "field.note":"Nota para a linha do tempo — nutrição, clima, mecânica…",
+
+  "watch.actualAria":"Horário real de {name} — deixe em branco para limpar",
+  "watch.recorded":"Registrado — toque para mudar",
+  "watch.tapToLog":"Toque para registrar o horário",
+  "watch.plan":"plano {clock}",
+  "watch.rev":"rev {clock}",
+  "watch.reset":"Reiniciar acompanhamento",
+  "watch.live":"AO VIVO",
+
+  "marker.startsIn":"Começa em {time}",
+  "marker.elapsed":"Decorrido {time}",
+  "marker.finishedIn":"Concluída em {time}",
+  "marker.notStarted":"Não começou — largada às {clock}",
+  "marker.finished":"Concluída · {time}",
+  "gap.onPace":"No ritmo",
+  "gap.behind":"{time} atrás",
+  "gap.ahead":"{time} à frente",
+  "jump.now":"Agora · {name}",
+  "jump.label":"Ir para agora",
+  "next.in":"Próximo <b>{name}</b> em ≈ {time}",
+  "next.due":"Próximo <b>{name}</b> — é agora",
+
+  "masthead.back":"← Provas",
+  "masthead.openEdit":"Abrir para editar",
+  "masthead.paste":"Colar resultados",
+  "masthead.copy":"Copiar dados",
+  "masthead.share":"Compartilhar link",
+  "strip.save":"Esta prova veio de um link — ela ainda não está na sua biblioteca. Salvar adiciona como uma prova nova.",
+  "strip.saveBtn":"Salvar esta prova",
+
+  "add.sportAria":"Esporte do novo trecho",
+  "add.btn":"Adicionar trecho no fim",
+  "footer.text":"Cada edição é guardada neste navegador na hora — o cabeçalho mostra o último salvamento. Isso não acompanha você em outro dispositivo: “Colar resultados → Copiar backup” entrega tudo como JSON, e colar esse JSON de volta restaura em qualquer lugar.<br>A seguir na linha do tempo: altimetria por checkpoint, tempos de corte e um marcador ao vivo de \"onde ele está agora\" para a equipe.",
+
+  "dlg.pasteTitle":"Cole seus resultados",
+  "dlg.pasteHelp":"Nome, depois a largada, depois uma linha por checkpoint: <code>S|B|R distância parcial nome</code>, ou <code>T parcial nome</code> para transição. Distâncias em quilômetros, ou <code>-</code> se não souber.",
+  "dlg.pastePlaceholder":"Minha prova\n6:00:00\nS 1.9 44:00 Saída da água\nT 11:00 T1\nB 15 38:00 Cruzamento ida",
+  "dlg.copyBackup":"Copiar backup",
+  "dlg.cancel":"Cancelar",
+  "dlg.replace":"Substituir parciais",
+  "dlg.renameTitle":"Renomear prova",
+  "dlg.renamePlaceholder":"Nome da prova",
+  "dlg.renameAria":"Nome da prova",
+  "dlg.save":"Salvar",
+  "dlg.tplTitle":"Começar de um modelo",
+  "dlg.tplHelp":"Um modelo entra como uma prova nova com um percurso conhecido. Tudo continua editável depois.",
+  "dlg.mapTitle":"Link do mapa",
+  "dlg.mapHelp":"Cole um link do Google Maps ou do Strava, ou só coordenadas como <code>-28.3927, -49.5401</code>.",
+  "dlg.mapPlaceholder":"https://… ou lat, lng",
+  "dlg.mapAria":"Link do mapa ou coordenadas",
+  "dlg.mapOpen":"Abrir mapa",
+  "dlg.mapRemove":"Remover",
+  "dlg.mapSave":"Salvar link",
+  "map.openOrEdit":"Link do mapa — abrir ou editar",
+  "map.add":"Adicionar link do mapa",
+  "map.ariaFor":"Link do mapa de {name}",
+  "map.ariaAdd":"Adicionar link do mapa a {name}",
+  "map.warnInvalid":"Isso não é um endereço web nem um par lat, lng.",
+  "name.rename":"Clique para renomear",
+
+  "preview.checkpoint":"checkpoint",
+  "preview.leg":"Trecho",
+  "preview.split":"Parcial",
+  "preview.elapsed":"Decorrido",
+
+  "err.needNameGun":"Faltam a linha do nome e a linha da largada.",
+  "err.gunFormat":"Linha 2: a largada deve ser h:mm ou h:mm:ss.",
+  "err.transNeeds":"Linha {n}: a transição precisa de parcial e nome.",
+  "err.badSplit":"Linha {n}: parcial malformada.",
+  "err.longSplit":"Linha {n}: parcial longa demais.",
+  "err.unknownToken":"Linha {n}: sigla de esporte desconhecida “{tok}”. Use S, B, R ou T.",
+  "err.cpNeeds":"Linha {n}: o checkpoint precisa de distância, parcial e nome.",
+  "err.badDist":"Linha {n}: distância malformada.",
+  "err.noCheckpoints":"Nenhum checkpoint encontrado.",
+  "err.badBackup":"Isso parece um backup, mas não dá para ler."
+}
+};
+let lang = "en";
+try{
+  const storedLang = localStorage.getItem(LANG_KEY);
+  if(LANGS.indexOf(storedLang) >= 0) lang = storedLang;
+}catch(e){}
+
+/** Looks a string up in the active language, falling back to English for
+    anything untranslated, and fills {placeholders} from `vars`. */
+function tr(key, vars){
+  let s = (I18N[lang] || I18N.en)[key];
+  if(s == null) s = I18N.en[key];
+  if(s == null) return key;
+  if(!vars) return s;
+  return String(s).replace(/\{(\w+)\}/g, (m,k) => vars[k] != null ? vars[k] : m);
+}
+const sportLabel = sport => tr("sport." + sport);
+
+/* Flags for the language picker. Drawn rather than emoji: a flag emoji
+   renders as two letter boxes on Windows, and these have to read at 22px. */
+const FLAG_US = '<svg viewBox="0 0 26 18" aria-hidden="true">'+
+  '<rect width="26" height="18" fill="#fff"/>'+
+  '<g fill="#B31942"><rect y="0" width="26" height="1.38"/><rect y="2.77" width="26" height="1.38"/>'+
+  '<rect y="5.54" width="26" height="1.38"/><rect y="8.31" width="26" height="1.38"/>'+
+  '<rect y="11.08" width="26" height="1.38"/><rect y="13.85" width="26" height="1.38"/>'+
+  '<rect y="16.62" width="26" height="1.38"/></g>'+
+  '<rect width="11" height="9.69" fill="#0A3161"/>'+
+  '<g fill="#fff"><circle cx="2" cy="2" r=".8"/><circle cx="5.5" cy="2" r=".8"/><circle cx="9" cy="2" r=".8"/>'+
+  '<circle cx="3.75" cy="4.4" r=".8"/><circle cx="7.25" cy="4.4" r=".8"/>'+
+  '<circle cx="2" cy="6.8" r=".8"/><circle cx="5.5" cy="6.8" r=".8"/><circle cx="9" cy="6.8" r=".8"/></g></svg>';
+const FLAG_BR = '<svg viewBox="0 0 26 18" aria-hidden="true">'+
+  '<rect width="26" height="18" fill="#009B3A"/>'+
+  '<path d="M13 1.8 24.2 9 13 16.2 1.8 9z" fill="#FEDF00"/>'+
+  '<circle cx="13" cy="9" r="4.1" fill="#002776"/>'+
+  '<path d="M9.2 7.5a8.6 8.6 0 0 1 7.6 2.1" fill="none" stroke="#fff" stroke-width="1.1"/></svg>';
+
+/** The picker is two buttons — one per language — with the active one
+    pressed. Rebuilt (not just re-labelled) on every language change, so the
+    labels follow the language like everything else. */
+function renderLangPicker(){
+  const box = document.getElementById("langpick");
+  if(!box) return;
+  box.setAttribute("aria-label", tr("lang.group"));
+  box.innerHTML =
+    '<button type="button" data-lang="en" aria-pressed="'+(lang === "en")+'" '+
+      'title="'+tr("lang.en")+'" aria-label="'+tr("lang.en")+'">'+FLAG_US+'</button>'+
+    '<button type="button" data-lang="pt-BR" aria-pressed="'+(lang === "pt-BR")+'" '+
+      'title="'+tr("lang.pt")+'" aria-label="'+tr("lang.pt")+'">'+FLAG_BR+'</button>';
+}
+
+/** Paints every string that lives in the static markup. The data-i18n*
+    attributes name the key and where it goes, so switching language is a
+    re-run of this plus a re-mount of the current route. */
+function applyStaticI18n(){
+  document.documentElement.lang = lang;
+  document.querySelectorAll("[data-i18n]").forEach(el => { el.textContent = tr(el.dataset.i18n); });
+  document.querySelectorAll("[data-i18n-html]").forEach(el => { el.innerHTML = tr(el.dataset.i18nHtml); });
+  document.querySelectorAll("[data-i18n-title]").forEach(el => { el.title = tr(el.dataset.i18nTitle); });
+  document.querySelectorAll("[data-i18n-ph]").forEach(el => { el.placeholder = tr(el.dataset.i18nPh); });
+  document.querySelectorAll("[data-i18n-aria]").forEach(el => { el.setAttribute("aria-label", tr(el.dataset.i18nAria)); });
+  document.querySelectorAll("[data-i18n-dph]").forEach(el => { el.setAttribute("data-placeholder", tr(el.dataset.i18nDph)); });
+  renderLangPicker();
+}
+/** Switching language re-mounts the current route (clearing the
+    short-circuit hash) so every JS-rendered view is rebuilt in the new
+    language — the URL, the library and any running watch session are
+    untouched, since none of them carry translated text. */
+function setLang(next){
+  if(LANGS.indexOf(next) < 0 || next === lang) return;
+  lang = next;
+  try{ localStorage.setItem(LANG_KEY, next); }catch(e){}
+  applyStaticI18n();
+  lastMountedHash = null;
+  router();
+}
+
+/* ============================================================
    1. Model
    ============================================================ */
+/* Sport labels are not here: they live in the language table and are read
+   through sportLabel(). The letters S/B/R/T of the canonical text format
+   stay English and are not affected by the language switch. */
 const SPORTS = {
-  swim : {label:"Swim",       unit:"m",  pace:"per100m"},
-  bike : {label:"Bike",       unit:"km", pace:"kmh"},
-  run  : {label:"Run",        unit:"km", pace:"perkm"},
-  trans: {label:"Transition", unit:null, pace:null}
+  swim : {unit:"m",  pace:"per100m"},
+  bike : {unit:"km", pace:"kmh"},
+  run  : {unit:"km", pace:"perkm"},
+  trans: {unit:null, pace:null}
 };
 const ORDER = ["swim","bike","run"];
 const KEY = "fodaxman-sp5-2025-v2";          // legacy single-race key (migration source only)
@@ -782,19 +1254,21 @@ function showSaved(){
   if(!el) return;
   if(transientRace){
     el.className = "sync";
-    el.textContent = "Not saved — from a link";
-    el.title = "Use “Save this race” to keep it in this browser’s library.";
+    el.textContent = tr("sync.notSavedLink");
+    el.title = tr("sync.notSavedLinkTitle");
     return;
   }
   if(!storageOK){
     el.className = "sync bad";
-    el.textContent = "Not saving — this browser blocks storage";
-    el.title = "Private browsing or blocked site data. Use “Copy backup” before you close the tab.";
+    el.textContent = tr("sync.blocked");
+    el.title = tr("sync.blockedTitle");
     return;
   }
   el.className = "sync ok";
-  el.textContent = (active && active.savedAt) ? "Saved " + fmtClock(clockOf(active.savedAt)).slice(0,5) : "Saved";
-  el.title = "Stored in this browser. Clearing site data removes it — “Copy backup” gives you a copy.";
+  el.textContent = (active && active.savedAt)
+    ? tr("sync.savedAt", {time: fmtClock(clockOf(active.savedAt)).slice(0,5)})
+    : tr("sync.saved");
+  el.title = tr("sync.savedTitle");
 }
 function clockOf(ms){ const d = new Date(ms); return d.getHours()*3600 + d.getMinutes()*60 + d.getSeconds(); }
 
@@ -1043,7 +1517,7 @@ function resetWatchSession(){
   if(race) activeSession.planText = toRaceText(race);
   saveWatchSession(activeSession);
   mountWatchFromSession(activeSession);
-  toast("Watch session reset", () => {
+  toast(tr("toast.watchReset"), () => {
     // The toast outlives navigation (it's never hidden by a route change),
     // so a click after leaving this session must not yank the view back and
     // rewrite the URL out from under whatever is on screen now (adversarial
@@ -1275,7 +1749,7 @@ function commitActual(i, raw){
     return;
   }
   const elapsed = watchClockToElapsed(raw);
-  if(elapsed == null){ toast("Could not read that as a clock time"); render(); return; }
+  if(elapsed == null){ toast(tr("toast.badClock")); render(); return; }
 
   let minBound = null, maxBound = null;   // nearest earlier / later section already carrying an actual
   Object.keys(activeSession.actuals).forEach(k => {
@@ -1285,12 +1759,12 @@ function commitActual(i, raw){
     else { if(maxBound == null || n < maxBound) maxBound = n; }
   });
   if(minBound != null && elapsed < activeSession.actuals[String(minBound)]){
-    toast("That time is earlier than an already-recorded checkpoint — not saved");
+    toast(tr("toast.tooEarly"));
     render();
     return;
   }
   if(maxBound != null && elapsed > activeSession.actuals[String(maxBound)]){
-    toast("That time is later than an already-recorded checkpoint — not saved");
+    toast(tr("toast.tooLate"));
     render();
     return;
   }
@@ -1344,7 +1818,7 @@ function moveSection(from, insertAt, sport){
   s.dist = null;
   arr.splice(pos, 0, s);
   commit();
-  toast((s.name || "Checkpoint") + " moved — split and distance cleared", () => {
+  toast(tr("toast.moved", {name: s.name || tr("row.checkpointFallback")}), () => {
     // The toast outlives navigation, so a stale click after leaving this
     // race (or this race being re-mounted as a fresh object) must not
     // silently overwrite whatever is on screen now and rewrite its URL.
@@ -1440,7 +1914,7 @@ function removeSection(i){
   const [gone] = active.sections.splice(i,1);
   if(!active.sections.length) active.sections.push(sec("", "swim", null, 0));
   commit();
-  toast((gone.name || "Section")+" removed", () => {
+  toast(tr("toast.removed", {name: gone.name || tr("row.sectionFallback")}), () => {
     if(mode !== "edit" || active !== raceRef) return;
     active = JSON.parse(before); save(); render(); refreshUrl();
   });
@@ -1487,7 +1961,7 @@ function renderMasthead(){
   const nameEl = $("#race-name");
   if(nameEl){
     // Editable in edit mode (empty -> CSS placeholder "Untitled race"); static in follow.
-    nameEl.textContent = readOnly ? (active.name || "Untitled race") : active.name;
+    nameEl.textContent = readOnly ? (active.name || tr("race.untitled")) : active.name;
     if(readOnly) nameEl.removeAttribute("contenteditable");
     else nameEl.setAttribute("contenteditable", "true");
   }
@@ -1496,7 +1970,7 @@ function renderMasthead(){
   const tot = legTotals();
   const parts = ORDER
     .filter(sport => tot[sport] && tot[sport].dist)
-    .map(sport => "<b>"+fmtDistLabel(sport, tot[sport].dist)+"</b> "+SPORTS[sport].label.toLowerCase());
+    .map(sport => "<b>"+fmtDistLabel(sport, tot[sport].dist)+"</b> "+sportLabel(sport).toLowerCase());
   w.innerHTML = parts.join(", ");
 }
 
@@ -1517,7 +1991,7 @@ function renderBoard(){
   const finLab = $("#finish-lab"), revWrap = $("#finish-revised"), clockWrap = $("#finish-clock");
   const showRevised = mode === "watch" && !!t && lastActualIndex() >= 0;
   if(finLab){
-    finLab.textContent = showRevised ? "Finish (plan)" : (mode === "edit" ? "Finish Estimate" : "Finish");
+    finLab.textContent = showRevised ? tr("board.finishPlan") : (mode === "edit" ? tr("board.finishEstimate") : tr("board.finish"));
   }
   if(revWrap){
     revWrap.hidden = !showRevised;
@@ -1543,8 +2017,7 @@ function renderBoard(){
   if(!t){
     bar.classList.add("empty");
     // Follow mode has no editing controls, so it must not tell spectators to paste/type (F9).
-    bar.innerHTML = "<p>" + (readOnly ? "This race has no splits yet." :
-      "No times yet — paste your results or type a split below.") + "</p>";
+    bar.innerHTML = "<p>" + esc(readOnly ? tr("board.emptyReadonly") : tr("board.emptyEdit")) + "</p>";
   }else{
     bar.classList.remove("empty");
     active.sections.forEach(s => {
@@ -1555,7 +2028,7 @@ function renderBoard(){
       d.dataset.dur = s.dur;
       d.dataset.idx = active.sections.indexOf(s);
       d.style.flexGrow = s.dur;
-      d.title = (s.name||SPORTS[s.sport].label)+" · "+fmtSplit(s.dur)+(s.note?" · "+s.note:"");
+      d.title = (s.name||sportLabel(s.sport))+" · "+fmtSplit(s.dur)+(s.note?" · "+s.note:"");
       if(s.dur/t > 0.07) d.innerHTML = "<span>"+fmtSplit(s.dur)+"</span>";
       d.addEventListener("click", () => {
         selected = selected===s.id ? null : s.id;
@@ -1592,7 +2065,7 @@ function courseCards(){
     const dur  = g.items.reduce((a,x)=>a+x.s.dur,0);
     const dist = g.items.reduce((a,x)=>a+(x.s.dist||0),0);
     const complete = !SPORTS[g.sport].unit || g.items.every(x => x.s.dist != null);
-    return {sport:g.sport, label:isT ? "T"+tn : SPORTS[g.sport].label, items:g.items, dur, dist, complete};
+    return {sport:g.sport, label:isT ? "T"+tn : sportLabel(g.sport), items:g.items, dur, dist, complete};
   });
 }
 /** Race-day state of one course card against the live snapshot: Done once
@@ -1610,19 +2083,19 @@ function cardLive(card, snap){
     return {state:"done", main:fmtHMS(dur), sub:gapLabel(gap), gap};
   }
   if(snap.phase === "before")
-    return {state:"upcoming", main:fmtClock(active.start + planStart), sub:"planned start"};
+    return {state:"upcoming", main:fmtClock(active.start + planStart), sub:tr("card.plannedStart")};
   const pos = snap.pos;
   if(snap.phase !== "after" && pos >= planStart && pos < planEnd)
-    return {state:"live", main:fmtSplit(pos - planStart), sub:"into this leg"};
+    return {state:"live", main:fmtSplit(pos - planStart), sub:tr("card.intoLeg")};
   if(pos >= planEnd){
     const over = pos - planEnd;
     // a checkpoint that should already have been passed and logged: past the
     // grace window this stops being "no time" and becomes a thing to chase
-    if(over > OVERDUE_AFTER) return {state:"overdue", main:"+"+fmtSplit(over), sub:"past its plan"};
-    return {state:"past", main:"—", sub:"nothing logged"};
+    if(over > OVERDUE_AFTER) return {state:"overdue", main:"+"+fmtSplit(over), sub:tr("card.pastPlan")};
+    return {state:"past", main:"—", sub:tr("card.nothingLogged")};
   }
   const off = snap.gapSeconds || 0;
-  return {state:"upcoming", main:fmtClock(active.start + planStart + off), sub:off ? "projected start" : "planned start"};
+  return {state:"upcoming", main:fmtClock(active.start + planStart + off), sub:off ? tr("card.projectedStart") : tr("card.plannedStart")};
 }
 /* U14: flips the course panel into its collapsed, stuck presentation the
    moment the sentinel just above it leaves the top of the viewport. An
@@ -1642,7 +2115,7 @@ function renderCourse(){
   const snap = (mode === "watch" || mode === "follow") ? liveSnapshot() : null;
   const sub = $("#course-sub");
   const t = total();
-  if(sub) sub.textContent = t ? fmtHMS(t) + " planned" : "";
+  if(sub) sub.textContent = t ? tr("course.planned", {time: fmtHMS(t)}) : "";
   chips.innerHTML = "";
   courseCards().forEach(c => {
     const live = (snap && snap.phase !== "empty") ? cardLive(c, snap) : null;
@@ -1653,14 +2126,14 @@ function renderCourse(){
     el.className = "chip" + (c.sport === "bike" ? " wide" : "") + (c.sport === "trans" ? " trans" : "") +
                    (live ? " is-" + live.state : "") + (justLogged ? " flash" : "");
     el.dataset.sport = c.sport;
-    const stateLab = live ? ({done:"Done", live:"On course", past:"No time", overdue:"Overdue", upcoming:"Upcoming"})[live.state] : "";
+    const stateLab = live ? tr("chip." + live.state) : "";
     const gapCls = (live && live.state === "done" && live.gap) ? (live.gap > 0 ? " behind" : " ahead") : "";
     el.innerHTML =
       '<div class="name"><span class="mark" aria-hidden="true"></span>'+esc(c.label)+
         (stateLab ? ' <span class="state">'+stateLab+'</span>' : '')+'</div>'+
       '<div class="pace">'+(p ? p.v+' <span class="u">'+p.u+'</span>' : fmtHMS(c.dur))+'</div>'+
       '<div class="sub">'+(p ? fmtHMS(c.dur)+' · ' : '')+
-        (SPORTS[c.sport].unit ? (c.dist ? fmtDistLabel(c.sport, c.dist) : "no distance") : "transition")+'</div>'+
+        (SPORTS[c.sport].unit ? (c.dist ? fmtDistLabel(c.sport, c.dist) : tr("chip.noDistance")) : tr("chip.transition"))+'</div>'+
       (live ? '<div class="live"><b>'+esc(live.main)+'</b><span class="gap'+gapCls+'">'+esc(live.sub)+'</span></div>' : '');
     chips.appendChild(el);
   });
@@ -1684,7 +2157,7 @@ function renderLegs(){
     const head = document.createElement("div");
     head.className = "leg-head";
     head.innerHTML =
-      '<div class="leg-title"><span class="t">'+meta.label+'</span>'+
+      '<div class="leg-title"><span class="t">'+esc(sportLabel(g.sport))+'</span>'+
       (dist ? '<span class="d">'+fmtDistLabel(g.sport,dist)+'</span>' : '')+'</div>'+
       '<div class="leg-tot"><span><b>'+fmtHMS(dur)+'</b></span>'+
       (p ? '<span><b>'+p.v+'</b> '+p.u+'</span>' : '')+'</div>';
@@ -1692,8 +2165,9 @@ function renderLegs(){
 
     const cols = document.createElement("div");
     cols.className = "cols";
-    cols.innerHTML = "<span></span><span>Checkpoint</span><span>"+(meta.unit||"—")+
-      "</span><span>Split</span><span>Elapsed</span><span>Clock</span><span>Pace</span><span></span>";
+    cols.innerHTML = "<span></span><span>"+esc(tr("cols.checkpoint"))+"</span><span>"+(meta.unit||"—")+
+      "</span><span>"+esc(tr("cols.split"))+"</span><span>"+esc(tr("cols.elapsed"))+"</span><span>"+
+      esc(tr("cols.clock"))+"</span><span>"+esc(tr("cols.pace"))+"</span><span></span>";
     leg.appendChild(cols);
 
     g.items.forEach(({s,i}) => leg.appendChild(rowFor(s,i)));
@@ -1703,7 +2177,7 @@ function renderLegs(){
       foot.className = "leg-foot";
       const add = document.createElement("button");
       add.className = "link";
-      add.textContent = "Add a checkpoint to "+meta.label.toLowerCase();
+      add.textContent = tr("leg.addCheckpoint", {leg: sportLabel(g.sport).toLowerCase()});
       add.addEventListener("click", () => addSection(g.sport, g.items[g.items.length-1].i+1));
       foot.appendChild(add);
       leg.appendChild(foot);
@@ -1730,8 +2204,8 @@ function rowFor(s, i){
     const grip = document.createElement("button");
     grip.type = "button"; grip.className = "grip";
     grip.innerHTML = GRIP;
-    grip.title = "Drag to reposition — the time and distance are cleared";
-    grip.setAttribute("aria-label", "Reposition "+(s.name||"this checkpoint")+". Arrow up or down to move it.");
+    grip.title = tr("grip.title");
+    grip.setAttribute("aria-label", tr("grip.aria", {name: s.name || tr("row.thisCheckpoint")}));
     grip.addEventListener("pointerdown", ev => startDrag(ev, s.id));
     grip.addEventListener("keydown", ev => {
       if(ev.key === "ArrowUp" && i > 0){ ev.preventDefault(); moveSection(i, i-1, null); }
@@ -1740,7 +2214,7 @@ function rowFor(s, i){
     row.appendChild(grip);
   }
 
-  row.appendChild(cell(textField(s.name, "Checkpoint name", v => {
+  row.appendChild(cell(textField(s.name, tr("field.checkpointName"), v => {
     snapshot(); s.name = v; save(); renderBoard(); refreshUrl();
   }, "name"), null));
 
@@ -1750,28 +2224,28 @@ function rowFor(s, i){
       : dash(),
     meta.unit || "dist"));
 
-  row.appendChild(cell(timeField(fmtSplit(s.dur), "Split",
+  row.appendChild(cell(timeField(fmtSplit(s.dur), tr("cols.split"),
     v => { const n = parseFlexDur(v); n!=null ? setDur(i,n) : render(); },
-    n => setDur(i, s.dur+n)), "Split"));
+    n => setDur(i, s.dur+n)), tr("cols.split")));
 
-  row.appendChild(cell(timeField(fmtHMS(cum), "Elapsed",
+  row.appendChild(cell(timeField(fmtHMS(cum), tr("cols.elapsed"),
     v => { const n = parseFlexDur(v); n!=null ? setCumulative(i,n) : render(); },
-    n => setCumulative(i, cum+n)), "Elapsed"));
+    n => setCumulative(i, cum+n)), tr("cols.elapsed")));
 
   const clockCell = cell(
     mode === "watch"
       ? watchActualCell(s, i)
-      : timeField(fmtClock(active.start+cum), "Clock",
+      : timeField(fmtClock(active.start+cum), tr("cols.clock"),
           v => { const n = parseFlexDur(v); n!=null ? setCumulative(i, n-active.start) : render(); },
           n => setCumulative(i, cum+n)),
-    mode === "watch" ? "Clock time" : "Clock");
+    mode === "watch" ? tr("cols.clockTime") : tr("cols.clock"));
   if(mode === "watch") clockCell.classList.add("cell-clock");
   row.appendChild(clockCell);
 
   const pc = document.createElement("div");
   pc.className = "derived pace";
   pc.innerHTML = p ? p.v+'<span class="u">'+p.u+'</span>' : "—";
-  row.appendChild(cell(pc, "Pace"));
+  row.appendChild(cell(pc, tr("cols.pace")));
 
   const acts = document.createElement("div");
   acts.className = "acts";
@@ -1780,14 +2254,14 @@ function rowFor(s, i){
     pin.type = "button";
     pin.className = "icon"+(s.map?" set":"");
     pin.innerHTML = s.map ? PIN_IN : PIN_OUT;
-    pin.title = s.map ? "Map link — open or edit" : "Add a map link";
-    pin.setAttribute("aria-label", (s.map?"Map link for ":"Add a map link to ")+(s.name||"this checkpoint"));
+    pin.title = s.map ? tr("map.openOrEdit") : tr("map.add");
+    pin.setAttribute("aria-label", tr(s.map ? "map.ariaFor" : "map.ariaAdd", {name: s.name || tr("row.thisCheckpoint")}));
     pin.addEventListener("click", () => openMap(s));
     acts.appendChild(pin);
 
     const del = document.createElement("button");
     del.type = "button"; del.className = "icon";
-    del.setAttribute("aria-label", "Remove "+(s.name||"section"));
+    del.setAttribute("aria-label", tr("row.remove", {name: s.name || tr("row.sectionLower")}));
     del.textContent = "×";
     del.style.fontSize = "17px";
     del.addEventListener("click", () => removeSection(i));
@@ -1797,7 +2271,7 @@ function rowFor(s, i){
 
   const nr = document.createElement("div");
   nr.className = "noterow";
-  nr.appendChild(textField(s.note, "Note for the timeline — nutrition, weather, mechanical…", v => {
+  nr.appendChild(textField(s.note, tr("field.note"), v => {
     snapshot(); s.note = v; save(); renderBoard(); refreshUrl();
   }));
   row.appendChild(nr);
@@ -1849,7 +2323,7 @@ function distField(s){
   const el = document.createElement("input");
   el.className = "f num";
   el.value = distOut(s); el.inputMode = "decimal"; el.placeholder = meta.unit;
-  el.setAttribute("aria-label", "Distance in "+meta.unit);
+  el.setAttribute("aria-label", tr("field.distance", {unit: meta.unit}));
   el.addEventListener("change", () => {
     snapshot();
     s.dist = distIn(s, el.value.trim());
@@ -1895,7 +2369,7 @@ function watchActualCell(s, i){
   input.inputMode = "numeric";
   input.value = actual != null ? fmtClock(active.start + actual) : "";
   input.placeholder = frozenClock;
-  input.setAttribute("aria-label", "Actual clock time for "+(s.name||"this checkpoint")+" — leave blank to clear");
+  input.setAttribute("aria-label", tr("watch.actualAria", {name: s.name || tr("row.thisCheckpoint")}));
   input.addEventListener("change", () => commitActual(i, input.value.trim()));
   input.addEventListener("keydown", ev => {
     if(ev.key === "Escape"){ input.value = actual != null ? fmtClock(active.start + actual) : ""; input.blur(); }
@@ -1904,14 +2378,14 @@ function watchActualCell(s, i){
 
   const hint = document.createElement("div");
   hint.className = "watch-clock-hint";
-  hint.innerHTML = ICON_EDIT + '<span>' + (actual != null ? "Recorded — tap to change" : "Tap to log the clock time") + '</span>';
+  hint.innerHTML = ICON_EDIT + '<span>' + esc(actual != null ? tr("watch.recorded") : tr("watch.tapToLog")) + '</span>';
   wrap.appendChild(hint);
 
   const meta = document.createElement("div");
   meta.className = "watch-clock-meta";
-  let html = '<span class="frozen">plan '+frozenClock+'</span>';
+  let html = '<span class="frozen">'+esc(tr("watch.plan", {clock: frozenClock}))+'</span>';
   const revised = revisedElapsed(i);
-  if(revised != null) html += '<span class="revised">rev '+fmtClock(active.start + revised)+'</span>';
+  if(revised != null) html += '<span class="revised">'+esc(tr("watch.rev", {clock: fmtClock(active.start + revised)}))+'</span>';
   meta.innerHTML = html;
   wrap.appendChild(meta);
 
@@ -1937,7 +2411,7 @@ let mapTarget = null;
 const mapdlg = $("#mapdlg");
 function openMap(s){
   mapTarget = s;
-  $("#map-title").textContent = s.name || "Map link";
+  $("#map-title").textContent = s.name || tr("dlg.mapTitle");
   $("#map-url").value = s.map || "";
   $("#map-warn").hidden = true;
   syncMapDialog();
@@ -1958,14 +2432,14 @@ $("#map-save").addEventListener("click", () => {
   const url = raw ? toMapUrl(raw) : "";
   if(raw && !url){
     const w = $("#map-warn");
-    w.hidden = false; w.textContent = "That is not a web address or a lat, lng pair.";
+    w.hidden = false; w.textContent = tr("map.warnInvalid");
     return;
   }
   snapshot(); mapTarget.map = url; commit(); mapdlg.close();
-  toast(url ? "Map link saved" : "Map link removed");
+  toast(url ? tr("toast.mapSaved") : tr("toast.mapRemoved"));
 });
 $("#map-remove").addEventListener("click", () => {
-  snapshot(); mapTarget.map = ""; commit(); mapdlg.close(); toast("Map link removed");
+  snapshot(); mapTarget.map = ""; commit(); mapdlg.close(); toast(tr("toast.mapRemoved"));
 });
 
 /* ============================================================
@@ -2017,10 +2491,10 @@ const MAX_SPLIT_SECONDS = 30 * 86400;
     {name, start, sections} or {error} naming the offending line. */
 function parseRaceText(text){
   const lines = text.split(/\r?\n/).map(l => l.trim()).filter(l => l.length);
-  if(lines.length < 2) return {error:"Need a name line and a gun time line."};
+  if(lines.length < 2) return {error:tr("err.needNameGun")};
   const name = lines[0];
   const start = parseDur(lines[1]);
-  if(start == null) return {error:"Line 2: gun time must be h:mm or h:mm:ss."};
+  if(start == null) return {error:tr("err.gunFormat")};
 
   const sections = [];
   for(let i = 2; i < lines.length; i++){
@@ -2029,25 +2503,25 @@ function parseRaceText(text){
     const tok = parts[0].toUpperCase();
 
     if(tok === "T"){
-      if(parts.length < 3) return {error:"Line "+lineNo+": transition needs a split and a name."};
-      if(!SPLIT_RE.test(parts[1])) return {error:"Line "+lineNo+": malformed split."};
+      if(parts.length < 3) return {error:tr("err.transNeeds", {n:lineNo})};
+      if(!SPLIT_RE.test(parts[1])) return {error:tr("err.badSplit", {n:lineNo})};
       const tDur = parseDur(parts[1]);
-      if(tDur > MAX_SPLIT_SECONDS) return {error:"Line "+lineNo+": split is unreasonably long."};
+      if(tDur > MAX_SPLIT_SECONDS) return {error:tr("err.longSplit", {n:lineNo})};
       sections.push(sec(parts.slice(2).join(" "), "trans", null, tDur));
       continue;
     }
 
-    if(!SPORT_TOKEN[tok]) return {error:"Line "+lineNo+": unknown sport token “"+parts[0]+"”. Use S, B, R, or T."};
-    if(parts.length < 4) return {error:"Line "+lineNo+": checkpoint needs a distance, a split, and a name."};
+    if(!SPORT_TOKEN[tok]) return {error:tr("err.unknownToken", {n:lineNo, tok:parts[0]})};
+    if(parts.length < 4) return {error:tr("err.cpNeeds", {n:lineNo})};
     const distTok = parts[1], splitTok = parts[2];
-    if(distTok !== "-" && !DIST_RE.test(distTok)) return {error:"Line "+lineNo+": malformed distance."};
-    if(!SPLIT_RE.test(splitTok)) return {error:"Line "+lineNo+": malformed split."};
+    if(distTok !== "-" && !DIST_RE.test(distTok)) return {error:tr("err.badDist", {n:lineNo})};
+    if(!SPLIT_RE.test(splitTok)) return {error:tr("err.badSplit", {n:lineNo})};
     const dur = parseDur(splitTok);
-    if(dur > MAX_SPLIT_SECONDS) return {error:"Line "+lineNo+": split is unreasonably long."};
+    if(dur > MAX_SPLIT_SECONDS) return {error:tr("err.longSplit", {n:lineNo})};
     const dist = distTok === "-" ? null : Math.round(parseFloat(distTok)*1000);
     sections.push(sec(parts.slice(3).join(" "), SPORT_TOKEN[tok], dist, dur));
   }
-  if(!sections.length) return {error:"No checkpoints found."};
+  if(!sections.length) return {error:tr("err.noCheckpoints")};
   return {name, start, sections};
 }
 
@@ -2055,11 +2529,12 @@ function previewRows(built){
   const box = $("#preview");
   if(!built.sections || !built.sections.length){ box.hidden = true; return; }
   box.hidden = false;
-  let html = "<table><thead><tr><th>Checkpoint</th><th>Leg</th><th>Split</th><th>Elapsed</th></tr></thead><tbody>";
+  let html = "<table><thead><tr><th>"+esc(tr("preview.checkpoint"))+"</th><th>"+esc(tr("preview.leg"))+
+             "</th><th>"+esc(tr("preview.split"))+"</th><th>"+esc(tr("preview.elapsed"))+"</th></tr></thead><tbody>";
   let cum = 0;
   built.sections.forEach(s => {
     cum += s.dur;
-    html += "<tr><td>"+esc(s.name||"—")+"</td><td>"+SPORTS[s.sport].label+
+    html += "<tr><td>"+esc(s.name||"—")+"</td><td>"+sportLabel(s.sport)+
             '</td><td class="n">'+fmtSplit(s.dur)+'</td><td class="n">'+fmtHMS(cum)+"</td></tr>";
   });
   box.innerHTML = html+"</tbody></table>";
@@ -2205,7 +2680,7 @@ raw.addEventListener("input", () => {
     const restored = tryRestoreBackup(raw.value);
     previewRows(restored || {sections:[]});
     w.hidden = !!restored;
-    if(!restored) w.textContent = "That looks like a backup, but it will not parse.";
+    if(!restored) w.textContent = tr("err.badBackup");
     return;
   }
   const parsed = parseRaceText(raw.value);
@@ -2220,7 +2695,7 @@ raw.addEventListener("input", () => {
 });
 $("#dlg-backup").addEventListener("click", async () => {
   const json = JSON.stringify(active);
-  try{ await navigator.clipboard.writeText(json); toast("Backup copied — paste it here to restore"); }
+  try{ await navigator.clipboard.writeText(json); toast(tr("toast.backupCopied")); }
   catch(e){ raw.value = json; raw.select(); }
 });
 
@@ -2239,7 +2714,7 @@ $("#dlg-apply").addEventListener("click", () => {
     // same race in the index rather than becoming an orphaned blob (F8).
     snapshot(); active.start = restored.start; active.sections = restored.sections;
     commit(); dlg.close();
-    toast("Backup restored");
+    toast(tr("toast.backupRestored"));
     return;
   }
   const parsed = parseRaceText(raw.value);
@@ -2252,7 +2727,7 @@ $("#dlg-apply").addEventListener("click", () => {
   active.start = parsed.start;
   active.sections = parsed.sections;
   commit(); dlg.close();
-  toast(parsed.sections.length+" sections loaded");
+  toast(tr("toast.sectionsLoaded", {n: parsed.sections.length}));
 });
 
 $("#start").addEventListener("change", e => {
@@ -2269,7 +2744,7 @@ $("#btn-add").addEventListener("click", () => { if(active) addSection($("#new-sp
 $("#btn-copy").addEventListener("click", async () => {
   if(!active) return;
   const text = toRaceText(active);
-  try{ await navigator.clipboard.writeText(text); toast("Copied"); }
+  try{ await navigator.clipboard.writeText(text); toast(tr("toast.copied")); }
   catch(e){ raw.value = text; dlg.showModal(); raw.select(); }
 });
 
@@ -2304,12 +2779,12 @@ $("#btn-share").addEventListener("click", async () => {
   const token = await encodeToken(text);
   const url = location.origin + location.pathname + "#/race/" + token;
   if(url.length > 2000){
-    toast("That race is too big for a link — copying race text instead");
+    toast(tr("toast.tooBig"));
     try{ await navigator.clipboard.writeText(text); }
     catch(e){ raw.value = text; dlg.showModal(); raw.select(); }
     return;
   }
-  try{ await navigator.clipboard.writeText(url); toast("Link copied"); }
+  try{ await navigator.clipboard.writeText(url); toast(tr("toast.linkCopied")); }
   catch(e){ raw.value = url; dlg.showModal(); raw.select(); }
 });
 
@@ -2442,7 +2917,7 @@ async function router(){
     if(isLegacyId){
       const race = loadRace(route.token);
       if(!race){                                     // deleted id (F3)
-        toast("That race is no longer here");
+        toast(tr("toast.raceGone"));
         location.hash = "#/";                        // re-fires hashchange -> mountHome
         return;
       }
@@ -2465,18 +2940,18 @@ async function mountFromToken(token, view, watchId, mySeq){
   const decoded = await decodeToken(token);
   if(mySeq !== routeSeq) return;                       // navigated away meanwhile
   if(decoded.error === "needs-newer-browser"){
-    toast("This link needs a newer browser");
+    toast(tr("toast.needsNewerBrowser"));
     location.hash = "#/";
     return;
   }
   if(decoded.error){
-    toast("That race link looks corrupted");
+    toast(tr("toast.linkCorrupt"));
     location.hash = "#/";
     return;
   }
   const parsed = parseRaceText(decoded.text);
   if(parsed.error){
-    toast("That race link looks corrupted");
+    toast(tr("toast.linkCorrupt"));
     location.hash = "#/";
     return;
   }
@@ -2514,6 +2989,7 @@ function applyReadOnly(ro){
 function refreshRaceChrome(){
   const rv = $("#race-view");
   if(rv) rv.classList.toggle("transient-race", transientRace);
+  refreshWatchLiveNow();
   const oe = $("#open-edit");
   if(oe){
     // #open-edit is a persistent DOM node reused across every mount, so a
@@ -2525,6 +3001,14 @@ function refreshRaceChrome(){
     if(!transientRace && active.id) oe.href = "#/race/" + encodeURIComponent(active.id) + "/edit";
     else oe.removeAttribute("href");
   }
+}
+/** U16: the masthead Watch Live wears the same live-window pulse as the
+    home card's button — same raceIsNow() window, read off the mounted
+    race rather than a light index entry. */
+function refreshWatchLiveNow(){
+  const btn = $("#watch-live");
+  if(!btn) return;
+  btn.classList.toggle("is-now", !!active && raceIsNow({start:active.start, finish:total()}));
 }
 function renderSaveStrip(){
   const el = $("#save-strip");
@@ -2540,7 +3024,7 @@ function mountHome(){
   transientRace = false; activeWatchId = null; activeSession = null;
   renderHome();
   show("home-view");
-  document.title = "Race splits";
+  document.title = tr("app.title");
   focusHeading("home-view");
 }
 function mountEdit(race, opts){
@@ -2554,7 +3038,7 @@ function mountEdit(race, opts){
   showSaved();
   renderSaveStrip();
   renderWatchReset();
-  document.title = (race.name || "Untitled race") + " — Splits";
+  document.title = tr("title.splits", {name: race.name || tr("race.untitled")});
   focusHeading("race-view");
 }
 function mountFollow(race, opts){
@@ -2569,7 +3053,7 @@ function mountFollow(race, opts){
   renderSaveStrip();
   renderWatchReset();
   startMarker();
-  document.title = (race.name || "Untitled race") + " — Live";
+  document.title = tr("title.live", {name: race.name || tr("race.untitled")});
   focusHeading("race-view");
 }
 /** Watch mode (U7): runs inside a named session that owns its own frozen
@@ -2584,7 +3068,7 @@ function mountFollow(race, opts){
     recent session for this plan, else start one" resolution (R20). */
 function mountWatch(race, watchId, opts, digest){
   let session = watchId ? loadWatchSession(watchId) : null;
-  if(watchId && !session) toast("That watch session is no longer here — starting a new one");
+  if(watchId && !session) toast(tr("toast.watchGone"));
   if(!session) session = findWatchSessionByDigest(digest) || createWatchSession(race.id, toRaceText(race));
   mountWatchFromSession(session);
 }
@@ -2604,7 +3088,7 @@ function mountWatchFromSession(session){
   renderSaveStrip();
   renderWatchReset();
   startMarker();
-  document.title = (frozen.name || "Untitled race") + " — Watch";
+  document.title = tr("title.watch", {name: frozen.name || tr("race.untitled")});
   focusHeading("race-view");
   refreshUrl();             // writes the "/watch/<id>" URL once the session id is known (R20)
 }
@@ -2621,7 +3105,7 @@ function saveTransientRace(){
   renderSaveStrip();
   showSaved();
   refreshUrl();
-  toast("Saved as a new race");
+  toast(tr("toast.savedAsNew"));
 }
 
 /** Rewrites the address bar to match active's current canonical text, via
@@ -2772,8 +3256,8 @@ function wallPhase(){
 }
 /** "Behind"/"ahead" wording for a signed gap in seconds (R24). */
 function gapLabel(gapSeconds){
-  if(gapSeconds === 0) return "On pace";
-  return fmtHMS(Math.abs(gapSeconds)) + (gapSeconds > 0 ? " behind" : " ahead");
+  if(gapSeconds === 0) return tr("gap.onPace");
+  return tr(gapSeconds > 0 ? "gap.behind" : "gap.ahead", {time: fmtHMS(Math.abs(gapSeconds))});
 }
 /** One reading of "where is the athlete now", shared by the pins, the
     current-segment marker, the course panel and the jump button so they can
@@ -2830,7 +3314,7 @@ function updateJump(){
   const onScreen = r.top < window.innerHeight - 24 && r.bottom > 56;
   btn.hidden = onScreen;
   const lab = $("#jump-live-label");
-  if(lab) lab.textContent = "Now · " + (target.s.name || SPORTS[target.s.sport].label);
+  if(lab) lab.textContent = tr("jump.now", {name: target.s.name || sportLabel(target.s.sport)});
 }
 let jumpRaf = null;
 window.addEventListener("scroll", () => {
@@ -2893,9 +3377,9 @@ function paintMarker(){
   // R25: elapsed counter against the gun time, sharing this same tick.
   if(elapsedEl){
     elapsedEl.hidden = false;
-    if(phase === "before") elapsedEl.textContent = "Starts in " + fmtHMS(86400 - d);
-    else if(phase === "mid") elapsedEl.textContent = "Elapsed " + fmtHMS(d);
-    else elapsedEl.textContent = "Finished in " + fmtHMS(t);
+    if(phase === "before") elapsedEl.textContent = tr("marker.startsIn", {time: fmtHMS(86400 - d)});
+    else if(phase === "mid") elapsedEl.textContent = tr("marker.elapsed", {time: fmtHMS(d)});
+    else elapsedEl.textContent = tr("marker.finishedIn", {time: fmtHMS(t)});
   }
   // R24 visible gap read-out — separate from the aria-live phase announcement below,
   // so it can refresh every tick without triggering a screen-reader announcement.
@@ -2920,8 +3404,8 @@ function paintMarker(){
       // mid-race the gap is already on screen in #watch-gap, so the same words
       // stay here only as the polite announcement, visually hidden (U12)
       status.classList.toggle("sr-only", phase === "mid");
-      if(phase === "before") status.textContent = "Not started — gun at " + fmtClock(active.start);
-      else if(phase === "after") status.textContent = "Finished · " + fmtHMS(t);
+      if(phase === "before") status.textContent = tr("marker.notStarted", {clock: fmtClock(active.start)});
+      else if(phase === "after") status.textContent = tr("marker.finished", {time: fmtHMS(t)});
       else status.textContent = gapSeconds != null ? gapLabel(gapSeconds) : "";
     }
     lastMarkerSig = sig;
@@ -2951,9 +3435,10 @@ function updateLiveChrome(snap){
     if(show){
       const s = active.sections[snap.curIdx];
       const eta = cumulative(snap.curIdx) + (snap.gapSeconds || 0) - snap.d;
+      const nextName = esc(s.name || sportLabel(s.sport));
       nextEl.innerHTML = eta > 0
-        ? "Next <b>" + esc(s.name || SPORTS[s.sport].label) + "</b> in ≈ " + fmtSplit(eta)
-        : "Next <b>" + esc(s.name || SPORTS[s.sport].label) + "</b> — due now";
+        ? tr("next.in", {name: nextName, time: fmtSplit(eta)})
+        : tr("next.due", {name: nextName});
     }
   }
 }
@@ -2981,7 +3466,7 @@ function previewLegendHTML(race){
     const t = tot[sport];
     const dist = (t.dist && t.complete) ? '<b>'+fmtDistLabel(sport, t.dist)+'</b> ' : '';
     return '<span class="k" data-sport="'+sport+'"><i class="sw"></i>'+dist+
-           SPORTS[sport].label.toLowerCase()+' <span class="t">'+fmtHMS(t.dur)+'</span></span>';
+           sportLabel(sport).toLowerCase()+' <span class="t">'+fmtHMS(t.dur)+'</span></span>';
   });
   return keys.length ? '<div class="prev-legend">'+keys.join("")+'</div>' : "";
 }
@@ -3011,7 +3496,11 @@ function refreshHomeLive(){
     btn.classList.toggle("is-now", raceIsNow({start, finish}));
   });
 }
-setInterval(() => { const h = $("#home-view"); if(h && !h.hidden) refreshHomeLive(); }, 30000);
+setInterval(() => {
+  const h = $("#home-view");
+  if(h && !h.hidden) refreshHomeLive();
+  else if(active) refreshWatchLiveNow();
+}, 30000);
 
 /* ---- starter templates (U16) ------------------------------------
    Plain plan text in the same format the paste dialog takes, so a template
@@ -3062,7 +3551,7 @@ function openTemplates(){
 function useTemplate(tplId){
   const t = TEMPLATES.find(x => x.id === tplId);
   const parsed = t ? parseRaceText(t.text) : null;
-  if(!parsed || parsed.error){ toast("That template could not be read"); return; }
+  if(!parsed || parsed.error){ toast(tr("toast.templateUnreadable")); return; }
   const r = createRace({name:parsed.name, start:parsed.start, sections:parsed.sections});
   $("#tpldlg").close();
   location.hash = "#/race/" + encodeURIComponent(r.id) + "/edit";
@@ -3076,16 +3565,15 @@ function renderHome(){
   if(!el) return;
   const races = listRaces();
   let html = '<header class="masthead home-head"><div>'+
-             '<h1 id="home-title">Race splits</h1>'+
-             '<p class="home-sub">Your saved races on this browser.</p></div>'+
+             '<h1 id="home-title">'+esc(tr("app.title"))+'</h1>'+
+             '<p class="home-sub">'+esc(tr("home.sub"))+'</p></div>'+
              '<div class="tools">'+
-               '<button class="btn" data-act="tpl"><i class="bi">'+ICON_TPL+'</i>From template</button>'+
-               '<button class="btn primary" data-act="new"><i class="bi">'+ICON_PLUS+'</i>New race plan</button>'+
+               '<button class="btn" data-act="tpl"><i class="bi">'+ICON_TPL+'</i>'+esc(tr("home.fromTemplate"))+'</button>'+
+               '<button class="btn primary" data-act="new"><i class="bi">'+ICON_PLUS+'</i>'+esc(tr("home.newRace"))+'</button>'+
              '</div>'+
              '</header>';
   if(!races.length){
-    html += '<div class="home-empty">No races yet — <b>New race</b> starts an empty one, '+
-            '<b>From template</b> starts from a known course.</div>';
+    html += '<div class="home-empty">'+tr("home.empty")+'</div>';
   }else{
     html += '<div class="legs">';
     races.forEach(r => {
@@ -3093,7 +3581,9 @@ function renderHome(){
       const t = r.finish || 0;
       const hasStart = typeof r.start === "number";
       const clocks = hasStart
-        ? '<div class="card-clocks">Gun '+fmtClock(r.start)+(t ? ' · Finish '+fmtClock(r.start + t) : '')+'</div>'
+        ? '<div class="card-clocks">'+esc(t
+            ? tr("home.clocksBoth", {gun: fmtClock(r.start), finish: fmtClock(r.start + t)})
+            : tr("home.clocks", {gun: fmtClock(r.start)}))+'</div>'
         : '';
       // the blob is loaded only for the preview; the card's own numbers still
       // come from the light index entry (U4)
@@ -3101,21 +3591,21 @@ function renderHome(){
       const prev = blob ? previewHTML(blob) : '';
       html += '<section class="leg race-card">'+
         '<div class="leg-head">'+
-          '<div class="leg-title"><span class="t">'+esc(r.name || "Untitled race")+'</span></div>'+
-          '<div class="leg-tot"><span class="finish-lab">Finish</span>'+
+          '<div class="leg-title"><span class="t">'+esc(r.name || tr("race.untitled"))+'</span></div>'+
+          '<div class="leg-tot"><span class="finish-lab">'+esc(tr("home.finish"))+'</span>'+
             '<span class="fin">'+(t ? fmtHMS(t) : "—")+'</span></div>'+
         '</div>'+clocks+prev+
         '<div class="leg-foot">'+
           '<button class="btn live spread'+(raceIsNow(r) ? ' is-now' : '')+'" type="button" data-act="watch"'+
             ' data-id="'+id+'" data-start="'+(hasStart ? r.start : '')+'" data-finish="'+t+'">'+
-            '<i class="dot" aria-hidden="true"></i>Watch Live</button>'+
+            '<i class="dot" aria-hidden="true"></i>'+esc(tr("btn.watchLive"))+'</button>'+
           '<div class="card-menu-wrap">'+
-            '<button class="icon" type="button" data-act="menu" data-id="'+id+'" aria-haspopup="true" aria-expanded="false" aria-label="More actions" title="More actions">'+COG+'</button>'+
+            '<button class="icon" type="button" data-act="menu" data-id="'+id+'" aria-haspopup="true" aria-expanded="false" aria-label="'+esc(tr("home.moreActions"))+'" title="'+esc(tr("home.moreActions"))+'">'+COG+'</button>'+
             '<div class="card-menu" role="menu" hidden>'+
-              '<button class="card-menu-item" type="button" role="menuitem" data-act="edit" data-id="'+id+'">Edit</button>'+
-              '<button class="card-menu-item" type="button" role="menuitem" data-act="rename" data-id="'+id+'">Rename</button>'+
-              '<button class="card-menu-item" type="button" role="menuitem" data-act="dup" data-id="'+id+'">Duplicate</button>'+
-              '<button class="card-menu-item" type="button" role="menuitem" data-act="del" data-id="'+id+'">Delete</button>'+
+              '<button class="card-menu-item" type="button" role="menuitem" data-act="edit" data-id="'+id+'">'+esc(tr("menu.edit"))+'</button>'+
+              '<button class="card-menu-item" type="button" role="menuitem" data-act="rename" data-id="'+id+'">'+esc(tr("menu.rename"))+'</button>'+
+              '<button class="card-menu-item" type="button" role="menuitem" data-act="dup" data-id="'+id+'">'+esc(tr("menu.dup"))+'</button>'+
+              '<button class="card-menu-item" type="button" role="menuitem" data-act="del" data-id="'+id+'">'+esc(tr("menu.del"))+'</button>'+
             '</div>'+
           '</div>'+
         '</div>'+
@@ -3180,7 +3670,7 @@ $("#home-view").addEventListener("click", async e => {
   else if(act === "tpl") openTemplates();
   else if(act === "watch"){
     const race = loadRace(id);
-    if(!race){ toast("That race is no longer here"); renderHome(); return; }
+    if(!race){ toast(tr("toast.raceGone")); renderHome(); return; }
     const mySeq = routeSeq;
     const token = await encodeToken(toRaceText(race));
     if(routeSeq !== mySeq) return;   // navigated away while the encode was pending
@@ -3250,21 +3740,30 @@ function duplicateRace(id){
   const src = loadRace(id);
   if(!src) return;
   const copy = createRace({
-    name: src.name ? src.name + " copy" : "Untitled race copy",
+    name: src.name ? src.name + tr("race.copySuffix") : tr("race.untitledCopy"),
     start: src.start,
     sections: src.sections.map(s => ({id:uid(), name:s.name, sport:s.sport, dist:s.dist, dur:s.dur, note:s.note, map:s.map}))
   });
   renderHome();
-  toast("Duplicated as “" + copy.name + "”");
+  toast(tr("toast.duplicated", {name: copy.name}));
 }
 
 function doDeleteRace(id){
   const blob = loadRace(id);              // capture the full blob so undo can restore it
   deleteRace(id);
   renderHome();
-  const name = blob ? (blob.name || "Untitled race") : "Race";
-  toast(name + " deleted", blob ? () => { saveRace(blob); renderHome(); } : null);
+  const name = blob ? (blob.name || tr("race.untitled")) : tr("race.fallbackName");
+  toast(tr("toast.deleted", {name}), blob ? () => { saveRace(blob); renderHome(); } : null);
 }
+
+applyStaticI18n();
+/* One delegated listener on the persistent picker container survives every
+   renderLangPicker() rebuild. */
+const langPick = $("#langpick");
+if(langPick) langPick.addEventListener("click", e => {
+  const btn = e.target.closest("[data-lang]");
+  if(btn) setLang(btn.dataset.lang);
+});
 
 migrateLegacy();
 migrateDropMetadata();
