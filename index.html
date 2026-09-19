@@ -937,17 +937,21 @@ function watchLegState(items){
   const past = wp.phase === "after" || (wp.phase === "mid" && wp.d >= cumulative(lastIdx));
   return past ? "past" : "upcoming";
 }
+/** Seconds-of-day (any sign/range) -> elapsed-from-gun, day-wrapped. The one
+    piece of piecewise day-wrap math both the live marker (wallPhase()) and
+    watch-mode actual entry (watchClockToElapsed()) need — race.start is
+    seconds-of-day only, so this is never the elapsed-edit path's
+    clamp-to-zero, which would record a post-midnight checkpoint as zero. */
+function elapsedFromClock(clockSecs){
+  return ((clockSecs - active.start) % 86400 + 86400) % 86400;
+}
 /** Parses a typed CLOCK time (what a volunteer reads off a watch, not an
-    elapsed duration) into elapsed-from-gun seconds, with the SAME
-    piecewise day-wrap as the live marker/wallPhase() — never the
-    elapsed-edit path's clamp-to-zero, which would record a post-midnight
-    checkpoint as zero and destroy the projection for exactly the night
-    races this math exists for. */
+    elapsed duration) into elapsed-from-gun seconds. */
 function watchClockToElapsed(raw){
   const secs = parseFlexDur(raw);
   if(secs == null) return null;
   const clockOfDay = ((secs % 86400) + 86400) % 86400;
-  return ((clockOfDay - active.start) % 86400 + 86400) % 86400;
+  return elapsedFromClock(clockOfDay);
 }
 /** Commits (or, given "", clears) an actual for section i into the
     SESSION blob only — never the race blob. Validates elapsed order
@@ -1420,15 +1424,22 @@ function staticText(text, cls){
   return el;
 }
 
+/** R29: Enter commits like blur does, without duplicating a commit call —
+    shared by every plain editable field (textField/distField; timeField
+    folds the same check into its own Arrow/Escape keydown handler instead
+    of taking a second listener). */
+function blurOnEnter(el){
+  el.addEventListener("keydown", ev => {
+    if(ev.key === "Enter"){ ev.preventDefault(); el.blur(); }
+  });
+}
 function textField(value, ph, onCommit, cls){
   if(readOnly) return staticText(value||"", cls||"");
   const el = document.createElement("input");
   el.className = "f "+(cls||"");
   el.value = value||""; el.placeholder = ph; el.setAttribute("aria-label", ph);
   el.addEventListener("change", () => onCommit(el.value.trim()));
-  el.addEventListener("keydown", ev => {
-    if(ev.key === "Enter"){ ev.preventDefault(); el.blur(); }
-  });
+  blurOnEnter(el);
   return el;
 }
 function distField(s){
@@ -1443,9 +1454,7 @@ function distField(s){
     s.dist = distIn(s, el.value.trim());
     commit();
   });
-  el.addEventListener("keydown", ev => {
-    if(ev.key === "Enter"){ ev.preventDefault(); el.blur(); }
-  });
+  blurOnEnter(el);
   return el;
 }
 function timeField(value, label, onCommit, onNudge){
@@ -2191,7 +2200,7 @@ function startMarker(){
 function wallPhase(){
   const t = total();
   if(t <= 0) return {phase:"empty", d:0, t:0};
-  const d = ((nowClockSeconds() - active.start) % 86400 + 86400) % 86400;
+  const d = elapsedFromClock(nowClockSeconds());
   if(d <= t) return {phase:"mid", d, t};
   if((86400 - d) < (d - t)) return {phase:"before", d, t};
   return {phase:"after", d, t};
