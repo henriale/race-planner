@@ -14,6 +14,9 @@
   --ink:#131E1C; --ink-2:#3F504C; --muted:#73847F; --rule:#D7DFDB;
   --swim:#1F6F8B; --bike:#B87F14; --run:#7D3A55; --trans:#8A9994;
   --focus:#1F6F8B;
+  /* live/athlete colour — deliberately outside the swim/bike/run/transition
+     palette so the live pin never reads as "the swim leg" (U12) */
+  --live:#0E8F5E;
   --shadow:0 10px 30px -22px rgba(19,30,28,.75);
   --r:10px;
 }
@@ -23,6 +26,7 @@
     --ink:#E9EFEC; --ink-2:#B4C2BD; --muted:#87958F; --rule:#253230;
     --swim:#5BA8C6; --bike:#DFAC48; --run:#C67A97; --trans:#788884;
     --focus:#5BA8C6;
+    --live:#46C79A;
     --shadow:0 10px 30px -22px rgba(0,0,0,.9);
   }
 }
@@ -31,6 +35,7 @@
   --ink:#E9EFEC; --ink-2:#B4C2BD; --muted:#87958F; --rule:#253230;
   --swim:#5BA8C6; --bike:#DFAC48; --run:#C67A97; --trans:#788884;
   --focus:#5BA8C6;
+  --live:#46C79A;
 }
 
 *{box-sizing:border-box}
@@ -96,18 +101,57 @@ button{font:inherit;color:inherit;cursor:pointer}
 .seg span{color:#fff;font-size:12px;white-space:nowrap;padding:0 8px;font-variation-settings:"wdth" 100,"wght" 600;text-shadow:0 1px 2px rgba(0,0,0,.28)}
 .seg.on{filter:brightness(1.12);box-shadow:inset 0 0 0 2px rgba(255,255,255,.8)}
 .seg.pin::after{content:"";position:absolute;top:5px;right:5px;width:6px;height:6px;border-radius:50%;background:rgba(255,255,255,.95)}
+/* U12: the segment the athlete is inside right now — a ring in the live
+   colour plus a bottom rule, so it reads as "here" independently of the
+   selected-segment (.on) styling, which uses a white inset ring. */
+/* The timeline just marks the segment; the animated ring lives on the course
+   card for that leg (see .chip.is-live below). */
+.seg.live{box-shadow:inset 0 0 0 3px var(--live);z-index:3}
+.seg.live::before{content:"";position:absolute;left:0;right:0;bottom:0;height:4px;background:var(--live)}
 .ticks{position:absolute;left:0;right:0;bottom:0;height:22px}
 .tick{position:absolute;top:0;transform:translateX(-50%);font-size:11px;color:var(--muted);white-space:nowrap}
 .tick::before{content:"";display:block;width:1px;height:6px;background:var(--rule);margin:0 auto 2px}
 .bar.empty{border-style:dashed;align-items:center;justify-content:center}
 .bar.empty p{margin:0;color:var(--muted);font-size:13.5px}
 
-.chips{display:flex;flex-wrap:wrap;gap:10px;margin-top:18px}
-.chip{flex:1 1 170px;border:1px solid var(--rule);border-radius:var(--r);padding:10px 12px;background:var(--surface-2);border-left:3px solid var(--sp,var(--rule))}
+/* U12: the course board is its own panel, detached from the timeline, and
+   lays its legs out as swim|T1 / bike / T2|run in a two-column grid — plain
+   source order plus one full-width class does that with no explicit areas. */
+.course-head{display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+.course-head h2{margin:0;font-size:17px;font-variation-settings:"wdth" 112,"wght" 680}
+.course-head .sub{color:var(--muted);font-size:12.5px}
+.chips{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.chip{border:1px solid var(--rule);border-radius:var(--r);padding:10px 12px;background:var(--surface-2);border-left:3px solid var(--sp,var(--rule));min-width:0}
+.chip.wide{grid-column:1/-1}
+.chip .live{display:flex;gap:8px;align-items:baseline;margin-top:4px;font-size:12.5px;color:var(--ink-2)}
+.chip .live b{font-variation-settings:"wdth" 100,"wght" 660;color:var(--ink)}
+.chip .state{font-size:11px;letter-spacing:.04em;text-transform:uppercase;color:var(--muted);font-variation-settings:"wdth" 100,"wght" 620}
+/* The on-course card carries a rotating ring: a masked conic-gradient turning
+   clockwise around the card. The flat border under it is the fallback for a
+   browser without @property (the gradient then paints at a fixed angle and
+   simply doesn't spin); reduced motion kills the spin via the global rule at
+   the bottom of this sheet. */
+@property --ang{syntax:"<angle>";initial-value:0deg;inherits:false}
+.chip.is-live{position:relative;border-color:var(--live)}
+.chip.is-live::before{
+  content:"";position:absolute;inset:-2px;padding:2px;border-radius:calc(var(--r) + 2px);pointer-events:none;
+  background:conic-gradient(from var(--ang),
+    transparent 0deg, var(--live) 40deg, color-mix(in srgb,var(--live) 25%,#FFFFFF) 90deg, var(--live) 140deg,
+    color-mix(in srgb,var(--live) 45%,transparent) 200deg, transparent 300deg, transparent 360deg);
+  -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);
+  -webkit-mask-composite:xor;
+  mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);
+  mask-composite:exclude;
+  animation:chip-spin 2.6s linear infinite;
+}
+@keyframes chip-spin{to{--ang:360deg}}
+.chip.is-live .state{color:var(--live)}
+.chip.is-done .state{color:var(--ink-2)}
 .chip[data-sport="swim"]{--sp:var(--swim)}
 .chip[data-sport="bike"]{--sp:var(--bike)}
 .chip[data-sport="run"]{--sp:var(--run)}
-.chip.trans{flex:0 1 110px}
+.chip .gap.behind{color:var(--run)}
+.chip .gap.ahead{color:var(--live)}
 .chip .name{font-size:12.5px;color:var(--muted)}
 .chip .pace{font-size:20px;font-variation-settings:"wdth" 108,"wght" 680;line-height:1.15}
 .chip .u{font-size:12px;color:var(--muted);font-variation-settings:"wdth" 100,"wght" 400}
@@ -196,6 +240,28 @@ input.wide{width:100%;font:inherit;font-size:14px;padding:10px 11px;border-radiu
 .dlg-foot .spread{margin-right:auto}
 .warn{color:var(--run);font-size:13px;margin-top:10px}
 
+/* U12: jumps to wherever the athlete is now; hidden while that row is
+   already on screen, and outside watch/follow entirely. */
+.jump{position:fixed;right:16px;bottom:calc(18px + env(safe-area-inset-bottom,0px));z-index:40;
+  display:flex;align-items:center;gap:9px;border:0;border-radius:999px;padding:13px 18px;
+  background:var(--live);color:#fff;font-size:14px;font-variation-settings:"wdth" 100,"wght" 640;
+  box-shadow:0 16px 30px -14px rgba(0,0,0,.55)}
+/* broadcasting dot: a filled centre with two rings breathing outward, so the
+   button reads as "something is live down there" rather than "scroll down" */
+.jump .beacon{position:relative;width:14px;height:14px;flex:none}
+.jump .beacon i{position:absolute;inset:0;margin:auto;width:6px;height:6px;border-radius:50%;background:#fff}
+.jump .beacon i::before,.jump .beacon i::after{
+  content:"";position:absolute;inset:-4px;border-radius:50%;border:1.5px solid #fff;opacity:0;
+  animation:beacon 2.4s ease-out infinite}
+.jump .beacon i::after{animation-delay:1.2s}
+@keyframes beacon{
+  0%  {transform:scale(.5);opacity:.9}
+  70% {transform:scale(1.7);opacity:0}
+  100%{transform:scale(1.7);opacity:0}
+}
+.jump svg{width:16px;height:16px;display:block}
+.jump[hidden]{display:none}
+
 .toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);background:var(--ink);color:var(--canvas);border-radius:999px;padding:9px 16px;font-size:13.5px;display:flex;gap:12px;align-items:center;z-index:50;box-shadow:0 14px 30px -14px rgba(0,0,0,.6)}
 .toast button{background:none;border:0;color:inherit;text-decoration:underline;text-underline-offset:3px;font-size:13.5px}
 .toast[hidden]{display:none}
@@ -240,27 +306,45 @@ footer{margin-top:30px;color:var(--muted);font-size:12.5px;line-height:1.7}
 .pin svg{width:100%;height:100%;display:block;filter:drop-shadow(0 2px 3px rgba(0,0,0,.35))}
 .pin[hidden]{display:none}
 .pin-plan{top:24px;color:var(--ink)}
-.pin-actual{top:24px;z-index:6;color:var(--focus)}
+.pin-actual{top:0;z-index:6;color:var(--live)}
 .pin-actual svg path{fill:currentColor}
 .marker-status{display:none;margin-top:12px;color:var(--ink-2);font-size:13.5px;font-variation-settings:"wdth" 100,"wght" 560}
 .marker-status p{margin:0}
 .marker-status p+p{margin-top:4px}
-.marker-status #watch-gap{font-variation-settings:"wdth" 100,"wght" 640;color:var(--ink)}
+.marker-status #watch-gap{font-size:17px;font-variation-settings:"wdth" 100,"wght" 700;color:var(--ink)}
+.marker-status #watch-gap.behind{color:var(--run)}
+.marker-status #watch-gap.ahead{color:var(--live)}
+/* mid-race the status line says the same thing as #watch-gap; it stays in
+   the DOM as the aria-live announcement, but only one of the two is seen */
+.marker-status .sr-only{position:absolute;width:1px;height:1px;padding:0;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
 
 /* ---------- watch actuals: revised finish + per-row/leg states (U8) ---------- */
 .finish-revised{margin-top:2px;display:flex;gap:6px;align-items:baseline;justify-content:flex-end}
 .finish-revised .lab{font-size:11px;color:var(--muted)}
-.finish-revised .val{font-size:20px;line-height:1;color:var(--focus);font-variation-settings:"wdth" 112,"wght" 680;letter-spacing:-.01em}
+.finish-revised .val{font-size:20px;line-height:1;color:var(--live);font-variation-settings:"wdth" 112,"wght" 680;letter-spacing:-.01em}
 .finish-revised[hidden]{display:none}
 
-.watch-clock{display:flex;flex-direction:column;gap:2px}
-.watch-clock input.f{font-variation-settings:"wdth" 100,"wght" 640}
+.watch-clock{display:flex;flex-direction:column;gap:4px}
+/* R31/U12: in watch mode this is the ONE editable field on the page, so it
+   is drawn as a real, finger-sized input instead of the ghost-bordered
+   fields the rest of the row uses. */
+.watch-clock input.f{
+  font-variation-settings:"wdth" 100,"wght" 680;
+  font-size:22px;line-height:1.2;min-height:50px;padding:10px 12px;text-align:left;
+  border:1.5px dashed var(--rule);background:var(--surface);border-radius:10px;
+}
+.watch-clock input.f:hover{border-color:var(--live)}
+.watch-clock input.f:focus{border-style:solid;border-color:var(--live);box-shadow:0 0 0 3px color-mix(in srgb,var(--live) 20%,transparent)}
+.watch-clock input.f:not(:placeholder-shown){border-style:solid;border-color:var(--live);color:var(--ink)}
+.watch-clock input.f::placeholder{color:var(--muted);opacity:.55}
+.watch-clock-hint{display:flex;align-items:center;gap:5px;font-size:11.5px;color:var(--muted);padding:0 2px}
+.watch-clock-hint svg{width:13px;height:13px;flex:none}
 .watch-clock-meta{display:flex;gap:8px;font-size:10.5px;color:var(--muted);padding:0 8px;white-space:nowrap}
-.watch-clock-meta .revised{color:var(--focus);font-variation-settings:"wdth" 100,"wght" 640}
+.watch-clock-meta .revised{color:var(--live);font-variation-settings:"wdth" 100,"wght" 640}
 
-.row.watch-finished{background:color-mix(in srgb,var(--focus) 12%,var(--surface));box-shadow:inset 3px 0 0 0 var(--focus)}
+.row.watch-finished{background:color-mix(in srgb,var(--live) 12%,var(--surface));box-shadow:inset 3px 0 0 0 var(--live)}
 .row.watch-past{opacity:.52}
-.leg.watch-finished .leg-head{background:color-mix(in srgb,var(--focus) 16%,var(--surface-2))}
+.leg.watch-finished .leg-head{background:color-mix(in srgb,var(--live) 16%,var(--surface-2))}
 .leg.watch-past{opacity:.72}
 /* chrome that only makes sense while editing is hidden in follow mode */
 #open-edit,
@@ -307,6 +391,11 @@ footer{margin-top:30px;color:var(--muted);font-size:12.5px;line-height:1.7}
   input.f{padding:4px 8px}
   .derived{padding:4px 8px}
   .watch-clock-meta{flex-wrap:wrap;gap:2px 8px;white-space:normal}
+  /* watch mode: the clock is the row's point, so it takes the full width
+     and the derived pace cell drops under it */
+  .row>.cell-clock{grid-column:2/-1}
+  .row>.cell-clock+.cell{grid-column:2}
+  .chip{padding:9px 10px}
   .leg-tot{width:100%}
   .tools-icons{margin-left:0;padding-left:0;border-left:0}
   /* timeline: segments keep a legible minimum width and the strip scrolls
@@ -382,6 +471,13 @@ footer{margin-top:30px;color:var(--muted);font-size:12.5px;line-height:1.7}
       <p id="watch-elapsed" hidden></p>
       <p id="watch-gap" hidden></p>
     </div>
+  </section>
+
+  <section class="board course" aria-label="Course">
+    <div class="course-head">
+      <h2>Course</h2>
+      <span class="sub" id="course-sub"></span>
+    </div>
     <div class="chips" id="chips"></div>
   </section>
 
@@ -409,6 +505,11 @@ footer{margin-top:30px;color:var(--muted);font-size:12.5px;line-height:1.7}
 
   </div><!-- /#race-view -->
 </div>
+
+<button class="jump" id="jump-live" type="button" hidden>
+  <span class="beacon" aria-hidden="true"><i></i></span>
+  <span id="jump-live-label">Jump to now</span>
+</button>
 
 <div class="toast" id="toast" hidden><span id="toast-msg"></span><button id="toast-undo">Undo</button></div>
 
@@ -1287,6 +1388,7 @@ function renderBoard(){
       d.className = "seg" + (selected===s.id?" on":"") + ((s.note||s.map)?" pin":"");
       d.dataset.sport = s.sport;
       d.dataset.dur = s.dur;
+      d.dataset.idx = active.sections.indexOf(s);
       d.style.flexGrow = s.dur;
       d.title = (s.name||SPORTS[s.sport].label)+" · "+fmtSplit(s.dur)+(s.note?" · "+s.note:"");
       if(s.dur/t > 0.07) d.innerHTML = "<span>"+fmtSplit(s.dur)+"</span>";
@@ -1308,30 +1410,75 @@ function renderBoard(){
     }
   }
 
-  const tot = legTotals(), chips = $("#chips");
+  renderCourse();
+}
+
+/* ---- course panel (U12) --------------------------------------
+   One card per contiguous leg in race order, so transitions are no longer
+   summed into a single "Transition" chip: each one is its own T1/T2/… card
+   sitting where it happens. The swim|T1 / bike / T2|run layout falls out of
+   source order plus the bike card spanning both columns — no fixed grid
+   areas, so a non-standard course still flows sensibly. */
+function courseCards(){
+  let tn = 0;
+  return groups().map(g => {
+    const isT = g.sport === "trans";
+    if(isT) tn++;
+    const dur  = g.items.reduce((a,x)=>a+x.s.dur,0);
+    const dist = g.items.reduce((a,x)=>a+(x.s.dist||0),0);
+    const complete = !SPORTS[g.sport].unit || g.items.every(x => x.s.dist != null);
+    return {sport:g.sport, label:isT ? "T"+tn : SPORTS[g.sport].label, items:g.items, dur, dist, complete};
+  });
+}
+/** Race-day state of one course card against the live snapshot: Done once
+    both its ends carry an actual, Live while the athlete is inside it, Past
+    once the position is beyond it with nothing logged, Upcoming otherwise
+    (with the projected — not the frozen — start clock once a gap is known). */
+function cardLive(card, snap){
+  const first = card.items[0].i, last = card.items[card.items.length-1].i;
+  const planStart = cumulative(first) - card.items[0].s.dur, planEnd = cumulative(last);
+  const acts = (mode === "watch" && activeSession) ? activeSession.actuals : {};
+  const endA = acts[String(last)];
+  const startA = first === 0 ? 0 : acts[String(first-1)];
+  if(endA != null && startA != null){
+    const dur = endA - startA, gap = dur - card.dur;
+    return {state:"done", main:fmtHMS(dur), sub:gapLabel(gap), gap};
+  }
+  if(snap.phase === "before")
+    return {state:"upcoming", main:fmtClock(active.start + planStart), sub:"planned start"};
+  const pos = snap.pos;
+  if(snap.phase !== "after" && pos >= planStart && pos < planEnd)
+    return {state:"live", main:fmtSplit(pos - planStart), sub:"into this leg"};
+  if(pos >= planEnd)
+    return {state:"past", main:"—", sub:"nothing logged"};
+  const off = snap.gapSeconds || 0;
+  return {state:"upcoming", main:fmtClock(active.start + planStart + off), sub:off ? "projected start" : "planned start"};
+}
+function renderCourse(){
+  const chips = $("#chips");
+  if(!chips || !active) return;
+  const snap = (mode === "watch" || mode === "follow") ? liveSnapshot() : null;
+  const sub = $("#course-sub");
+  const t = total();
+  if(sub) sub.textContent = t ? fmtHMS(t) + " planned" : "";
   chips.innerHTML = "";
-  ORDER.forEach(sport => {
-    const v = tot[sport];
-    if(!v) return;
-    const p = v.complete ? paceOf(sport, v.dist, v.dur) : null;
+  courseCards().forEach(c => {
+    const live = (snap && snap.phase !== "empty") ? cardLive(c, snap) : null;
+    const p = c.complete ? paceOf(c.sport, c.dist, c.dur) : null;
     const el = document.createElement("div");
-    el.className = "chip"; el.dataset.sport = sport;
+    el.className = "chip" + (c.sport === "bike" ? " wide" : "") + (c.sport === "trans" ? " trans" : "") +
+                   (live ? " is-" + live.state : "");
+    el.dataset.sport = c.sport;
+    const stateLab = live ? ({done:"Done", live:"On course", past:"No time", upcoming:"Upcoming"})[live.state] : "";
+    const gapCls = (live && live.state === "done" && live.gap) ? (live.gap > 0 ? " behind" : " ahead") : "";
     el.innerHTML =
-      '<div class="name">'+SPORTS[sport].label+'</div>'+
-      '<div class="pace">'+(p ? p.v+' <span class="u">'+p.u+'</span>' : "—")+'</div>'+
-      '<div class="sub">'+fmtHMS(v.dur)+' · '+(v.dist ? fmtDistLabel(sport,v.dist) : "no distance")+'</div>';
+      '<div class="name">'+esc(c.label)+(stateLab ? ' <span class="state">'+stateLab+'</span>' : '')+'</div>'+
+      '<div class="pace">'+(p ? p.v+' <span class="u">'+p.u+'</span>' : fmtHMS(c.dur))+'</div>'+
+      '<div class="sub">'+(p ? fmtHMS(c.dur)+' · ' : '')+
+        (SPORTS[c.sport].unit ? (c.dist ? fmtDistLabel(c.sport, c.dist) : "no distance") : "transition")+'</div>'+
+      (live ? '<div class="live"><b>'+esc(live.main)+'</b><span class="gap'+gapCls+'">'+esc(live.sub)+'</span></div>' : '');
     chips.appendChild(el);
   });
-  const trans = tot.trans;
-  if(trans){
-    const el = document.createElement("div");
-    el.className = "chip trans"; el.dataset.sport = "trans";
-    el.innerHTML =
-      '<div class="name">'+SPORTS.trans.label+'</div>'+
-      '<div class="pace">—</div>'+
-      '<div class="sub">'+fmtHMS(trans.dur)+'</div>';
-    chips.appendChild(el);
-  }
 }
 
 function renderLegs(){
@@ -1425,13 +1572,15 @@ function rowFor(s, i){
     v => { const n = parseFlexDur(v); n!=null ? setCumulative(i,n) : render(); },
     n => setCumulative(i, cum+n)), "Elapsed"));
 
-  row.appendChild(cell(
+  const clockCell = cell(
     mode === "watch"
       ? watchActualCell(s, i)
       : timeField(fmtClock(active.start+cum), "Clock",
           v => { const n = parseFlexDur(v); n!=null ? setCumulative(i, n-active.start) : render(); },
           n => setCumulative(i, cum+n)),
-    "Clock"));
+    mode === "watch" ? "Clock time" : "Clock");
+  if(mode === "watch") clockCell.classList.add("cell-clock");
+  row.appendChild(clockCell);
 
   const pc = document.createElement("div");
   pc.className = "derived pace";
@@ -1566,6 +1715,11 @@ function watchActualCell(s, i){
     if(ev.key === "Escape"){ input.value = actual != null ? fmtClock(active.start + actual) : ""; input.blur(); }
   });
   wrap.appendChild(input);
+
+  const hint = document.createElement("div");
+  hint.className = "watch-clock-hint";
+  hint.innerHTML = ICON_EDIT + '<span>' + (actual != null ? "Recorded — tap to change" : "Tap to log the clock time") + '</span>';
+  wrap.appendChild(hint);
 
   const meta = document.createElement("div");
   meta.className = "watch-clock-meta";
@@ -2057,6 +2211,11 @@ function stopMarker(){
   const pp = $("#pin-plan"), pa = $("#pin-actual");
   if(pp) pp.hidden = true;
   if(pa) pa.hidden = true;
+  lastSnap = null;
+  const jb = $("#jump-live");
+  if(jb) jb.hidden = true;
+  const bar = $("#bar");
+  if(bar) bar.querySelectorAll(".seg.live").forEach(el => el.classList.remove("live"));
 }
 
 function teardownActiveView(){
@@ -2378,75 +2537,117 @@ function gapLabel(gapSeconds){
   if(gapSeconds === 0) return "On pace";
   return fmtHMS(Math.abs(gapSeconds)) + (gapSeconds > 0 ? " behind" : " ahead");
 }
+/** One reading of "where is the athlete now", shared by the pins, the
+    current-segment marker, the course panel and the jump button so they can
+    never disagree. `pos` is the actual-adjusted elapsed-from-gun (the plan
+    position when nothing has been logged yet); `gapSeconds` is unclamped —
+    positive behind, negative ahead — exactly as R24 requires. */
+function liveSnapshot(){
+  const wp = wallPhase();
+  if(wp.phase === "empty") return {phase:"empty"};
+  let pos = wp.phase === "before" ? 0 : (wp.phase === "after" ? wp.t : wp.d);
+  let gapSeconds = null;
+  const lastIdx = lastActualIndex();
+  if(lastIdx >= 0 && wp.phase !== "before"){
+    const lastElapsed = activeSession.actuals[String(lastIdx)];
+    const lastCum = cumulative(lastIdx);
+    gapSeconds = lastElapsed - lastCum;                  // fixed offset, never decays with wall time
+    pos = Math.max(lastCum, wp.d - gapSeconds);          // clamped only at the low end
+  }
+  return {phase:wp.phase, d:wp.d, t:wp.t, pos, gapSeconds, curIdx:sectionAt(pos)};
+}
+/** Index of the section containing an elapsed-from-gun value. */
+function sectionAt(elapsed){
+  let cum = 0;
+  for(let i = 0; i < active.sections.length; i++){
+    cum += active.sections[i].dur;
+    if(elapsed < cum) return i;
+  }
+  return active.sections.length - 1;
+}
+/** U12: rings the timeline segment the athlete is inside right now. */
+function markCurrentSegment(idx){
+  const bar = $("#bar");
+  if(!bar) return;
+  bar.querySelectorAll(".seg.live").forEach(el => el.classList.remove("live"));
+  if(idx == null || idx < 0) return;
+  const el = bar.querySelector('.seg[data-idx="'+idx+'"]');
+  if(el) el.classList.add("live");
+}
+/** U12: the floating "jump to now" button — it points at the checkpoint row
+    for the current segment and hides itself whenever that row is on screen. */
+let lastSnap = null;
+function jumpRow(snap){
+  if(!active || (mode !== "watch" && mode !== "follow")) return null;
+  if(!snap || snap.phase === "empty" || snap.curIdx == null) return null;
+  const s = active.sections[snap.curIdx];
+  return s ? {s, row:document.querySelector('.row[data-id="'+s.id+'"]')} : null;
+}
+function updateJump(){
+  const btn = $("#jump-live");
+  if(!btn) return;
+  const target = jumpRow(lastSnap);
+  if(!target || !target.row){ btn.hidden = true; return; }
+  const r = target.row.getBoundingClientRect();
+  const onScreen = r.top < window.innerHeight - 24 && r.bottom > 56;
+  btn.hidden = onScreen;
+  const lab = $("#jump-live-label");
+  if(lab) lab.textContent = "Now · " + (target.s.name || SPORTS[target.s.sport].label);
+}
+let jumpRaf = null;
+window.addEventListener("scroll", () => {
+  if(jumpRaf) return;
+  jumpRaf = requestAnimationFrame(() => { jumpRaf = null; updateJump(); });
+}, {passive:true});
+const jumpBtn = $("#jump-live");
+if(jumpBtn) jumpBtn.addEventListener("click", () => {
+  const target = jumpRow(lastSnap);
+  if(!target || !target.row) return;
+  target.row.scrollIntoView({block:"center", behavior:"smooth"});
+  if(lastSnap && lastSnap.t) scrollTimelineTo(barPct(Math.min(lastSnap.t, Math.max(0, lastSnap.pos))) / 100);
+});
+
 function paintMarker(){
   const pinPlan = $("#pin-plan"), pinActual = $("#pin-actual"), status = $("#marker-status-text");
   const elapsedEl = $("#watch-elapsed"), gapEl = $("#watch-gap");
   if(!pinPlan || !active) return;
-  const wp = wallPhase();
-  if(wp.phase === "empty"){          // splitless race (F9)
+  const snap = liveSnapshot();
+  lastSnap = snap;
+  if(snap.phase === "empty"){          // splitless race (F9)
     pinPlan.hidden = true;
     if(pinActual) pinActual.hidden = true;
     if(status) status.textContent = "";
     if(elapsedEl) elapsedEl.hidden = true;
     if(gapEl) gapEl.hidden = true;
+    markCurrentSegment(null);
+    updateJump();
     return;
   }
-  const t = wp.t, d = wp.d;
-  let phase, pos, seg = -1, planLabel;
-  if(wp.phase === "mid"){
-    phase = "mid"; pos = d / t;
-    let cum = 0, idx = active.sections.length - 1;
-    for(let i = 0; i < active.sections.length; i++){ cum += active.sections[i].dur; if(d <= cum){ idx = i; break; } }
-    seg = idx;
-    const s = active.sections[idx];
-    planLabel = "On course · " + (s.name || SPORTS[s.sport].label) + " · " + fmtSplit(d - (cum - s.dur)) + " into this segment";
-  }else if(wp.phase === "before"){
-    phase = "before"; pos = 0; planLabel = "Not started — gun at " + fmtClock(active.start);
-  }else{
-    phase = "after"; pos = 1; planLabel = "Finished · " + fmtHMS(t);
-  }
+  const t = snap.t, d = snap.d;
+  const phase = snap.phase;
   pinPlan.hidden = false;
-  const planPct = phase === "mid" ? barPct(d) : pos * 100;
+  const planPct = phase === "mid" ? barPct(d) : (phase === "before" ? 0 : 100);
   pinPlan.style.left = planPct + "%";
   if(markerScrollPending){ markerScrollPending = false; scrollTimelineTo(planPct / 100); }
 
   /* ---- actual pin (U9, R24/KD5) --------------------------------------
-     Only meaningful once a checkpoint has been recorded, and only once
-     the wall clock has an elapsed-from-gun value to compare against (the
-     "before" phase has no such axis — hide it there too, same as the
-     plan pin reading "not started" rather than a fabricated position).
-
-     lastElapsed/lastCum are the last recorded checkpoint's ACTUAL and
-     PLAN elapsed-from-gun. Their difference is a fixed offset — how much
-     longer/shorter the athlete took to reach that checkpoint than the
-     plan predicted — computed the same way revisedElapsed()/
-     revisedFinishElapsed() already treat "continue at plan pace from the
-     last actual", so it deliberately does NOT reset or shrink as more
-     wall-clock time passes with no new actual: that's what keeps a late
-     athlete reading correctly behind long after the frozen finish
-     (traced through the "still on course past the frozen finish" test:
-     d keeps growing past t, gapSeconds stays fixed, so the reported gap
-     holds steady rather than freezing at 0 the way reading it off the
-     clamped pin positions would).
-
-     The pin's PLACEMENT then creeps forward from that checkpoint's own
-     plan-axis position (lastCum) at the same rate as the wall clock —
-     "as if running the revised pace with no new data" — landing exactly
-     on the checkpoint the instant it's entered (d === lastElapsed) and
-     advancing 1:1 with d afterward. Position is clamped to [0,1] for
-     drawing; the gap read-out is NOT clamped (R24), on purpose. */
-  const lastIdx = lastActualIndex();
-  const showActual = lastIdx >= 0 && phase !== "before";
-  let gapSeconds = null;
-  if(showActual){
-    const lastElapsed = activeSession.actuals[String(lastIdx)];
-    const lastCum = cumulative(lastIdx);
-    gapSeconds = lastElapsed - lastCum;                       // unclamped — positive = behind, negative = ahead
-    const actualElapsed = Math.max(lastCum, d - gapSeconds);  // clamped only at the low end, to the checkpoint itself
-    if(pinActual){ pinActual.hidden = false; pinActual.style.left = barPct(Math.min(t, Math.max(0, actualElapsed))) + "%"; }
+     Only meaningful once a checkpoint has been recorded, and only once the
+     wall clock has an elapsed-from-gun value to compare against (the
+     "before" phase has no such axis). Placement creeps forward from the
+     last checkpoint at the wall-clock rate — "as if running the revised
+     pace with no new data" — which is exactly snap.pos; the gap read-out
+     stays unclamped (R24) so a late athlete keeps reading behind long
+     after the frozen finish. */
+  const gapSeconds = snap.gapSeconds;
+  if(gapSeconds != null && pinActual){
+    pinActual.hidden = false;
+    pinActual.style.left = barPct(Math.min(t, Math.max(0, snap.pos))) + "%";
   }else if(pinActual){
     pinActual.hidden = true;
   }
+
+  // U12: ring the segment the athlete is inside (actual position when known).
+  markCurrentSegment(phase === "mid" ? snap.curIdx : null);
 
   // R25: elapsed counter against the gun time, sharing this same tick.
   if(elapsedEl){
@@ -2459,18 +2660,30 @@ function paintMarker(){
   // so it can refresh every tick without triggering a screen-reader announcement.
   if(gapEl){
     gapEl.hidden = gapSeconds == null;
+    gapEl.className = gapSeconds == null ? "" : (gapSeconds > 0 ? "behind" : gapSeconds < 0 ? "ahead" : "");
     if(gapSeconds != null) gapEl.textContent = gapLabel(gapSeconds);
   }
 
-  // Both pins are aria-hidden; announce on a single polite region only when the
-  // combined phase/segment/gap signature changes, so the 1 s tick never spams
-  // screen readers (F14) even though two pins now feed it instead of one.
+  // U12: the status line is now the gap and nothing else while on course —
+  // which segment the athlete is in is said by the timeline marker and the
+  // course panel, so repeating it here (and the seconds-into-the-segment
+  // count) was noise. Before/after still need their own wording.
   const gapSig = gapSeconds == null ? "none" : (gapSeconds > 0 ? "behind" : gapSeconds < 0 ? "ahead" : "even");
-  const sig = phase + "|" + seg + "|" + gapSig;
+  const sig = phase + "|" + snap.curIdx + "|" + gapSig;
   if(sig !== lastMarkerSig){
-    if(status) status.textContent = planLabel + (gapSeconds != null ? " · " + gapLabel(gapSeconds) : "");
+    if(status){
+      // mid-race the gap is already on screen in #watch-gap, so the same words
+      // stay here only as the polite announcement, visually hidden (U12)
+      status.classList.toggle("sr-only", phase === "mid");
+      if(phase === "before") status.textContent = "Not started — gun at " + fmtClock(active.start);
+      else if(phase === "after") status.textContent = "Finished · " + fmtHMS(t);
+      else status.textContent = gapSeconds != null ? gapLabel(gapSeconds) : "";
+    }
     lastMarkerSig = sig;
   }
+
+  renderCourse();     // live per-leg detail rides this same 1 s tick
+  updateJump();
 }
 
 /* Home / library: every saved race with its identity + finish, Watch Live
