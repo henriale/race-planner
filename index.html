@@ -79,7 +79,7 @@ button{font:inherit;color:inherit;cursor:pointer}
 .finish .lab{display:block;font-size:12.5px;color:var(--muted);margin-bottom:-2px}
 .finish .val{font-size:clamp(30px,6vw,52px);line-height:1;font-variation-settings:"wdth" 118,"wght" 700;letter-spacing:-.02em}
 
-.strip{position:relative;padding-bottom:26px}
+.strip{position:relative;padding-top:52px;padding-bottom:26px}
 .bar{display:flex;height:58px;border-radius:8px;overflow:hidden;background:var(--surface-2);border:1px solid var(--rule)}
 .seg{flex-basis:0;min-width:5px;position:relative;display:flex;align-items:center;justify-content:center;border-right:1px solid rgba(255,255,255,.28);cursor:pointer;overflow:hidden}
 .seg:last-child{border-right:0}
@@ -217,10 +217,22 @@ footer{margin-top:30px;color:var(--muted);font-size:12.5px;line-height:1.7}
 .start-val{display:none;font-variant-numeric:tabular-nums}
 .static{padding:6px 8px;font-size:14px;color:var(--ink)}
 .static.num{text-align:right}
-.marker{position:absolute;top:0;height:58px;width:2px;background:var(--ink);transform:translateX(-1px);z-index:5;pointer-events:none;transition:left .9s linear}
-.marker::before{content:"";position:absolute;top:-4px;left:-4px;width:10px;height:10px;border-radius:50%;background:var(--ink);box-shadow:0 0 0 3px var(--surface)}
-.marker[hidden]{display:none}
+/* U9: two deliberate pins (R31) replace the old 2px hairline — plan (hollow,
+   the frozen-plan wallPhase() position, math unchanged) sits just above the
+   bar, actual (filled, derived from the U8 actuals overlay) sits above that,
+   so the two never sit on the same row even when their x positions coincide.
+   Shape/fill (not color alone) is the distinguishing signal, matching the
+   PIN_OUT/PIN_IN vocabulary already used for the map-link icon (KD5). */
+.pin{position:absolute;width:24px;height:24px;transform:translateX(-50%);z-index:5;pointer-events:none;transition:left .9s linear}
+.pin svg{width:100%;height:100%;display:block;filter:drop-shadow(0 2px 3px rgba(0,0,0,.35))}
+.pin[hidden]{display:none}
+.pin-plan{top:26px;color:var(--ink)}
+.pin-actual{top:0;color:var(--focus)}
+.pin-actual svg path{fill:currentColor}
 .marker-status{display:none;margin-top:12px;color:var(--ink-2);font-size:13.5px;font-variation-settings:"wdth" 100,"wght" 560}
+.marker-status p{margin:0}
+.marker-status p+p{margin-top:4px}
+.marker-status #watch-gap{font-variation-settings:"wdth" 100,"wght" 640;color:var(--ink)}
 
 /* ---------- watch actuals: revised finish + per-row/leg states (U8) ---------- */
 .finish-revised{margin-top:2px;display:flex;gap:6px;align-items:baseline;justify-content:flex-end}
@@ -320,10 +332,15 @@ footer{margin-top:30px;color:var(--muted);font-size:12.5px;line-height:1.7}
     </div>
     <div class="strip">
       <div class="bar" id="bar"></div>
-      <div class="marker" id="marker" aria-hidden="true" hidden></div>
+      <div class="pin pin-plan" id="pin-plan" aria-hidden="true" hidden></div>
+      <div class="pin pin-actual" id="pin-actual" aria-hidden="true" hidden></div>
       <div class="ticks" id="ticks"></div>
     </div>
-    <div class="marker-status" id="marker-status" role="status" aria-live="polite"></div>
+    <div class="marker-status" id="marker-status">
+      <p id="marker-status-text" role="status" aria-live="polite"></p>
+      <p id="watch-elapsed" hidden></p>
+      <p id="watch-gap" hidden></p>
+    </div>
     <div class="chips" id="chips"></div>
   </section>
 
@@ -1098,6 +1115,12 @@ const legsEl = $("#legs");
 const PIN_OUT = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s7-6.2 7-11a7 7 0 1 0-14 0c0 4.8 7 11 7 11z" fill="none" stroke="currentColor" stroke-width="1.7"/><circle cx="12" cy="10" r="2.4" fill="none" stroke="currentColor" stroke-width="1.7"/></svg>';
 const PIN_IN  = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s7-6.2 7-11a7 7 0 1 0-14 0c0 4.8 7 11 7 11zm0-8.6a2.4 2.4 0 1 1 0-4.8 2.4 2.4 0 0 1 0 4.8z"/></svg>';
 const GRIP = '<svg viewBox="0 0 8 14" aria-hidden="true"><circle cx="2" cy="2" r="1.3"/><circle cx="6" cy="2" r="1.3"/><circle cx="2" cy="7" r="1.3"/><circle cx="6" cy="7" r="1.3"/><circle cx="2" cy="12" r="1.3"/><circle cx="6" cy="12" r="1.3"/></svg>';
+// U9: pin icons are static per page load — set once rather than every paintMarker() tick.
+(function initTimelinePins(){
+  const pp = document.getElementById("pin-plan"), pa = document.getElementById("pin-actual");
+  if(pp) pp.innerHTML = PIN_OUT;
+  if(pa) pa.innerHTML = PIN_IN;
+})();
 
 /** Masthead reflects the active race's identity + leg distances, derived
     from the sections themselves (R9) rather than any stored per-race total. */
@@ -2081,10 +2104,10 @@ async function refreshUrl(){
 
 /* ---- live position marker (wall-clock driven, KTD5) ---- */
 function nowClockSeconds(){ const n = new Date(); return n.getHours()*3600 + n.getMinutes()*60 + n.getSeconds(); }
-let lastMarkerPhase = null, lastMarkerSeg = null;
+let lastMarkerSig = null;
 function startMarker(){
   stopMarker();
-  lastMarkerPhase = null; lastMarkerSeg = null;
+  lastMarkerSig = null;
   paintMarker();
   const reduced = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   if(!reduced) markerTimer = setInterval(paintMarker, 1000);   // reduced motion -> single static paint
@@ -2103,32 +2126,102 @@ function wallPhase(){
   if((86400 - d) < (d - t)) return {phase:"before", d, t};
   return {phase:"after", d, t};
 }
+/** "Behind"/"ahead" wording for a signed gap in seconds (R24). */
+function gapLabel(gapSeconds){
+  if(gapSeconds === 0) return "On pace";
+  return fmtHMS(Math.abs(gapSeconds)) + (gapSeconds > 0 ? " behind" : " ahead");
+}
 function paintMarker(){
-  const marker = $("#marker"), status = $("#marker-status");
-  if(!marker || !active) return;
+  const pinPlan = $("#pin-plan"), pinActual = $("#pin-actual"), status = $("#marker-status-text");
+  const elapsedEl = $("#watch-elapsed"), gapEl = $("#watch-gap");
+  if(!pinPlan || !active) return;
   const wp = wallPhase();
-  if(wp.phase === "empty"){ marker.hidden = true; if(status) status.textContent = ""; return; }   // splitless race (F9)
+  if(wp.phase === "empty"){          // splitless race (F9)
+    pinPlan.hidden = true;
+    if(pinActual) pinActual.hidden = true;
+    if(status) status.textContent = "";
+    if(elapsedEl) elapsedEl.hidden = true;
+    if(gapEl) gapEl.hidden = true;
+    return;
+  }
   const t = wp.t, d = wp.d;
-  let phase, pos, seg = -1, label;
+  let phase, pos, seg = -1, planLabel;
   if(wp.phase === "mid"){
     phase = "mid"; pos = d / t;
     let cum = 0, idx = active.sections.length - 1;
     for(let i = 0; i < active.sections.length; i++){ cum += active.sections[i].dur; if(d <= cum){ idx = i; break; } }
     seg = idx;
     const s = active.sections[idx];
-    label = "On course · " + (s.name || SPORTS[s.sport].label) + " · " + fmtSplit(d - (cum - s.dur)) + " into this segment";
+    planLabel = "On course · " + (s.name || SPORTS[s.sport].label) + " · " + fmtSplit(d - (cum - s.dur)) + " into this segment";
   }else if(wp.phase === "before"){
-    phase = "before"; pos = 0; label = "Not started — gun at " + fmtClock(active.start);
+    phase = "before"; pos = 0; planLabel = "Not started — gun at " + fmtClock(active.start);
   }else{
-    phase = "after"; pos = 1; label = "Finished · " + fmtHMS(t);
+    phase = "after"; pos = 1; planLabel = "Finished · " + fmtHMS(t);
   }
-  marker.hidden = false;
-  marker.style.left = (pos * 100) + "%";
-  // The marker is aria-hidden; announce position on a polite region only when the phase
-  // or segment changes, so the 1 s tick does not spam screen readers (F14).
-  if(phase !== lastMarkerPhase || seg !== lastMarkerSeg){
-    if(status) status.textContent = label;
-    lastMarkerPhase = phase; lastMarkerSeg = seg;
+  pinPlan.hidden = false;
+  pinPlan.style.left = (pos * 100) + "%";
+
+  /* ---- actual pin (U9, R24/KD5) --------------------------------------
+     Only meaningful once a checkpoint has been recorded, and only once
+     the wall clock has an elapsed-from-gun value to compare against (the
+     "before" phase has no such axis — hide it there too, same as the
+     plan pin reading "not started" rather than a fabricated position).
+
+     lastElapsed/lastCum are the last recorded checkpoint's ACTUAL and
+     PLAN elapsed-from-gun. Their difference is a fixed offset — how much
+     longer/shorter the athlete took to reach that checkpoint than the
+     plan predicted — computed the same way revisedElapsed()/
+     revisedFinishElapsed() already treat "continue at plan pace from the
+     last actual", so it deliberately does NOT reset or shrink as more
+     wall-clock time passes with no new actual: that's what keeps a late
+     athlete reading correctly behind long after the frozen finish
+     (traced through the "still on course past the frozen finish" test:
+     d keeps growing past t, gapSeconds stays fixed, so the reported gap
+     holds steady rather than freezing at 0 the way reading it off the
+     clamped pin positions would).
+
+     The pin's PLACEMENT then creeps forward from that checkpoint's own
+     plan-axis position (lastCum) at the same rate as the wall clock —
+     "as if running the revised pace with no new data" — landing exactly
+     on the checkpoint the instant it's entered (d === lastElapsed) and
+     advancing 1:1 with d afterward. Position is clamped to [0,1] for
+     drawing; the gap read-out is NOT clamped (R24), on purpose. */
+  const lastIdx = lastActualIndex();
+  const showActual = lastIdx >= 0 && phase !== "before";
+  let gapSeconds = null;
+  if(showActual){
+    const lastElapsed = activeSession.actuals[String(lastIdx)];
+    const lastCum = cumulative(lastIdx);
+    gapSeconds = lastElapsed - lastCum;                       // unclamped — positive = behind, negative = ahead
+    const actualElapsed = Math.max(lastCum, d - gapSeconds);  // clamped only at the low end, to the checkpoint itself
+    const actualPos = Math.min(1, Math.max(0, actualElapsed / t));
+    if(pinActual){ pinActual.hidden = false; pinActual.style.left = (actualPos * 100) + "%"; }
+  }else if(pinActual){
+    pinActual.hidden = true;
+  }
+
+  // R25: elapsed counter against the gun time, sharing this same tick.
+  if(elapsedEl){
+    elapsedEl.hidden = false;
+    if(phase === "before") elapsedEl.textContent = "Starts in " + fmtHMS(86400 - d);
+    else if(phase === "mid") elapsedEl.textContent = "Elapsed " + fmtHMS(d);
+    else elapsedEl.textContent = "Finished in " + fmtHMS(t);
+  }
+  // R24 visible gap read-out — separate from the aria-live phase announcement below,
+  // so it can refresh every tick without triggering a screen-reader announcement.
+  if(gapEl){
+    gapEl.hidden = gapSeconds == null;
+    if(gapSeconds != null) gapEl.textContent = gapLabel(gapSeconds);
+  }
+
+  // Both pins are aria-hidden; announce on a single polite region only when the
+  // combined phase/segment/gap signature changes, so the 1 s tick never spams
+  // screen readers (F14) even though two pins now feed it instead of one.
+  const gapSig = gapSeconds == null ? "none" : (gapSeconds > 0 ? "behind" : gapSeconds < 0 ? "ahead" : "even");
+  const sig = phase + "|" + seg + "|" + gapSig;
+  if(sig !== lastMarkerSig){
+    if(status) status.textContent = planLabel + (gapSeconds != null ? " · " + gapLabel(gapSeconds) : "");
+    lastMarkerSig = sig;
   }
 }
 
