@@ -204,6 +204,12 @@ footer{margin-top:30px;color:var(--muted);font-size:12.5px;line-height:1.7}
 .leg-tot .fin{font-variation-settings:"wdth" 104,"wght" 660;color:var(--ink);font-size:16px}
 .race-card .leg-foot{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
 .race-card .leg-foot .spread{margin-right:auto}
+.race-card .leg-foot .btn.primary{padding:9px 18px;font-size:14.5px}
+.card-menu-wrap{position:relative}
+.card-menu{position:fixed;min-width:150px;background:var(--surface);border:1px solid var(--rule);border-radius:10px;box-shadow:0 14px 30px -14px rgba(0,0,0,.35);padding:6px;display:flex;flex-direction:column;gap:1px;z-index:50}
+.card-menu[hidden]{display:none}
+.card-menu-item{background:transparent;border:0;border-radius:6px;text-align:left;padding:8px 10px;font-size:13.5px;color:inherit;font:inherit;cursor:pointer}
+.card-menu-item:hover,.card-menu-item:focus-visible{background:var(--surface-2)}
 .home-empty{padding:44px 20px;text-align:center;color:var(--muted);border:1px dashed var(--rule);border-radius:14px;font-size:14px}
 
 /* ---------- editable masthead name ---------- */
@@ -1115,6 +1121,7 @@ const legsEl = $("#legs");
 const PIN_OUT = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s7-6.2 7-11a7 7 0 1 0-14 0c0 4.8 7 11 7 11z" fill="none" stroke="currentColor" stroke-width="1.7"/><circle cx="12" cy="10" r="2.4" fill="none" stroke="currentColor" stroke-width="1.7"/></svg>';
 const PIN_IN  = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s7-6.2 7-11a7 7 0 1 0-14 0c0 4.8 7 11 7 11zm0-8.6a2.4 2.4 0 1 1 0-4.8 2.4 2.4 0 0 1 0 4.8z"/></svg>';
 const GRIP = '<svg viewBox="0 0 8 14" aria-hidden="true"><circle cx="2" cy="2" r="1.3"/><circle cx="6" cy="2" r="1.3"/><circle cx="2" cy="7" r="1.3"/><circle cx="6" cy="7" r="1.3"/><circle cx="2" cy="12" r="1.3"/><circle cx="6" cy="12" r="1.3"/></svg>';
+const COG = '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="1.7" d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7z"/><path fill="none" stroke="currentColor" stroke-width="1.7" d="M19.4 13.5c.04-.33.06-.66.06-1s-.02-.67-.06-1l2.02-1.58a.5.5 0 0 0 .12-.64l-1.92-3.32a.5.5 0 0 0-.6-.22l-2.38.96a7.4 7.4 0 0 0-1.73-1l-.36-2.53a.5.5 0 0 0-.5-.42h-3.84a.5.5 0 0 0-.5.42l-.36 2.53c-.63.24-1.21.58-1.73 1l-2.38-.96a.5.5 0 0 0-.6.22L2.7 9.28a.5.5 0 0 0 .12.64L4.84 11.5c-.04.33-.06.66-.06 1s.02.67.06 1L2.82 15.08a.5.5 0 0 0-.12.64l1.92 3.32a.5.5 0 0 0 .6.22l2.38-.96c.52.42 1.1.76 1.73 1l.36 2.53a.5.5 0 0 0 .5.42h3.84a.5.5 0 0 0 .5-.42l.36-2.53c.63-.24 1.21-.58 1.73-1l2.38.96a.5.5 0 0 0 .6-.22l1.92-3.32a.5.5 0 0 0-.12-.64L19.4 13.5z"/></svg>';
 // U9: pin icons are static per page load — set once rather than every paintMarker() tick.
 (function initTimelinePins(){
   const pp = document.getElementById("pin-plan"), pa = document.getElementById("pin-actual");
@@ -2225,8 +2232,9 @@ function paintMarker(){
   }
 }
 
-/* Home / library: every saved race with its identity + finish, and per-race
-   Open / Follow / Rename / Duplicate / Delete actions (R1-R4). */
+/* Home / library: every saved race with its identity + finish, Watch Live
+   as the dominant action, and Edit / Rename / Duplicate / Delete tucked
+   behind one cog menu (R1-R3, U5). */
 function renderHome(){
   const el = $("#home-view");
   if(!el) return;
@@ -2241,7 +2249,7 @@ function renderHome(){
   }else{
     html += '<div class="legs">';
     races.forEach(r => {
-      const id = encodeURIComponent(r.id);
+      const id = esc(r.id);
       const t = r.finish || 0;
       const hasStart = typeof r.start === "number";
       const clocks = hasStart
@@ -2254,11 +2262,16 @@ function renderHome(){
             '<span class="fin">'+(t ? fmtHMS(t) : "—")+'</span></div>'+
         '</div>'+clocks+
         '<div class="leg-foot">'+
-          '<a class="btn primary" href="#/race/'+id+'/edit">Open</a>'+
-          '<a class="btn" href="#/race/'+id+'/follow">Follow</a>'+
-          '<button class="btn ghost spread" data-act="rename" data-id="'+esc(r.id)+'">Rename</button>'+
-          '<button class="btn ghost" data-act="dup" data-id="'+esc(r.id)+'">Duplicate</button>'+
-          '<button class="btn ghost" data-act="del" data-id="'+esc(r.id)+'">Delete</button>'+
+          '<button class="btn primary spread" type="button" data-act="watch" data-id="'+id+'">Watch Live</button>'+
+          '<div class="card-menu-wrap">'+
+            '<button class="icon" type="button" data-act="menu" data-id="'+id+'" aria-haspopup="true" aria-expanded="false" aria-label="More actions" title="More actions">'+COG+'</button>'+
+            '<div class="card-menu" role="menu" hidden>'+
+              '<button class="card-menu-item" type="button" role="menuitem" data-act="edit" data-id="'+id+'">Edit</button>'+
+              '<button class="card-menu-item" type="button" role="menuitem" data-act="rename" data-id="'+id+'">Rename</button>'+
+              '<button class="card-menu-item" type="button" role="menuitem" data-act="dup" data-id="'+id+'">Duplicate</button>'+
+              '<button class="card-menu-item" type="button" role="menuitem" data-act="del" data-id="'+id+'">Delete</button>'+
+            '</div>'+
+          '</div>'+
         '</div>'+
       '</section>';
     });
@@ -2267,17 +2280,82 @@ function renderHome(){
   el.innerHTML = html;
 }
 
+/** Closes any open card menu; restores focus to its cog trigger unless
+    the caller passes focusTrigger:false (used by the click-outside/select
+    paths, where focus should just land wherever the click went). */
+function closeCardMenu(focusTrigger){
+  const open = document.querySelector("#home-view .card-menu:not([hidden])");
+  if(!open) return;
+  open.hidden = true;
+  const trigger = open.previousElementSibling;
+  if(trigger) trigger.setAttribute("aria-expanded", "false");
+  if(focusTrigger !== false && trigger) trigger.focus();
+}
+
+/** Positions a fixed-position card menu against its cog trigger — fixed
+    (not the card's local absolute) so the card's overflow:hidden (needed
+    for its rounded corners) never clips the menu, and viewport edges are
+    clamped so it stays on screen at narrow widths. */
+function positionCardMenu(btn, menu){
+  const r = btn.getBoundingClientRect();
+  const mw = menu.offsetWidth || 150;
+  let left = r.right - mw;
+  left = Math.max(8, Math.min(left, window.innerWidth - mw - 8));
+  let top = r.bottom + 6;
+  if(top + menu.offsetHeight > window.innerHeight - 8) top = r.top - menu.offsetHeight - 6;
+  menu.style.left = left + "px";
+  menu.style.top = top + "px";
+}
+
 /* One delegated handler on the (persistent) home container survives every
-   renderHome() rebuild — no per-mount rebinding, no listener growth. */
-$("#home-view").addEventListener("click", e => {
+   renderHome() rebuild — no per-mount rebinding, no listener growth. Watch
+   Live is resolved to a token only at click time (mirrors the masthead
+   Share button, U4) so renderHome() itself stays fully synchronous. */
+$("#home-view").addEventListener("click", async e => {
   const btn = e.target.closest("[data-act]");
-  if(!btn) return;
+  if(!btn){
+    closeCardMenu(false);
+    return;
+  }
   const act = btn.dataset.act, id = btn.dataset.id;
+  if(act === "menu"){
+    const menu = btn.nextElementSibling;
+    const isOpen = !menu.hidden;
+    closeCardMenu(false);
+    if(!isOpen){
+      menu.hidden = false;
+      btn.setAttribute("aria-expanded", "true");
+      positionCardMenu(btn, menu);
+    }
+    return;
+  }
+  if(act !== "watch") closeCardMenu(false);
   if(act === "new"){ const r = createRace({}); location.hash = "#/race/" + encodeURIComponent(r.id) + "/edit"; }
+  else if(act === "watch"){
+    const race = loadRace(id);
+    if(!race){ toast("That race is no longer here"); renderHome(); return; }
+    const token = await encodeToken(toRaceText(race));
+    location.hash = "#/race/" + token;
+  }
+  else if(act === "edit") location.hash = "#/race/" + encodeURIComponent(id) + "/edit";
   else if(act === "rename") openRename(id);
   else if(act === "dup") duplicateRace(id);
   else if(act === "del") doDeleteRace(id);
 });
+
+/* Registered once (not per-card): Escape closes an open card menu and
+   returns focus to its cog; any other click outside a menu closes it too
+   (the #home-view listener above already handles clicks inside the view
+   that miss a [data-act], so this only needs to cover clicks elsewhere). */
+document.addEventListener("keydown", e => {
+  if(e.key === "Escape") closeCardMenu();
+});
+document.addEventListener("click", e => {
+  if(e.target.closest("#home-view")) return;
+  closeCardMenu(false);
+});
+window.addEventListener("scroll", () => closeCardMenu(false), true);
+window.addEventListener("resize", () => closeCardMenu(false));
 
 const renamedlg = $("#renamedlg");
 let renameId = null;
