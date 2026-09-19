@@ -273,6 +273,7 @@ footer{margin-top:30px;color:var(--muted);font-size:12.5px;line-height:1.7}
       <a class="btn ghost" id="btn-back" href="#/">← Races</a>
       <a class="btn" id="watch-live" href="#/">Watch live</a>
       <a class="btn" id="open-edit" href="#/">Open in edit</a>
+      <button class="btn ghost" id="btn-watch-reset" type="button" hidden>Reset watch</button>
       <button class="btn primary" id="btn-import">Paste results</button>
       <button class="btn" id="btn-copy">Copy data</button>
       <button class="btn" id="btn-share">Share link</button>
@@ -593,13 +594,130 @@ function migrateBackfillIndex(){
   storageSet(MIGRATED_KEY_V3, "1");
 }
 
+/* ---- watch sessions (U7, KTD5) --------------------------------
+   A watch session is its own stored record, addressed by its own id —
+   not a race id — and outlives no race in particular: it holds the
+   library race id it was started from (nullable — a session can start
+   from a transient/unsaved link), a FROZEN copy of the plan's canonical
+   text (from toRaceText() at freeze time, only ever rewritten by
+   resetWatchSession()), and a sparse {sectionIndex: elapsedSeconds}
+   actuals map (U8 fills this in). Storage mirrors the race library split
+   exactly: one light index (id/raceId/digest/createdAt) plus one blob per
+   session, so a bare-token watch route can find "this browser's most
+   recent session for this plan" without loading every blob, and a
+   watchId route can jump straight to one by key. Nothing ever deletes a
+   watch session (unlike races) — see the plan's System-Wide Impact notes. */
+const WATCH_INDEX_KEY = "race-splits:watch-index";
+const watchKey = id => "race-splits:watch:" + id;
+
+function readWatchIndex(){
+  const raw = storageGet(WATCH_INDEX_KEY);
+  if(!raw) return [];
+  try{ const a = JSON.parse(raw); return Array.isArray(a) ? a : []; }catch(e){ return []; }
+}
+function writeWatchIndex(arr){ storageSet(WATCH_INDEX_KEY, JSON.stringify(arr)); }
+/** Light index entry: digest is over the session's (possibly re-frozen)
+    planText, recomputed by saveWatchSession() every time it is called —
+    including from resetWatchSession(), so a reset session is still
+    findable by its new digest. */
+function watchIndexEntry(session){
+  return {id:session.id, raceId:session.raceId, digest:digestText(session.planText), createdAt:session.createdAt};
+}
+
+/** Accepts a stored blob; returns a clean session or null. Mirrors
+    normalize()'s field-by-field defensive style — a malformed record is
+    discarded rather than partially trusted. */
+function normalizeWatch(obj){
+  if(!obj || typeof obj !== "object") return null;
+  if(typeof obj.id !== "string" || !obj.id) return null;
+  if(typeof obj.planText !== "string" || !obj.planText) return null;
+  if(parseRaceText(obj.planText).error) return null;   // frozen text must still parse
+  const actuals = {};
+  if(obj.actuals && typeof obj.actuals === "object"){
+    Object.keys(obj.actuals).forEach(k => {
+      const v = obj.actuals[k];
+      if(typeof v === "number" && isFinite(v) && v >= 0) actuals[k] = v;
+    });
+  }
+  return {
+    id: obj.id,
+    raceId: typeof obj.raceId === "string" ? obj.raceId : null,
+    planText: obj.planText,
+    actuals,
+    createdAt: typeof obj.createdAt === "number" ? obj.createdAt : Date.now()
+  };
+}
+
+function loadWatchSession(id){
+  if(!id) return null;
+  const raw = storageGet(watchKey(id));
+  if(!raw) return null;
+  try{ return normalizeWatch(JSON.parse(raw)); }catch(e){ return null; }
+}
+/** Persist a session blob and upsert its index entry. */
+function saveWatchSession(session){
+  storageSet(watchKey(session.id), JSON.stringify(session));
+  const idx = readWatchIndex();
+  const at = idx.findIndex(e => e.id === session.id);
+  if(at >= 0) idx[at] = watchIndexEntry(session); else idx.push(watchIndexEntry(session));
+  writeWatchIndex(idx);
+  return session;
+}
+function createWatchSession(raceId, planText){
+  return saveWatchSession({id:uid(), raceId: raceId || null, planText, actuals:{}, createdAt:Date.now()});
+}
+/** Finds this browser's most recent watch session frozen against a plan
+    whose canonical text digests to `digest` (bare-token resolution).
+    Ties broken by most-recently-created, same tie-break shape as
+    findRaceByDigest(). */
+function findWatchSessionByDigest(digest){
+  const entries = readWatchIndex().slice().sort((a,b) => (b.createdAt||0) - (a.createdAt||0));
+  for(const entry of entries){
+    if(entry.digest !== digest) continue;
+    const session = loadWatchSession(entry.id);
+    if(session) return session;
+  }
+  return null;
+}
+/** R28: clears actuals and re-freezes planText from the session's raceId
+    CURRENT library text. Graceful no-op on the plan side (only actuals
+    clear) when raceId is null or no longer in the library — the same
+    degrade path a session started from someone else's shared link
+    always lives with, since it never had a raceId to re-freeze from. */
+function resetWatchSession(){
+  if(!activeSession) return;
+  const before = JSON.stringify(activeSession);
+  const race = activeSession.raceId ? loadRace(activeSession.raceId) : null;
+  activeSession.actuals = {};
+  if(race) activeSession.planText = toRaceText(race);
+  saveWatchSession(activeSession);
+  mountWatchFromSession(activeSession);
+  toast("Watch session reset", () => {
+    const restored = normalizeWatch(JSON.parse(before));
+    if(!restored) return;
+    activeSession = restored;
+    saveWatchSession(activeSession);
+    mountWatchFromSession(activeSession);
+  });
+}
+
 /* The app mounts one race at a time. `active` is the mounted race context;
    `mode` is the current view; `readOnly` suppresses editing (follow mode).
    undoStack + selected reset on every mount, so nothing leaks across races.
    `transientRace` marks a race mounted from a link that is not (yet) saved
    to this library (R18) — `active.id` is null for as long as it is true.
    `activeWatchId` is the watch-session id from a "/race/<token>/watch/<id>"
-   route; unused until U7 builds the real watch session. */
+   route, kept in sync with `activeSession.id` (U7). `activeSession` is the
+   full loaded/created watch-session record (KTD5: {id,raceId,planText,
+   actuals,createdAt}) — set only while mode === "watch", null otherwise.
+   `active` while watching is a race-SHAPED object parsed from the
+   session's frozen planText, not the library race itself (that is what
+   makes a running session immune to a later plan edit); its `id` is
+   session.raceId (nullable) so refreshRaceChrome's watch-live/open-edit
+   links still point at the real library race when one backs the session.
+   A watch session is deliberately NOT `transientRace` — that flag stays
+   about the distinct R18 "unsaved link-shared race" concept and is
+   always false in watch mode, even when session.raceId is null. */
 let active = null;
 let mode = "home";
 let readOnly = false;
@@ -607,6 +725,7 @@ let undoStack = [];
 let selected = null;
 let transientRace = false;
 let activeWatchId = null;
+let activeSession = null;
 function snapshot(){
   if(!active) return;
   undoStack.push(JSON.stringify(active));
@@ -1469,6 +1588,9 @@ $("#btn-share").addEventListener("click", async () => {
 const saveStripBtn = $("#save-strip-btn");
 if(saveStripBtn) saveStripBtn.addEventListener("click", saveTransientRace);
 
+const watchResetBtn = $("#btn-watch-reset");
+if(watchResetBtn) watchResetBtn.addEventListener("click", resetWatchSession);
+
 let toastTimer = null, toastAction = null;
 function toast(msg, action){
   const t = $("#toast");
@@ -1513,9 +1635,10 @@ function focusHeading(viewId){                       // F11: land AT/keyboard fo
                                       as an id FIRST (legacy bookmark); a
                                       token only when no index entry matches
      "/race/<x>/follow"           -> same id-first rule
-     "/race/<token>/watch/<wid>"  -> parses; U7 builds the actual session
-     "/race/<token>"  (bare)      -> watch (KTD10) — parsed, mounted via the
-                                      watch stub below until U7 lands
+     "/race/<token>/watch/<wid>"  -> that exact watch session, by id (U7)
+     "/race/<token>"  (bare)      -> watch (KTD10) — this browser's most
+                                      recent session for that plan, or a
+                                      new one (U7)
    A legacy id and a token are the same URL shape: the existing 7-char
    uid() is itself valid base64url, so the id-vs-token distinction is
    resolved by looking the string up in the index, never by its shape. */
@@ -1609,19 +1732,19 @@ async function mountFromToken(token, view, watchId, mySeq){
   const digest = digestText(decoded.text);
   const stored = findRaceByDigest(digest);
   if(stored){
-    mountRace(stored, view, mySeq, watchId, {});
+    mountRace(stored, view, mySeq, watchId, {}, digest);
   }else{
     const transient = {id:null, name:parsed.name, start:parsed.start, sections:parsed.sections, savedAt:null};
-    mountRace(transient, view, mySeq, watchId, {transient:true});
+    mountRace(transient, view, mySeq, watchId, {transient:true}, digest);
   }
   lastMountedHash = location.hash;
 }
 
-function mountRace(race, view, mySeq, watchId, opts){
+function mountRace(race, view, mySeq, watchId, opts, digest){
   if(mySeq !== routeSeq) return;                       // stale by the time decode/lookup settled
   if(view === "edit") return mountEdit(race, opts);
   if(view === "follow") return mountFollow(race, opts);
-  return mountWatch(race, watchId, opts);
+  return mountWatch(race, watchId, opts, digest);
 }
 
 function applyReadOnly(ro){
@@ -1631,23 +1754,32 @@ function applyReadOnly(ro){
 }
 
 /** Sets watch-live/open-edit hrefs (hidden entirely for a transient race,
-    which has no id to link to) and toggles the CSS hook that hides them. */
+    which has no id to link to) and toggles the CSS hook that hides them.
+    The `active.id` guard covers watch mode too: a watch session with no
+    backing library race (session.raceId null) mounts a frozen race-shaped
+    `active` with `id: null` while leaving transientRace false (U7 — that
+    flag is reserved for the distinct R18 concept), so this link-hiding
+    logic keys off `active.id` rather than transientRace alone. */
 function refreshRaceChrome(){
   const rv = $("#race-view");
   if(rv) rv.classList.toggle("transient-race", transientRace);
   const wl = $("#watch-live");
-  if(wl && !transientRace) wl.href = "#/race/" + encodeURIComponent(active.id) + "/follow";
+  if(wl && !transientRace && active.id) wl.href = "#/race/" + encodeURIComponent(active.id) + "/follow";
   const oe = $("#open-edit");
-  if(oe && !transientRace) oe.href = "#/race/" + encodeURIComponent(active.id) + "/edit";
+  if(oe && !transientRace && active.id) oe.href = "#/race/" + encodeURIComponent(active.id) + "/edit";
 }
 function renderSaveStrip(){
   const el = $("#save-strip");
   if(el) el.hidden = !transientRace;
 }
+function renderWatchReset(){
+  const el = $("#btn-watch-reset");
+  if(el) el.hidden = mode !== "watch";
+}
 
 function mountHome(){
   mode = "home"; active = null; readOnly = false; selected = null; undoStack = [];
-  transientRace = false; activeWatchId = null;
+  transientRace = false; activeWatchId = null; activeSession = null;
   renderHome();
   show("home-view");
   document.title = "Race splits";
@@ -1656,42 +1788,67 @@ function mountHome(){
 function mountEdit(race, opts){
   opts = opts || {};
   mode = "edit"; active = race; selected = null; undoStack = [];
-  transientRace = !!opts.transient; activeWatchId = null;
+  transientRace = !!opts.transient; activeWatchId = null; activeSession = null;
   applyReadOnly(false);
   refreshRaceChrome();
   show("race-view");
   render();
   showSaved();
   renderSaveStrip();
+  renderWatchReset();
   document.title = (race.name || "Untitled race") + " — Splits";
   focusHeading("race-view");
 }
 function mountFollow(race, opts){
   opts = opts || {};
   mode = "follow"; active = race; selected = null; undoStack = [];
-  transientRace = !!opts.transient; activeWatchId = null;
+  transientRace = !!opts.transient; activeWatchId = null; activeSession = null;
   applyReadOnly(true);
   refreshRaceChrome();
   show("race-view");
   render();                 // readOnly render: static fields, no chrome
   showSaved();
   renderSaveStrip();
+  renderWatchReset();
   startMarker();
   document.title = (race.name || "Untitled race") + " — Live";
   focusHeading("race-view");
 }
-/* Watch mode (KTD10) doesn't exist yet — U7 builds the real session (join
-   by watchId, live position from other viewers). Until then, a bare
-   "#/race/<token>" or a "/watch/<id>" route lands here, which just reuses
-   the read-only follow render so the route has somewhere safe to go
-   instead of crashing. TODO(U7): replace this function's body with the
-   real watch session; parseHash/mountFromToken/mountRace above should not
-   need to change. */
-function mountWatch(race, watchId, opts){
-  activeWatchId = watchId || null;
-  mountFollow(race, opts);
-  mode = "watch";                                      // so refreshUrl() writes a watch-shaped hash
-  activeWatchId = watchId || null;                      // mountFollow reset it; restore after
+/** Watch mode (U7): runs inside a named session that owns its own frozen
+    copy of the plan (KTD5/KD2). `race` here is whatever mountFromToken
+    resolved for the token (a library race or a transient one) — it is
+    ONLY used to seed a brand-new session's frozen text/raceId; once a
+    session exists (found by watchId or by digest), rendering comes
+    entirely from the session's stored planText, never from `race` again,
+    so a later edit to the library race cannot reach a running session.
+    `digest` is the incoming link's plan digest, computed by
+    mountFromToken — used for the bare-token "resume this browser's most
+    recent session for this plan, else start one" resolution (R20). */
+function mountWatch(race, watchId, opts, digest){
+  let session = watchId ? loadWatchSession(watchId) : null;
+  if(watchId && !session) toast("That watch session is no longer here — starting a new one");
+  if(!session) session = findWatchSessionByDigest(digest) || createWatchSession(race.id, toRaceText(race));
+  mountWatchFromSession(session);
+}
+/** Mounts (or re-mounts, after reset) a watch session from its own
+    stored/frozen planText — never from the live library race (this is
+    what keeps a running session immune to a later split edit, AE2). */
+function mountWatchFromSession(session){
+  const parsed = parseRaceText(session.planText);   // normalizeWatch() already guaranteed this parses
+  const frozen = {id: session.raceId || null, name:parsed.name, start:parsed.start, sections:parsed.sections, savedAt:null};
+  mode = "watch"; active = frozen; selected = null; undoStack = [];
+  transientRace = false; activeSession = session; activeWatchId = session.id;
+  applyReadOnly(true);
+  refreshRaceChrome();
+  show("race-view");
+  render();
+  showSaved();
+  renderSaveStrip();
+  renderWatchReset();
+  startMarker();
+  document.title = (frozen.name || "Untitled race") + " — Watch";
+  focusHeading("race-view");
+  refreshUrl();             // writes the "/watch/<id>" URL once the session id is known (R20)
 }
 
 /** Persists a transient (link-only) race as a new library race (R18) —
