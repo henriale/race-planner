@@ -221,6 +221,22 @@ footer{margin-top:30px;color:var(--muted);font-size:12.5px;line-height:1.7}
 .marker::before{content:"";position:absolute;top:-4px;left:-4px;width:10px;height:10px;border-radius:50%;background:var(--ink);box-shadow:0 0 0 3px var(--surface)}
 .marker[hidden]{display:none}
 .marker-status{display:none;margin-top:12px;color:var(--ink-2);font-size:13.5px;font-variation-settings:"wdth" 100,"wght" 560}
+
+/* ---------- watch actuals: revised finish + per-row/leg states (U8) ---------- */
+.finish-revised{margin-top:2px;display:flex;gap:6px;align-items:baseline;justify-content:flex-end}
+.finish-revised .lab{font-size:11px;color:var(--muted)}
+.finish-revised .val{font-size:20px;line-height:1;color:var(--focus);font-variation-settings:"wdth" 112,"wght" 680;letter-spacing:-.01em}
+.finish-revised[hidden]{display:none}
+
+.watch-clock{display:flex;flex-direction:column;gap:2px}
+.watch-clock input.f{font-variation-settings:"wdth" 100,"wght" 640}
+.watch-clock-meta{display:flex;gap:8px;font-size:10.5px;color:var(--muted);padding:0 8px;white-space:nowrap}
+.watch-clock-meta .revised{color:var(--focus);font-variation-settings:"wdth" 100,"wght" 640}
+
+.row.watch-finished{background:color-mix(in srgb,var(--focus) 12%,var(--surface));box-shadow:inset 3px 0 0 0 var(--focus)}
+.row.watch-past{opacity:.52}
+.leg.watch-finished .leg-head{background:color-mix(in srgb,var(--focus) 16%,var(--surface-2))}
+.leg.watch-past{opacity:.72}
 /* chrome that only makes sense while editing is hidden in follow mode */
 #open-edit,
 #race-view.readonly #watch-live,
@@ -294,8 +310,12 @@ footer{margin-top:30px;color:var(--muted);font-size:12.5px;line-height:1.7}
         <span class="start-val" id="start-text"></span>
       </label>
       <div class="finish">
-        <span class="lab">Finish</span>
+        <span class="lab" id="finish-lab">Finish</span>
         <span class="val" id="finish">—</span>
+        <div class="finish-revised" id="finish-revised" hidden>
+          <span class="lab">Revised</span>
+          <span class="val" id="finish-revised-val">—</span>
+        </div>
       </div>
     </div>
     <div class="strip">
@@ -823,6 +843,119 @@ function groups(){
   return g;
 }
 
+/* ---- watch actuals (U8, R22-R23, R26-R27, KD2) ----------------
+   Race-day times are an overlay on the frozen plan, never an edit to it:
+   actuals live only in activeSession.actuals (sparse, key = section index
+   as a string, value = elapsed seconds from gun), keyed by SECTION INDEX
+   order — "latest actual" always means the highest index carrying one,
+   not whichever was entered most recently in wall-clock time. */
+function lastActualIndex(){
+  if(!activeSession) return -1;
+  let max = -1;
+  Object.keys(activeSession.actuals).forEach(k => {
+    const n = Number(k);
+    if(Number.isFinite(n) && n > max) max = n;
+  });
+  return max;
+}
+/** Elapsed-from-gun projection for section i, derived from the latest
+    (by index) checkpoint carrying an actual plus the FROZEN plan's
+    remaining durations on top of it. null when i is not after the last
+    actual, or there is no actual yet. */
+function revisedElapsed(i){
+  const lastIdx = lastActualIndex();
+  if(lastIdx < 0 || i <= lastIdx) return null;
+  const lastElapsed = activeSession.actuals[String(lastIdx)];
+  return lastElapsed + (cumulative(i) - cumulative(lastIdx));
+}
+/** Revised finish: same derivation as revisedElapsed(), evaluated at the
+    last section, but defined even when the last actual IS the last
+    section (the "remaining" duration is then zero, so it collapses to
+    the actual itself). null when no actual has been entered at all. */
+function revisedFinishElapsed(){
+  const lastIdx = lastActualIndex();
+  if(lastIdx < 0) return null;
+  const lastElapsed = activeSession.actuals[String(lastIdx)];
+  const lastSectionIdx = active.sections.length - 1;
+  return lastElapsed + (cumulative(lastSectionIdx) - cumulative(lastIdx));
+}
+/** One of "finished" | "past" | "upcoming" (the R22-R27 state diagram),
+    or null outside watch mode. Finished (has an actual) takes priority
+    over Past (wall clock beyond the frozen planned end, no actual). */
+function watchRowState(i){
+  if(mode !== "watch" || !activeSession) return null;
+  if(activeSession.actuals[String(i)] != null) return "finished";
+  const wp = wallPhase();
+  if(wp.phase === "after") return "past";
+  if(wp.phase === "mid" && wp.d >= cumulative(i)) return "past";
+  return "upcoming";
+}
+/** A leg takes the state of its checkpoints: Finished only once every
+    checkpoint in it carries an actual; Past once the wall clock is
+    beyond the leg's frozen end with at least one checkpoint still
+    lacking an actual. */
+function watchLegState(items){
+  if(mode !== "watch" || !activeSession) return null;
+  if(items.every(({i}) => activeSession.actuals[String(i)] != null)) return "finished";
+  const wp = wallPhase();
+  const lastIdx = items[items.length-1].i;
+  const past = wp.phase === "after" || (wp.phase === "mid" && wp.d >= cumulative(lastIdx));
+  return past ? "past" : "upcoming";
+}
+/** Parses a typed CLOCK time (what a volunteer reads off a watch, not an
+    elapsed duration) into elapsed-from-gun seconds, with the SAME
+    piecewise day-wrap as the live marker/wallPhase() — never the
+    elapsed-edit path's clamp-to-zero, which would record a post-midnight
+    checkpoint as zero and destroy the projection for exactly the night
+    races this math exists for. */
+function watchClockToElapsed(raw){
+  const secs = parseFlexDur(raw);
+  if(secs == null) return null;
+  const clockOfDay = ((secs % 86400) + 86400) % 86400;
+  return ((clockOfDay - active.start) % 86400 + 86400) % 86400;
+}
+/** Commits (or, given "", clears) an actual for section i into the
+    SESSION blob only — never the race blob. Validates elapsed order
+    against the nearest earlier/later section that already carries an
+    actual (by section index, R22's "as they pass" ordering), rejecting
+    a time-travel entry with a toast instead of silently accepting it. */
+function commitActual(i, raw){
+  if(!activeSession) return;
+  const key = String(i);
+  if(raw === ""){
+    if(activeSession.actuals[key] != null){
+      delete activeSession.actuals[key];
+      saveWatchSession(activeSession);
+    }
+    render();
+    return;
+  }
+  const elapsed = watchClockToElapsed(raw);
+  if(elapsed == null){ toast("Could not read that as a clock time"); render(); return; }
+
+  let minBound = null, maxBound = null;   // nearest earlier / later section already carrying an actual
+  Object.keys(activeSession.actuals).forEach(k => {
+    const n = Number(k);
+    if(!Number.isFinite(n) || n === i) return;
+    if(n < i){ if(minBound == null || n > minBound) minBound = n; }
+    else { if(maxBound == null || n < maxBound) maxBound = n; }
+  });
+  if(minBound != null && elapsed < activeSession.actuals[String(minBound)]){
+    toast("That time is earlier than an already-recorded checkpoint — not saved");
+    render();
+    return;
+  }
+  if(maxBound != null && elapsed > activeSession.actuals[String(maxBound)]){
+    toast("That time is later than an already-recorded checkpoint — not saved");
+    render();
+    return;
+  }
+
+  activeSession.actuals[key] = elapsed;
+  saveWatchSession(activeSession);
+  render();
+}
+
 /* ============================================================
    4. Mutations — the two editing rules
    ============================================================ */
@@ -999,6 +1132,13 @@ function render(){
 function renderBoard(){
   const t = total();
   $("#finish").textContent = t ? fmtHMS(t) : "—";
+  const finLab = $("#finish-lab"), revWrap = $("#finish-revised");
+  const showRevised = mode === "watch" && !!t && lastActualIndex() >= 0;
+  if(finLab) finLab.textContent = showRevised ? "Finish (plan)" : "Finish";
+  if(revWrap){
+    revWrap.hidden = !showRevised;
+    if(showRevised) $("#finish-revised-val").textContent = fmtHMS(revisedFinishElapsed());
+  }
   const bar = $("#bar"), ticks = $("#ticks");
   bar.innerHTML = ""; ticks.innerHTML = "";
 
@@ -1062,6 +1202,8 @@ function renderLegs(){
 
     const leg = document.createElement("section");
     leg.className = "leg"; leg.dataset.sport = g.sport;
+    const legState = watchLegState(g.items);
+    if(legState) leg.classList.add("watch-"+legState);
 
     const head = document.createElement("div");
     head.className = "leg-head";
@@ -1103,6 +1245,8 @@ function rowFor(s, i){
   const row = document.createElement("div");
   row.className = "row"+(selected===s.id?" on expanded":"")+(s.note?" expanded":"");
   row.dataset.id = s.id;
+  const wState = watchRowState(i);
+  if(wState) row.classList.add("watch-"+wState);
 
   if(readOnly){
     row.appendChild(document.createElement("div"));   // empty grip column, keeps the grid aligned
@@ -1138,9 +1282,13 @@ function rowFor(s, i){
     v => { const n = parseFlexDur(v); n!=null ? setCumulative(i,n) : render(); },
     n => setCumulative(i, cum+n)), "Elapsed"));
 
-  row.appendChild(cell(timeField(fmtClock(active.start+cum), "Clock",
-    v => { const n = parseFlexDur(v); n!=null ? setCumulative(i, n-active.start) : render(); },
-    n => setCumulative(i, cum+n)), "Clock"));
+  row.appendChild(cell(
+    mode === "watch"
+      ? watchActualCell(s, i)
+      : timeField(fmtClock(active.start+cum), "Clock",
+          v => { const n = parseFlexDur(v); n!=null ? setCumulative(i, n-active.start) : render(); },
+          n => setCumulative(i, cum+n)),
+    "Clock"));
 
   const pc = document.createElement("div");
   pc.className = "derived pace";
@@ -1235,6 +1383,44 @@ function timeField(value, label, onCommit, onNudge){
     if(ev.key === "Escape"){ el.value = value; el.blur(); }
   });
   return el;
+}
+
+/** Watch mode's ONLY editable field (R22): the Clock cell, writing an
+    actual into the session, not the race blob. Distinct from timeField()
+    — everything else in the row stays staticText() via the global
+    readOnly flag, which is true throughout watch mode; only this cell
+    overrides that. Shows the entered actual when present, the frozen
+    planned clock as a placeholder when not, and — for any checkpoint
+    after the latest actual by section index — the revised projected
+    clock alongside the frozen one (R23). */
+function watchActualCell(s, i){
+  const wrap = document.createElement("div");
+  wrap.className = "watch-clock";
+  const key = String(i);
+  const actual = activeSession.actuals[key];
+  const frozenClock = fmtClock(active.start + cumulative(i));
+
+  const input = document.createElement("input");
+  input.className = "f num";
+  input.inputMode = "numeric";
+  input.value = actual != null ? fmtClock(active.start + actual) : "";
+  input.placeholder = frozenClock;
+  input.setAttribute("aria-label", "Actual clock time for "+(s.name||"this checkpoint")+" — leave blank to clear");
+  input.addEventListener("change", () => commitActual(i, input.value.trim()));
+  input.addEventListener("keydown", ev => {
+    if(ev.key === "Escape"){ input.value = actual != null ? fmtClock(active.start + actual) : ""; input.blur(); }
+  });
+  wrap.appendChild(input);
+
+  const meta = document.createElement("div");
+  meta.className = "watch-clock-meta";
+  let html = '<span class="frozen">plan '+frozenClock+'</span>';
+  const revised = revisedElapsed(i);
+  if(revised != null) html += '<span class="revised">rev '+fmtClock(active.start + revised)+'</span>';
+  meta.innerHTML = html;
+  wrap.appendChild(meta);
+
+  return wrap;
 }
 
 /* ============================================================
@@ -1903,24 +2089,35 @@ function startMarker(){
   const reduced = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   if(!reduced) markerTimer = setInterval(paintMarker, 1000);   // reduced motion -> single static paint
 }
+/** Shared piecewise wall-clock/plan comparison (F1): race.start is
+    seconds-of-day only, so before-gun and after-finish share a clock
+    region once day-wrapped; disambiguate by nearest boundary, never with
+    a single elapsed/total formula that would clamp a negative delta to
+    "finished". Used by both the live marker and watch-mode row/leg
+    Past/Upcoming states (U8), so they never disagree about "now". */
+function wallPhase(){
+  const t = total();
+  if(t <= 0) return {phase:"empty", d:0, t:0};
+  const d = ((nowClockSeconds() - active.start) % 86400 + 86400) % 86400;
+  if(d <= t) return {phase:"mid", d, t};
+  if((86400 - d) < (d - t)) return {phase:"before", d, t};
+  return {phase:"after", d, t};
+}
 function paintMarker(){
   const marker = $("#marker"), status = $("#marker-status");
   if(!marker || !active) return;
-  const t = total();
-  if(t <= 0){ marker.hidden = true; if(status) status.textContent = ""; return; }   // splitless race (F9)
-  // race.start is seconds-of-day only, so before-gun and after-finish share a clock
-  // region once day-wrapped; disambiguate piecewise by nearest boundary (F1), never
-  // with a single elapsed/total formula that would clamp a negative delta to "finished".
-  const d = ((nowClockSeconds() - active.start) % 86400 + 86400) % 86400;
+  const wp = wallPhase();
+  if(wp.phase === "empty"){ marker.hidden = true; if(status) status.textContent = ""; return; }   // splitless race (F9)
+  const t = wp.t, d = wp.d;
   let phase, pos, seg = -1, label;
-  if(d <= t){
+  if(wp.phase === "mid"){
     phase = "mid"; pos = d / t;
     let cum = 0, idx = active.sections.length - 1;
     for(let i = 0; i < active.sections.length; i++){ cum += active.sections[i].dur; if(d <= cum){ idx = i; break; } }
     seg = idx;
     const s = active.sections[idx];
     label = "On course · " + (s.name || SPORTS[s.sport].label) + " · " + fmtSplit(d - (cum - s.dur)) + " into this segment";
-  }else if((86400 - d) < (d - t)){
+  }else if(wp.phase === "before"){
     phase = "before"; pos = 0; label = "Not started — gun at " + fmtClock(active.start);
   }else{
     phase = "after"; pos = 1; label = "Finished · " + fmtHMS(t);
