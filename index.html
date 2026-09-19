@@ -152,6 +152,19 @@ button{font:inherit;color:inherit;cursor:pointer}
 .chip[data-sport="run"]{--sp:var(--run)}
 .chip .gap.behind{color:var(--run)}
 .chip .gap.ahead{color:var(--live)}
+/* an expected checkpoint that never came (U13) */
+.chip.is-overdue{border-color:var(--bike)}
+.chip.is-overdue .state{color:var(--bike)}
+.chip.is-overdue .live b{color:var(--bike)}
+/* the card that just received an actual */
+.chip.flash{animation:gap-flash 1.4s ease-out 1}
+/* upcoming cards get a slow sweep, so the panel is never fully still */
+.chip.is-upcoming{overflow:hidden}
+.chip.is-upcoming::after{
+  content:"";position:absolute;inset:0;pointer-events:none;
+  background:linear-gradient(105deg,transparent 40%,color-mix(in srgb,var(--ink) 7%,transparent) 50%,transparent 60%);
+  transform:translateX(-100%);animation:chip-sweep 6s ease-in-out infinite}
+@keyframes chip-sweep{0%{transform:translateX(-100%)}55%,100%{transform:translateX(100%)}}
 .chip .name{font-size:12.5px;color:var(--muted)}
 .chip .pace{font-size:20px;font-variation-settings:"wdth" 108,"wght" 680;line-height:1.15}
 .chip .u{font-size:12px;color:var(--muted);font-variation-settings:"wdth" 100,"wght" 400}
@@ -316,6 +329,33 @@ footer{margin-top:30px;color:var(--muted);font-size:12.5px;line-height:1.7}
 .marker-status #watch-gap.ahead{color:var(--live)}
 /* mid-race the status line says the same thing as #watch-gap; it stays in
    the DOM as the aria-live announcement, but only one of the two is seen */
+/* liveness (U13) ----------------------------------------------------- */
+.marker-status #watch-next,.marker-status #watch-fresh{font-size:13px;color:var(--ink-2)}
+.marker-status #watch-next b{font-variation-settings:"wdth" 100,"wght" 640;color:var(--ink)}
+.marker-status #watch-next[hidden],.marker-status #watch-fresh[hidden]{display:none}
+#watch-elapsed{font-variant-numeric:tabular-nums}
+/* a new actual landing is the one moment worth flashing */
+@keyframes gap-flash{
+  0%  {background:color-mix(in srgb,var(--live) 38%,transparent)}
+  100%{background:transparent}
+}
+.flash{animation:gap-flash 1.4s ease-out 1;border-radius:6px}
+/* the live pin breathes so it reads as alive while standing still */
+@keyframes pin-bob{
+  0%,100%{transform:translateX(-50%) translateY(0)}
+  50%    {transform:translateX(-50%) translateY(-3px)}
+}
+.pin-actual{animation:pin-bob 2.2s ease-in-out infinite}
+/* how far through the current segment the athlete is */
+.seg .seg-fill{position:absolute;left:0;top:0;bottom:0;background:rgba(255,255,255,.26);pointer-events:none;transition:width .9s linear}
+/* LIVE badge in the masthead */
+.livebadge{display:inline-flex;align-items:center;gap:6px;padding:5px 11px;border-radius:999px;
+  background:color-mix(in srgb,var(--live) 14%,transparent);color:var(--live);
+  font-size:12px;letter-spacing:.06em;font-variation-settings:"wdth" 100,"wght" 700}
+.livebadge[hidden]{display:none}
+.livebadge i{width:7px;height:7px;border-radius:50%;background:var(--live);animation:badge-breathe 2s ease-in-out infinite}
+@keyframes badge-breathe{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.35;transform:scale(.72)}}
+
 .marker-status .sr-only{position:absolute;width:1px;height:1px;padding:0;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
 
 /* ---------- watch actuals: revised finish + per-row/leg states (U8) ---------- */
@@ -421,6 +461,7 @@ footer{margin-top:30px;color:var(--muted);font-size:12.5px;line-height:1.7}
       <p class="where" id="race-where"></p>
     </div>
     <div class="tools">
+      <span class="livebadge" id="live-badge" hidden><i></i>LIVE</span>
       <a class="btn ghost" id="btn-back" href="#/">← Races</a>
       <button class="btn primary" id="watch-live" type="button">Watch live</button>
       <a class="icon" id="open-edit" href="#/" aria-label="Open in edit" title="Open in edit"></a>
@@ -470,6 +511,8 @@ footer{margin-top:30px;color:var(--muted);font-size:12.5px;line-height:1.7}
       <p id="marker-status-text" role="status" aria-live="polite"></p>
       <p id="watch-elapsed" hidden></p>
       <p id="watch-gap" hidden></p>
+      <p id="watch-next" hidden></p>
+      <p id="watch-fresh" hidden></p>
     </div>
   </section>
 
@@ -1136,6 +1179,8 @@ function commitActual(i, raw){
 
   activeSession.actuals[key] = elapsed;
   saveWatchSession(activeSession);
+  flashIndex = i; flashUntil = Date.now() + 1400;      // U13: mark the new data as new
+  try{ if(navigator.vibrate) navigator.vibrate(30); }catch(e){}
   render();
 }
 
@@ -1449,8 +1494,13 @@ function cardLive(card, snap){
   const pos = snap.pos;
   if(snap.phase !== "after" && pos >= planStart && pos < planEnd)
     return {state:"live", main:fmtSplit(pos - planStart), sub:"into this leg"};
-  if(pos >= planEnd)
+  if(pos >= planEnd){
+    const over = pos - planEnd;
+    // a checkpoint that should already have been passed and logged: past the
+    // grace window this stops being "no time" and becomes a thing to chase
+    if(over > OVERDUE_AFTER) return {state:"overdue", main:"+"+fmtSplit(over), sub:"past its plan"};
     return {state:"past", main:"—", sub:"nothing logged"};
+  }
   const off = snap.gapSeconds || 0;
   return {state:"upcoming", main:fmtClock(active.start + planStart + off), sub:off ? "projected start" : "planned start"};
 }
@@ -1466,10 +1516,12 @@ function renderCourse(){
     const live = (snap && snap.phase !== "empty") ? cardLive(c, snap) : null;
     const p = c.complete ? paceOf(c.sport, c.dist, c.dur) : null;
     const el = document.createElement("div");
+    const justLogged = flashUntil > Date.now() && live && live.state === "done" &&
+                       c.items.some(({i}) => i === flashIndex);
     el.className = "chip" + (c.sport === "bike" ? " wide" : "") + (c.sport === "trans" ? " trans" : "") +
-                   (live ? " is-" + live.state : "");
+                   (live ? " is-" + live.state : "") + (justLogged ? " flash" : "");
     el.dataset.sport = c.sport;
-    const stateLab = live ? ({done:"Done", live:"On course", past:"No time", upcoming:"Upcoming"})[live.state] : "";
+    const stateLab = live ? ({done:"Done", live:"On course", past:"No time", overdue:"Overdue", upcoming:"Upcoming"})[live.state] : "";
     const gapCls = (live && live.state === "done" && live.gap) ? (live.gap > 0 ? " behind" : " ahead") : "";
     el.innerHTML =
       '<div class="name">'+esc(c.label)+(stateLab ? ' <span class="state">'+stateLab+'</span>' : '')+'</div>'+
@@ -2211,7 +2263,12 @@ function stopMarker(){
   const pp = $("#pin-plan"), pa = $("#pin-actual");
   if(pp) pp.hidden = true;
   if(pa) pa.hidden = true;
+  releaseWake();
   lastSnap = null;
+  lastGapSeconds = undefined;
+  lastTitle = null;
+  const badge = $("#live-badge");
+  if(badge) badge.hidden = true;
   const jb = $("#jump-live");
   if(jb) jb.hidden = true;
   const bar = $("#bar");
@@ -2464,6 +2521,16 @@ async function refreshUrl(){
 /* ---- live position marker (wall-clock driven, KTD5) ---- */
 /** Minimum drawn width of one timeline segment on a narrow screen (U11). */
 const SEG_MIN_PX = 44;
+/* ---- liveness (U13) ----
+   OVERDUE_AFTER: grace period past a leg's planned end before its course card
+   stops saying "no time" and starts saying "overdue".
+   RECENTRE_IDLE: how long the reader's own panning of the timeline is left
+   alone before the live position is gently recentred again. */
+const OVERDUE_AFTER = 5 * 60;
+const RECENTRE_IDLE = 30 * 1000;
+let flashUntil = 0, flashIndex = -1;    // set by commitActual: which card just landed, and until when
+let lastPanAt = 0;                       // last reader-driven scroll of the strip
+let selfScrolling = false;               // true while scrollTimelineTo() drives that scroll
 /** True until the first paint of a freshly mounted marker has scrolled the
     timeline to the live position — a scroll on every 1 s tick would fight
     the reader's own panning. */
@@ -2506,14 +2573,52 @@ function scrollTimelineTo(pos){
   const over = strip.scrollWidth - strip.clientWidth;
   if(over <= 0) return;                                // fits: nothing to scroll
   const x = pos * strip.scrollWidth - strip.clientWidth / 2;
+  selfScrolling = true;                                // so the scroll handler below doesn't read this as panning
   strip.scrollLeft = Math.min(over, Math.max(0, x));
+  setTimeout(() => { selfScrolling = false; }, 120);
 }
+/* U13: the live position is recentred only while the reader is not panning —
+   a pan buys RECENTRE_IDLE of being left alone. */
+const stripEl = $("#strip");
+if(stripEl) stripEl.addEventListener("scroll", () => { if(!selfScrolling) lastPanAt = Date.now(); }, {passive:true});
+/** Recentres on `pct` (0..100 of the bar) if the reader is idle and the pin has
+    drifted out of the middle half of the visible strip. */
+function recentreIfIdle(pct){
+  const strip = $("#strip"), inner = $("#strip-inner");
+  if(!strip || !inner) return;
+  if(Date.now() - lastPanAt < RECENTRE_IDLE) return;
+  if(strip.scrollWidth - strip.clientWidth <= 0) return;
+  const x = (pct / 100) * inner.clientWidth - strip.scrollLeft;
+  if(x < strip.clientWidth * 0.25 || x > strip.clientWidth * 0.75) scrollTimelineTo(pct / 100);
+}
+
+/* U13: a spectator watching a road crossing should not have to keep tapping
+   the screen. Held only in watch/follow, re-taken when the tab comes back. */
+let wakeLock = null;
+async function requestWake(){
+  try{
+    if(!("wakeLock" in navigator)) return;
+    if(wakeLock) return;
+    wakeLock = await navigator.wakeLock.request("screen");
+    wakeLock.addEventListener("release", () => { wakeLock = null; });
+  }catch(e){ wakeLock = null; }          // denied / not permitted: watch mode works the same, the screen just sleeps
+}
+function releaseWake(){
+  try{ if(wakeLock) wakeLock.release(); }catch(e){}
+  wakeLock = null;
+}
+document.addEventListener("visibilitychange", () => {
+  if(document.visibilityState !== "visible") return;
+  if(mode === "watch" || mode === "follow") requestWake();
+});
 function nowClockSeconds(){ const n = new Date(); return n.getHours()*3600 + n.getMinutes()*60 + n.getSeconds(); }
 let lastMarkerSig = null;
 function startMarker(){
   stopMarker();
   lastMarkerSig = null;
   markerScrollPending = true;
+  lastPanAt = 0;
+  requestWake();
   paintMarker();
   const reduced = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   if(!reduced) markerTimer = setInterval(paintMarker, 1000);   // reduced motion -> single static paint
@@ -2565,14 +2670,28 @@ function sectionAt(elapsed){
   }
   return active.sections.length - 1;
 }
-/** U12: rings the timeline segment the athlete is inside right now. */
-function markCurrentSegment(idx){
+/** U12/U13: rings the timeline segment the athlete is inside right now, and
+    fills it left-to-right with how much of that segment is behind them. */
+function markCurrentSegment(idx, frac){
   const bar = $("#bar");
   if(!bar) return;
   bar.querySelectorAll(".seg.live").forEach(el => el.classList.remove("live"));
+  bar.querySelectorAll(".seg-fill").forEach(el => el.remove());
   if(idx == null || idx < 0) return;
   const el = bar.querySelector('.seg[data-idx="'+idx+'"]');
-  if(el) el.classList.add("live");
+  if(!el) return;
+  el.classList.add("live");
+  const fill = document.createElement("i");
+  fill.className = "seg-fill";
+  fill.style.width = Math.max(0, Math.min(1, frac || 0)) * 100 + "%";
+  el.insertBefore(fill, el.firstChild);
+}
+/** Fraction of the section at `idx` already behind an elapsed-from-gun value. */
+function segFraction(idx, elapsed){
+  const s = active.sections[idx];
+  if(!s || s.dur <= 0) return 0;
+  const startOf = cumulative(idx) - s.dur;
+  return (elapsed - startOf) / s.dur;
 }
 /** U12: the floating "jump to now" button — it points at the checkpoint row
     for the current segment and hides itself whenever that row is on screen. */
@@ -2621,6 +2740,7 @@ function paintMarker(){
     if(gapEl) gapEl.hidden = true;
     markCurrentSegment(null);
     updateJump();
+    updateLiveChrome(null);
     return;
   }
   const t = snap.t, d = snap.d;
@@ -2646,8 +2766,11 @@ function paintMarker(){
     pinActual.hidden = true;
   }
 
-  // U12: ring the segment the athlete is inside (actual position when known).
-  markCurrentSegment(phase === "mid" ? snap.curIdx : null);
+  // U12/U13: ring + fill the segment the athlete is inside (actual position
+  // when known), and recentre the strip if the reader has stopped panning.
+  markCurrentSegment(phase === "mid" ? snap.curIdx : null,
+                     phase === "mid" ? segFraction(snap.curIdx, snap.pos) : 0);
+  if(phase === "mid") recentreIfIdle(gapSeconds != null ? barPct(Math.min(t, Math.max(0, snap.pos))) : planPct);
 
   // R25: elapsed counter against the gun time, sharing this same tick.
   if(elapsedEl){
@@ -2660,7 +2783,11 @@ function paintMarker(){
   // so it can refresh every tick without triggering a screen-reader announcement.
   if(gapEl){
     gapEl.hidden = gapSeconds == null;
-    gapEl.className = gapSeconds == null ? "" : (gapSeconds > 0 ? "behind" : gapSeconds < 0 ? "ahead" : "");
+    let cls = gapSeconds == null ? "" : (gapSeconds > 0 ? "behind" : gapSeconds < 0 ? "ahead" : "");
+    // U13: a gap that just moved (a new actual landed) flashes once
+    if(gapSeconds !== lastGapSeconds && lastGapSeconds !== undefined && gapSeconds != null) cls += " flash";
+    lastGapSeconds = gapSeconds;
+    gapEl.className = cls;
     if(gapSeconds != null) gapEl.textContent = gapLabel(gapSeconds);
   }
 
@@ -2682,8 +2809,58 @@ function paintMarker(){
     lastMarkerSig = sig;
   }
 
+  updateLiveChrome(snap);
   renderCourse();     // live per-leg detail rides this same 1 s tick
   updateJump();
+}
+
+/* ---- the rest of the live chrome, all on the same 1 s tick (U13) ----
+   next-checkpoint countdown, how stale the last logged split is, the LIVE
+   badge, and the tab title — the last one so a backgrounded tab is itself a
+   read-out of where the athlete is. */
+let lastGapSeconds;
+let lastTitle = null;
+function updateLiveChrome(snap){
+  const nextEl = $("#watch-next"), freshEl = $("#watch-fresh"), badge = $("#live-badge");
+  const liveMode = mode === "watch" || mode === "follow";
+  if(badge) badge.hidden = !(liveMode && snap && snap.phase === "mid");
+  if(!liveMode || !snap || snap.phase === "empty"){
+    if(nextEl) nextEl.hidden = true;
+    if(freshEl) freshEl.hidden = true;
+    return;
+  }
+  // Next checkpoint: the one that ends the segment the athlete is in, counted
+  // down in wall-clock seconds against the revised (gap-shifted) plan.
+  if(nextEl){
+    const show = snap.phase === "mid" && snap.curIdx != null;
+    nextEl.hidden = !show;
+    if(show){
+      const s = active.sections[snap.curIdx];
+      const eta = cumulative(snap.curIdx) + (snap.gapSeconds || 0) - snap.d;
+      nextEl.innerHTML = eta > 0
+        ? "Next <b>" + esc(s.name || SPORTS[s.sport].label) + "</b> in ≈ " + fmtSplit(eta)
+        : "Next <b>" + esc(s.name || SPORTS[s.sport].label) + "</b> — due now";
+    }
+  }
+  // Freshness of the newest logged split, in race time since it was passed.
+  if(freshEl){
+    const lastIdx = mode === "watch" ? lastActualIndex() : -1;
+    const show = lastIdx >= 0 && snap.phase !== "before";
+    freshEl.hidden = !show;
+    if(show){
+      const ago = Math.max(0, snap.d - activeSession.actuals[String(lastIdx)]);
+      const s = active.sections[lastIdx];
+      freshEl.textContent = "Last split " + (s.name || SPORTS[s.sport].label) + " · " + fmtSplit(ago) + " ago";
+    }
+  }
+  // Tab title doubles as the live read-out.
+  const name = active.name || "Untitled race";
+  let title;
+  if(snap.phase === "mid")
+    title = "⏱ " + fmtHMS(snap.d) + (snap.gapSeconds != null ? " · " + gapLabel(snap.gapSeconds) : "") + " — " + name;
+  else if(snap.phase === "before") title = "Starts in " + fmtHMS(86400 - snap.d) + " — " + name;
+  else title = "Finished " + fmtHMS(snap.t) + " — " + name;
+  if(title !== lastTitle){ document.title = title; lastTitle = title; }
 }
 
 /* Home / library: every saved race with its identity + finish, Watch Live
