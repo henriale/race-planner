@@ -53,7 +53,8 @@ h1 .yr{color:var(--muted);font-variation-settings:"wdth" 122,"wght" 500}
 .where{margin:8px 0 0;color:var(--ink-2);font-size:14px}
 .where b{font-variation-settings:"wdth" 100,"wght" 600;color:var(--ink)}
 .tools{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
-.sync{display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--muted);padding:0 2px}
+.tools-icons{display:flex;align-items:center;gap:2px;margin-left:4px;padding-left:8px;border-left:1px solid var(--rule)}
+.sync{display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--muted);padding:0 2px;margin-left:4px}
 .sync::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--muted);flex:none}
 .sync.ok::before{background:#3E9B5F}
 .sync.bad{color:var(--run)}
@@ -69,6 +70,7 @@ button{font:inherit;color:inherit;cursor:pointer}
 .btn.primary{background:var(--ink);color:var(--canvas);border-color:var(--ink)}
 .btn.primary:hover{opacity:.9}
 .btn.ghost{background:transparent}
+.btn[hidden]{display:none}
 :where(button,input,select,a,[tabindex]):focus-visible{outline:2px solid var(--focus);outline-offset:2px;border-radius:6px}
 
 /* ---------- hero strip ---------- */
@@ -78,8 +80,11 @@ button{font:inherit;color:inherit;cursor:pointer}
 .finish{text-align:right}
 .finish .lab{display:block;font-size:12.5px;color:var(--muted);margin-bottom:-2px}
 .finish .val{font-size:clamp(30px,6vw,52px);line-height:1;font-variation-settings:"wdth" 118,"wght" 700;letter-spacing:-.02em}
+.finish-clock{margin-top:2px}
+.finish-clock .val{font-size:13.5px;color:var(--muted);font-variation-settings:"wdth" 100,"wght" 480;letter-spacing:0}
+.finish-clock[hidden]{display:none}
 
-.strip{position:relative;padding-bottom:26px}
+.strip{position:relative;padding-top:52px;padding-bottom:26px}
 .bar{display:flex;height:58px;border-radius:8px;overflow:hidden;background:var(--surface-2);border:1px solid var(--rule)}
 .seg{flex-basis:0;min-width:5px;position:relative;display:flex;align-items:center;justify-content:center;border-right:1px solid rgba(255,255,255,.28);cursor:pointer;overflow:hidden}
 .seg:last-child{border-right:0}
@@ -101,6 +106,7 @@ button{font:inherit;color:inherit;cursor:pointer}
 .chip[data-sport="swim"]{--sp:var(--swim)}
 .chip[data-sport="bike"]{--sp:var(--bike)}
 .chip[data-sport="run"]{--sp:var(--run)}
+.chip.trans{flex:0 1 110px}
 .chip .name{font-size:12.5px;color:var(--muted)}
 .chip .pace{font-size:20px;font-variation-settings:"wdth" 108,"wght" 680;line-height:1.15}
 .chip .u{font-size:12px;color:var(--muted);font-variation-settings:"wdth" 100,"wght" 400}
@@ -123,6 +129,7 @@ button{font:inherit;color:inherit;cursor:pointer}
 .leg-title .d{font-size:13px;color:var(--muted)}
 .leg-tot{display:flex;gap:16px;align-items:baseline;font-size:13.5px;color:var(--ink-2)}
 .leg-tot b{font-variation-settings:"wdth" 104,"wght" 660;color:var(--ink);font-size:15px}
+.card-clocks{padding:0 16px 10px;margin-top:-4px;font-size:12px;color:var(--muted)}
 
 .cols,.row{display:grid;grid-template-columns:26px minmax(140px,1fr) 88px 88px 92px 84px 100px 68px;gap:10px;align-items:center}
 .cols{padding:8px 16px;border-bottom:1px solid var(--rule);font-size:11.5px;color:var(--muted)}
@@ -148,7 +155,6 @@ input.f:hover{border-color:var(--rule)}
 input.f:focus{border-color:var(--focus);background:var(--surface);outline:none;box-shadow:0 0 0 3px color-mix(in srgb,var(--focus) 18%,transparent)}
 input.num{text-align:right}
 input.name{font-variation-settings:"wdth" 100,"wght" 540}
-input.est{color:var(--muted);font-style:italic}
 input.f::placeholder{color:var(--muted);opacity:.7}
 .derived{text-align:right;padding:6px 8px;font-size:14px;color:var(--ink-2)}
 .derived.pace{font-variation-settings:"wdth" 100,"wght" 620;color:var(--ink)}
@@ -204,32 +210,60 @@ footer{margin-top:30px;color:var(--muted);font-size:12.5px;line-height:1.7}
 .leg-tot .fin{font-variation-settings:"wdth" 104,"wght" 660;color:var(--ink);font-size:16px}
 .race-card .leg-foot{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
 .race-card .leg-foot .spread{margin-right:auto}
+.race-card .leg-foot .btn.primary{padding:9px 18px;font-size:14.5px}
+.card-menu-wrap{position:relative}
+.card-menu{position:fixed;min-width:150px;background:var(--surface);border:1px solid var(--rule);border-radius:10px;box-shadow:0 14px 30px -14px rgba(0,0,0,.35);padding:6px;display:flex;flex-direction:column;gap:1px;z-index:50}
+.card-menu[hidden]{display:none}
+.card-menu-item{background:transparent;border:0;border-radius:6px;text-align:left;padding:8px 10px;font-size:13.5px;color:inherit;font:inherit;cursor:pointer}
+.card-menu-item:hover,.card-menu-item:focus-visible{background:var(--surface-2)}
 .home-empty{padding:44px 20px;text-align:center;color:var(--muted);border:1px dashed var(--rule);border-radius:14px;font-size:14px}
 
-/* ---------- editable masthead name + details dialog ---------- */
+/* ---------- editable masthead name ---------- */
 #race-name{border-radius:8px;padding:0 4px;margin:0 -4px}
 #race-name[contenteditable="true"]{cursor:text}
 #race-name[contenteditable="true"]:hover{background:var(--surface-2)}
 #race-name[contenteditable="true"]:focus{outline:none;background:var(--surface);box-shadow:0 0 0 3px color-mix(in srgb,var(--focus) 18%,transparent)}
 #race-name:empty::before{content:attr(data-placeholder);color:var(--muted)}
-.field{display:flex;flex-direction:column;gap:5px;margin-bottom:12px}
-.field span{font-size:12.5px;color:var(--muted)}
-.field-row{display:flex;gap:12px;flex-wrap:wrap}
-.field-row .field{flex:1 1 120px}
 
 /* ---------- follow (read-only) view + live marker ---------- */
 .start-val{display:none;font-variant-numeric:tabular-nums}
 .static{padding:6px 8px;font-size:14px;color:var(--ink)}
 .static.num{text-align:right}
-.static.est{color:var(--muted);font-style:italic}
-.marker{position:absolute;top:0;height:58px;width:2px;background:var(--ink);transform:translateX(-1px);z-index:5;pointer-events:none;transition:left .9s linear}
-.marker::before{content:"";position:absolute;top:-4px;left:-4px;width:10px;height:10px;border-radius:50%;background:var(--ink);box-shadow:0 0 0 3px var(--surface)}
-.marker[hidden]{display:none}
+/* U9: two deliberate pins (R31) replace the old 2px hairline — plan (hollow,
+   the frozen-plan wallPhase() position, math unchanged) sits just above the
+   bar, actual (filled, derived from the U8 actuals overlay) sits above that,
+   so the two never sit on the same row even when their x positions coincide.
+   Shape/fill (not color alone) is the distinguishing signal, matching the
+   PIN_OUT/PIN_IN vocabulary already used for the map-link icon (KD5). */
+.pin{position:absolute;width:24px;height:24px;transform:translateX(-50%);z-index:5;pointer-events:none;transition:left .9s linear}
+.pin svg{width:100%;height:100%;display:block;filter:drop-shadow(0 2px 3px rgba(0,0,0,.35))}
+.pin[hidden]{display:none}
+.pin-plan{top:26px;color:var(--ink)}
+.pin-actual{top:0;color:var(--focus)}
+.pin-actual svg path{fill:currentColor}
 .marker-status{display:none;margin-top:12px;color:var(--ink-2);font-size:13.5px;font-variation-settings:"wdth" 100,"wght" 560}
+.marker-status p{margin:0}
+.marker-status p+p{margin-top:4px}
+.marker-status #watch-gap{font-variation-settings:"wdth" 100,"wght" 640;color:var(--ink)}
+
+/* ---------- watch actuals: revised finish + per-row/leg states (U8) ---------- */
+.finish-revised{margin-top:2px;display:flex;gap:6px;align-items:baseline;justify-content:flex-end}
+.finish-revised .lab{font-size:11px;color:var(--muted)}
+.finish-revised .val{font-size:20px;line-height:1;color:var(--focus);font-variation-settings:"wdth" 112,"wght" 680;letter-spacing:-.01em}
+.finish-revised[hidden]{display:none}
+
+.watch-clock{display:flex;flex-direction:column;gap:2px}
+.watch-clock input.f{font-variation-settings:"wdth" 100,"wght" 640}
+.watch-clock-meta{display:flex;gap:8px;font-size:10.5px;color:var(--muted);padding:0 8px;white-space:nowrap}
+.watch-clock-meta .revised{color:var(--focus);font-variation-settings:"wdth" 100,"wght" 640}
+
+.row.watch-finished{background:color-mix(in srgb,var(--focus) 12%,var(--surface));box-shadow:inset 3px 0 0 0 var(--focus)}
+.row.watch-past{opacity:.52}
+.leg.watch-finished .leg-head{background:color-mix(in srgb,var(--focus) 16%,var(--surface-2))}
+.leg.watch-past{opacity:.72}
 /* chrome that only makes sense while editing is hidden in follow mode */
 #open-edit,
 #race-view.readonly #watch-live,
-#race-view.readonly #btn-details,
 #race-view.readonly #btn-import,
 #race-view.readonly #btn-copy,
 #race-view.readonly #sync,
@@ -241,6 +275,14 @@ footer{margin-top:30px;color:var(--muted);font-size:12.5px;line-height:1.7}
 #race-view.readonly .start-val{display:inline}
 #race-view.readonly .marker-status{display:block}
 
+/* ---- shared-link save strip (R18) — wins over the readonly/edit chrome
+   rules above regardless of mode, since an unsaved race has no id to link
+   Watch live / Open in edit to ---- */
+.save-strip{display:flex;flex-wrap:wrap;align-items:center;gap:10px 16px;justify-content:space-between;margin:-10px 0 20px;padding:12px 16px;border:1px solid var(--rule);border-radius:var(--r);background:var(--surface-2);color:var(--ink-2);font-size:13.5px}
+.save-strip[hidden]{display:none}
+#race-view.transient-race #watch-live,
+#race-view.transient-race #open-edit{display:none}
+
 @media (max-width:880px){
   .cols{display:none}
   .row{grid-template-columns:26px 1fr 1fr;gap:6px 10px;padding:12px 14px;align-items:start}
@@ -251,6 +293,7 @@ footer{margin-top:30px;color:var(--muted);font-size:12.5px;line-height:1.7}
   input.f{padding:4px 8px}
   .derived{padding:4px 8px}
   .leg-tot{width:100%}
+  .tools-icons{margin-left:0;padding-left:0;border-left:0}
 }
 @media (prefers-reduced-motion: reduce){*{transition:none!important;animation:none!important}}
 </style>
@@ -269,14 +312,22 @@ footer{margin-top:30px;color:var(--muted);font-size:12.5px;line-height:1.7}
     </div>
     <div class="tools">
       <a class="btn ghost" id="btn-back" href="#/">← Races</a>
-      <a class="btn" id="watch-live" href="#/">Watch live</a>
+      <button class="btn primary" id="watch-live" type="button">Watch live</button>
       <a class="btn" id="open-edit" href="#/">Open in edit</a>
-      <button class="btn" id="btn-details">Race details</button>
-      <button class="btn primary" id="btn-import">Paste results</button>
-      <button class="btn" id="btn-copy">Copy data</button>
-      <span class="sync" id="sync" role="status" aria-live="polite">Not saved yet</span>
+      <button class="btn ghost" id="btn-watch-reset" type="button" hidden>Reset watch</button>
+      <div class="tools-icons">
+        <button class="icon" id="btn-import" type="button" aria-label="Paste results" title="Paste results"></button>
+        <button class="icon" id="btn-copy" type="button" aria-label="Copy data" title="Copy data"></button>
+        <button class="icon" id="btn-share" type="button" aria-label="Share link" title="Share link"></button>
+        <span class="sync" id="sync" role="status" aria-live="polite">Not saved yet</span>
+      </div>
     </div>
   </header>
+
+  <div class="save-strip" id="save-strip" hidden role="status">
+    <span>This race is from a link — it is not in your library yet. Saving adds it as a new race.</span>
+    <button class="btn primary" id="save-strip-btn" type="button">Save this race</button>
+  </div>
 
   <section class="board" aria-label="Race timeline">
     <div class="board-top">
@@ -286,16 +337,28 @@ footer{margin-top:30px;color:var(--muted);font-size:12.5px;line-height:1.7}
         <span class="start-val" id="start-text"></span>
       </label>
       <div class="finish">
-        <span class="lab">Finish</span>
+        <span class="lab" id="finish-lab">Finish</span>
         <span class="val" id="finish">—</span>
+        <div class="finish-clock" id="finish-clock" hidden>
+          <span class="val" id="finish-clock-val">—</span>
+        </div>
+        <div class="finish-revised" id="finish-revised" hidden>
+          <span class="lab">Revised</span>
+          <span class="val" id="finish-revised-val">—</span>
+        </div>
       </div>
     </div>
     <div class="strip">
       <div class="bar" id="bar"></div>
-      <div class="marker" id="marker" aria-hidden="true" hidden></div>
+      <div class="pin pin-plan" id="pin-plan" aria-hidden="true" hidden></div>
+      <div class="pin pin-actual" id="pin-actual" aria-hidden="true" hidden></div>
       <div class="ticks" id="ticks"></div>
     </div>
-    <div class="marker-status" id="marker-status" role="status" aria-live="polite"></div>
+    <div class="marker-status" id="marker-status">
+      <p id="marker-status-text" role="status" aria-live="polite"></p>
+      <p id="watch-elapsed" hidden></p>
+      <p id="watch-gap" hidden></p>
+    </div>
     <div class="chips" id="chips"></div>
   </section>
 
@@ -318,7 +381,6 @@ footer{margin-top:30px;color:var(--muted);font-size:12.5px;line-height:1.7}
 
   <footer>
     Every edit is stored in this browser as you make it — the header shows the last save. It does not follow you to another device: “Paste results → Copy backup” gives you the whole thing as JSON, and pasting that JSON back restores it anywhere.<br>
-    Bike checkpoint distances are estimates split evenly across the leg — type a real distance and the italics clear.<br>
     Next up for the timeline: elevation per checkpoint, cut-off times, and a live "where is he now" marker for the staff view.
   </footer>
 
@@ -330,32 +392,14 @@ footer{margin-top:30px;color:var(--muted);font-size:12.5px;line-height:1.7}
 <dialog id="dlg">
   <div class="dlg">
     <h3>Paste your results</h3>
-    <p>Works with the raw race notes — leg headings, <code>6:44 - fim natação (44')</code>, and <code>(T1 = 11')</code> are all understood — or with three columns: clock, name, elapsed.</p>
-    <textarea id="raw" spellcheck="false" placeholder="NATAÇÃO&#10;6:00 - largada&#10;6:44 - fim natação (44')&#10;&#10;(T1 = 11')&#10;&#10;BIKE&#10;6:55 - largada da bike&#10;7:33 - cruzamento ida (38')"></textarea>
+    <p>Name, then gun time, then one line per checkpoint: <code>S|B|R distance split name</code>, or <code>T split name</code> for a transition. Distances are kilometres, or <code>-</code> if unknown.</p>
+    <textarea id="raw" spellcheck="false" placeholder="My race&#10;6:00:00&#10;S 1.9 44:00 Swim exit&#10;T 11:00 T1&#10;B 15 38:00 Cruzamento ida"></textarea>
     <div class="preview" id="preview" hidden></div>
     <p class="warn" id="parse-warn" hidden></p>
     <div class="dlg-foot">
       <button class="btn ghost spread" id="dlg-backup">Copy backup</button>
       <button class="btn ghost" id="dlg-cancel">Cancel</button>
       <button class="btn primary" id="dlg-apply">Replace splits</button>
-    </div>
-  </div>
-</dialog>
-
-<dialog id="detailsdlg" class="narrow">
-  <div class="dlg">
-    <h3>Race details</h3>
-    <p>Location, date, and the leg distances the even-split importer uses for this race.</p>
-    <label class="field"><span>Location</span><input class="wide" id="det-loc" spellcheck="false"></label>
-    <label class="field"><span>Date</span><input class="wide" id="det-date" type="date"></label>
-    <div class="field-row">
-      <label class="field"><span>Swim (m)</span><input class="wide" id="det-swim" inputmode="decimal"></label>
-      <label class="field"><span>Bike (km)</span><input class="wide" id="det-bike" inputmode="decimal"></label>
-      <label class="field"><span>Run (km)</span><input class="wide" id="det-run" inputmode="decimal"></label>
-    </div>
-    <div class="dlg-foot">
-      <button class="btn ghost" id="det-cancel">Cancel</button>
-      <button class="btn primary" id="det-save">Save</button>
     </div>
   </div>
 </dialog>
@@ -394,24 +438,21 @@ footer{margin-top:30px;color:var(--muted);font-size:12.5px;line-height:1.7}
    1. Model
    ============================================================ */
 const SPORTS = {
-  swim : {label:"Swim",       unit:"m",  pace:"per100m", official:2000},
-  bike : {label:"Bike",       unit:"km", pace:"kmh",     official:87000},
-  run  : {label:"Run",        unit:"km", pace:"perkm",   official:22000},
-  trans: {label:"Transition", unit:null, pace:null,      official:null}
+  swim : {label:"Swim",       unit:"m",  pace:"per100m"},
+  bike : {label:"Bike",       unit:"km", pace:"kmh"},
+  run  : {label:"Run",        unit:"km", pace:"perkm"},
+  trans: {label:"Transition", unit:null, pace:null}
 };
 const ORDER = ["swim","bike","run"];
 const KEY = "fodaxman-sp5-2025-v2";          // legacy single-race key (migration source only)
-const INDEX_KEY = "race-splits:index";        // light [{id,name,location,date,savedAt}] library index
+const INDEX_KEY = "race-splits:index";        // light [{id,name,savedAt}] library index
 const MIGRATED_KEY = "race-splits:migrated";  // once-only sentinel for the legacy import
+const MIGRATED_KEY_V2 = "race-splits:migrated-v2"; // once-only sentinel: drops per-race location/date/dist + per-section est
+const MIGRATED_KEY_V3 = "race-splits:migrated-v3"; // once-only sentinel: backfills index digest/finish/start (U4)
 const raceKey = id => "race-splits:race:" + id;
 
-/** Default leg distances for a new race, seeded from the per-sport officials. */
-function defaultDist(){
-  return {swim: SPORTS.swim.official, bike: SPORTS.bike.official, run: SPORTS.run.official};
-}
-
 function uid(){ return Math.random().toString(36).slice(2,9); }
-const sec = (name,sport,dist,dur,est) => ({id:uid(), name, sport, dist, dur, est:!!est, note:"", map:""});
+const sec = (name,sport,dist,dur) => ({id:uid(), name, sport, dist, dur, note:"", map:""});
 
 /* ---- storage ------------------------------------------------
    The library lives in localStorage as one index key plus one blob per
@@ -436,7 +477,6 @@ function normalize(obj){
       sport: x.sport,
       dist: (typeof x.dist === "number" && isFinite(x.dist) && x.dist >= 0) ? x.dist : null,
       dur:  (typeof x.dur === "number" && isFinite(x.dur) && x.dur >= 0) ? Math.round(x.dur) : 0,
-      est:  !!x.est,
       note: typeof x.note === "string" ? x.note : "",
       map:  typeof x.map === "string" ? x.map : ""
     }));
@@ -445,30 +485,26 @@ function normalize(obj){
   return {
     id:       typeof obj.id === "string" ? obj.id : uid(),
     name:     typeof obj.name === "string" ? obj.name : "",
-    location: typeof obj.location === "string" ? obj.location : "",
-    date:     typeof obj.date === "string" ? obj.date : "",
-    dist:     normDist(obj.dist),
     start, sections,
     savedAt:  typeof obj.savedAt === "number" ? obj.savedAt : null
   };
 }
-/** Validate {swim,bike,run} leg distances, falling back to the per-sport defaults. */
-function normDist(d){
-  const def = defaultDist();
-  if(!d || typeof d !== "object") return def;
-  const pick = (v,f) => (typeof v === "number" && isFinite(v) && v >= 0) ? Math.round(v) : f;
-  return {swim: pick(d.swim, def.swim), bike: pick(d.bike, def.bike), run: pick(d.run, def.run)};
-}
 
 function save(){
   if(!active) return;
-  saveRace(active);            // stamps savedAt, writes blob + upserts index (keyed on active.id)
-  showSaved();
+  if(!transientRace) saveRace(active);   // stamps savedAt, writes blob + upserts index (keyed on active.id)
+  showSaved();                            // a transient race (R18) is never auto-persisted; only the save-strip button does that
 }
 
 function showSaved(){
   const el = document.getElementById("sync");
   if(!el) return;
+  if(transientRace){
+    el.className = "sync";
+    el.textContent = "Not saved — from a link";
+    el.title = "Use “Save this race” to keep it in this browser’s library.";
+    return;
+  }
   if(!storageOK){
     el.className = "sync bad";
     el.textContent = "Not saving — this browser blocks storage";
@@ -495,8 +531,17 @@ function readIndex(){
   try{ const a = JSON.parse(raw); return Array.isArray(a) ? a : []; }catch(e){ return []; }
 }
 function writeIndex(arr){ storageSet(INDEX_KEY, JSON.stringify(arr)); }
+/** Light index entry: digest/finish/start are cached copies of values
+    derivable from the race blob (digestText(toRaceText(race)), raceTotal(race),
+    race.start) — kept here so renderHome() and findRaceByDigest() never need
+    to load every blob just to show a card or match a shared link (U4). */
 function indexEntry(race){
-  return {id:race.id, name:race.name||"", location:race.location||"", date:race.date||"", savedAt:race.savedAt};
+  return {
+    id:race.id, name:race.name||"", savedAt:race.savedAt,
+    digest: digestText(toRaceText(race)),
+    finish: raceTotal(race),
+    start: race.start
+  };
 }
 function listRaces(){ return readIndex(); }
 
@@ -518,15 +563,12 @@ function saveRace(race){
   return race;
 }
 /** Build + persist a new race: one placeholder checkpoint (empty sections
-    would fail normalize and load back as null), default leg distances. */
+    would fail normalize and load back as null). */
 function createRace(fields){
   fields = fields || {};
   const race = {
     id: uid(),
     name: fields.name || "",
-    location: fields.location || "",
-    date: fields.date || "",
-    dist: fields.dist || defaultDist(),
     start: typeof fields.start === "number" ? fields.start : 6*3600,
     sections: (fields.sections && fields.sections.length) ? fields.sections : [sec("", "swim", null, 0)],
     savedAt: null
@@ -556,25 +598,209 @@ function migrateLegacy(){
     if(legacy){
       createRace({
         name: "Fodaxman Solo Point Five 2025",
-        location: "Serra do Rio do Rastro, SC",
-        date: "2025-09-27",
-        dist: {swim:2000, bike:87000, run:22000},
         start: legacy.start,
         sections: legacy.sections
       });
+      if(!storageOK) return;   // import write failed (quota/private mode) — retry next load, don't set the sentinel
     }
   }
   storageSet(MIGRATED_KEY, "1");
 }
+/** One-time, non-destructive migration: strips the removed per-race
+    (location, date, dist) and per-section (est) fields from every stored
+    race blob. Gated on its own sentinel, separate from migrateLegacy(),
+    since it runs over the multi-race store rather than a legacy key. */
+function migrateDropMetadata(){
+  if(storageGet(MIGRATED_KEY_V2)) return;
+  let ok = true;
+  readIndex().forEach(entry => {
+    const raw = storageGet(raceKey(entry.id));
+    if(!raw) return;
+    let obj;
+    try{ obj = JSON.parse(raw); }catch(e){ return; }
+    if(!obj || typeof obj !== "object") return;
+    delete obj.location; delete obj.date; delete obj.dist;
+    if(Array.isArray(obj.sections)){
+      obj.sections.forEach(s => { if(s && typeof s === "object") delete s.est; });
+    }
+    if(!storageSet(raceKey(entry.id), JSON.stringify(obj))) ok = false;
+  });
+  // A write failure (quota/private mode) leaves some blobs unmigrated — skip
+  // the sentinel so this runs again next load instead of stranding them.
+  if(ok) storageSet(MIGRATED_KEY_V2, "1");
+}
+/** One-time, non-destructive migration: backfills digest/finish/start onto
+    every existing index entry (U4). Rewrites only the light index — those
+    three fields are derived read-only from each race blob (digestText(
+    toRaceText(race)), raceTotal(race), race.start), so there is nothing to
+    change in the blobs themselves. Must run after migrateDropMetadata() so
+    the canonical text it digests reflects the post-drop shape. Gated on its
+    own sentinel, same shape as migrateDropMetadata(). */
+function migrateBackfillIndex(){
+  if(storageGet(MIGRATED_KEY_V3)) return;
+  const idx = readIndex();
+  let changed = false;
+  idx.forEach(entry => {
+    if(entry.digest != null && entry.finish != null && entry.start != null) return;
+    const race = loadRace(entry.id);
+    if(!race) return;
+    entry.digest = digestText(toRaceText(race));
+    entry.finish = raceTotal(race);
+    entry.start = race.start;
+    changed = true;
+  });
+  if(changed) writeIndex(idx);
+  // A write failure (quota/private mode) leaves the index only partly
+  // backfilled — skip the sentinel so this runs again next load.
+  if(!changed || storageOK) storageSet(MIGRATED_KEY_V3, "1");
+}
+
+/* ---- watch sessions (U7, KTD5) --------------------------------
+   A watch session is its own stored record, addressed by its own id —
+   not a race id — and outlives no race in particular: it holds the
+   library race id it was started from (nullable — a session can start
+   from a transient/unsaved link), a FROZEN copy of the plan's canonical
+   text (from toRaceText() at freeze time, only ever rewritten by
+   resetWatchSession()), and a sparse {sectionIndex: elapsedSeconds}
+   actuals map (U8 fills this in). Storage mirrors the race library split
+   exactly: one light index (id/raceId/digest/createdAt) plus one blob per
+   session, so a bare-token watch route can find "this browser's most
+   recent session for this plan" without loading every blob, and a
+   watchId route can jump straight to one by key. Nothing ever deletes a
+   watch session (unlike races) — see the plan's System-Wide Impact notes. */
+const WATCH_INDEX_KEY = "race-splits:watch-index";
+const watchKey = id => "race-splits:watch:" + id;
+
+function readWatchIndex(){
+  const raw = storageGet(WATCH_INDEX_KEY);
+  if(!raw) return [];
+  try{ const a = JSON.parse(raw); return Array.isArray(a) ? a : []; }catch(e){ return []; }
+}
+function writeWatchIndex(arr){ storageSet(WATCH_INDEX_KEY, JSON.stringify(arr)); }
+/** Light index entry: digest is over the session's (possibly re-frozen)
+    planText, recomputed by saveWatchSession() every time it is called —
+    including from resetWatchSession(), so a reset session is still
+    findable by its new digest. */
+function watchIndexEntry(session){
+  return {id:session.id, raceId:session.raceId, digest:digestText(session.planText), createdAt:session.createdAt};
+}
+
+/** Accepts a stored blob; returns a clean session or null. Mirrors
+    normalize()'s field-by-field defensive style — a malformed record is
+    discarded rather than partially trusted. */
+function normalizeWatch(obj){
+  if(!obj || typeof obj !== "object") return null;
+  if(typeof obj.id !== "string" || !obj.id) return null;
+  if(typeof obj.planText !== "string" || !obj.planText) return null;
+  const parsed = parseRaceText(obj.planText);
+  if(parsed.error) return null;   // frozen text must still parse
+  const sectionCount = parsed.sections.length;
+  const actuals = {};
+  if(obj.actuals && typeof obj.actuals === "object"){
+    Object.keys(obj.actuals).forEach(k => {
+      const v = obj.actuals[k];
+      const idx = Number(k);
+      // Keys index into the FROZEN plan's own sections — an index outside
+      // that range (corrupt/tampered storage) would crash cumulative()/
+      // paintMarker() on mount rather than just being ignored, so bound it
+      // here rather than trusting a bare isFinite check.
+      if(typeof v === "number" && isFinite(v) && v >= 0 &&
+         Number.isInteger(idx) && idx >= 0 && idx < sectionCount) actuals[k] = v;
+    });
+  }
+  return {
+    id: obj.id,
+    raceId: typeof obj.raceId === "string" ? obj.raceId : null,
+    planText: obj.planText,
+    actuals,
+    createdAt: typeof obj.createdAt === "number" ? obj.createdAt : Date.now()
+  };
+}
+
+function loadWatchSession(id){
+  if(!id) return null;
+  const raw = storageGet(watchKey(id));
+  if(!raw) return null;
+  try{ return normalizeWatch(JSON.parse(raw)); }catch(e){ return null; }
+}
+/** Persist a session blob and upsert its index entry. */
+function saveWatchSession(session){
+  storageSet(watchKey(session.id), JSON.stringify(session));
+  const idx = readWatchIndex();
+  const at = idx.findIndex(e => e.id === session.id);
+  if(at >= 0) idx[at] = watchIndexEntry(session); else idx.push(watchIndexEntry(session));
+  writeWatchIndex(idx);
+  return session;
+}
+function createWatchSession(raceId, planText){
+  return saveWatchSession({id:uid(), raceId: raceId || null, planText, actuals:{}, createdAt:Date.now()});
+}
+/** Finds this browser's most recent watch session frozen against a plan
+    whose canonical text digests to `digest` (bare-token resolution).
+    Ties broken by most-recently-created, same tie-break shape as
+    findRaceByDigest(). */
+function findWatchSessionByDigest(digest){
+  const entries = readWatchIndex().slice().sort((a,b) => (b.createdAt||0) - (a.createdAt||0));
+  for(const entry of entries){
+    if(entry.digest !== digest) continue;
+    const session = loadWatchSession(entry.id);
+    if(session) return session;
+  }
+  return null;
+}
+/** R28: clears actuals and re-freezes planText from the session's raceId
+    CURRENT library text. Graceful no-op on the plan side (only actuals
+    clear) when raceId is null or no longer in the library — the same
+    degrade path a session started from someone else's shared link
+    always lives with, since it never had a raceId to re-freeze from. */
+function resetWatchSession(){
+  if(!activeSession) return;
+  const before = JSON.stringify(activeSession);
+  const race = activeSession.raceId ? loadRace(activeSession.raceId) : null;
+  const sessionId = activeSession.id;   // captured for the undo guard below
+  activeSession.actuals = {};
+  if(race) activeSession.planText = toRaceText(race);
+  saveWatchSession(activeSession);
+  mountWatchFromSession(activeSession);
+  toast("Watch session reset", () => {
+    // The toast outlives navigation (it's never hidden by a route change),
+    // so a click after leaving this session must not yank the view back and
+    // rewrite the URL out from under whatever is on screen now (adversarial
+    // review: "reset undo can mount an old session after navigation").
+    if(mode !== "watch" || activeWatchId !== sessionId) return;
+    const restored = normalizeWatch(JSON.parse(before));
+    if(!restored) return;
+    activeSession = restored;
+    saveWatchSession(activeSession);
+    mountWatchFromSession(activeSession);
+  });
+}
 
 /* The app mounts one race at a time. `active` is the mounted race context;
    `mode` is the current view; `readOnly` suppresses editing (follow mode).
-   undoStack + selected reset on every mount, so nothing leaks across races. */
+   undoStack + selected reset on every mount, so nothing leaks across races.
+   `transientRace` marks a race mounted from a link that is not (yet) saved
+   to this library (R18) — `active.id` is null for as long as it is true.
+   `activeWatchId` is the watch-session id from a "/race/<token>/watch/<id>"
+   route, kept in sync with `activeSession.id` (U7). `activeSession` is the
+   full loaded/created watch-session record (KTD5: {id,raceId,planText,
+   actuals,createdAt}) — set only while mode === "watch", null otherwise.
+   `active` while watching is a race-SHAPED object parsed from the
+   session's frozen planText, not the library race itself (that is what
+   makes a running session immune to a later plan edit); its `id` is
+   session.raceId (nullable) so refreshRaceChrome's watch-live/open-edit
+   links still point at the real library race when one backs the session.
+   A watch session is deliberately NOT `transientRace` — that flag stays
+   about the distinct R18 "unsaved link-shared race" concept and is
+   always false in watch mode, even when session.raceId is null. */
 let active = null;
 let mode = "home";
 let readOnly = false;
 let undoStack = [];
 let selected = null;
+let transientRace = false;
+let activeWatchId = null;
+let activeSession = null;
 function snapshot(){
   if(!active) return;
   undoStack.push(JSON.stringify(active));
@@ -584,7 +810,7 @@ function undo(){
   if(mode !== "edit") return;
   const prev = undoStack.pop();
   if(!prev) return;
-  active = JSON.parse(prev); save(); render();
+  active = JSON.parse(prev); save(); render(); refreshUrl();
 }
 
 /* ============================================================
@@ -650,12 +876,15 @@ function paceOf(sport, meters, seconds){
   if(sport === "run")  return {v:fmtMS(seconds/(meters/1000)), u:"/km"};
   return null;
 }
+/** Per-sport totals across the race. `complete` is false once any
+    distance-bearing section of that sport lacks a distance — R10 then
+    withholds the pace while the summed distance still shows what is known. */
 function legTotals(){
   const out = {};
   for(const s of active.sections){
-    const t = out[s.sport] || (out[s.sport] = {dur:0, dist:0, est:false});
+    const t = out[s.sport] || (out[s.sport] = {dur:0, dist:0, complete:true});
     t.dur += s.dur; t.dist += (s.dist||0);
-    if(s.est) t.est = true;
+    if(SPORTS[s.sport].unit && s.dist == null) t.complete = false;
   }
   return out;
 }
@@ -667,6 +896,123 @@ function groups(){
     else g.push({sport:s.sport, items:[{s,i}]});
   });
   return g;
+}
+
+/* ---- watch actuals (U8, R22-R23, R26-R27, KD2) ----------------
+   Race-day times are an overlay on the frozen plan, never an edit to it:
+   actuals live only in activeSession.actuals (sparse, key = section index
+   as a string, value = elapsed seconds from gun), keyed by SECTION INDEX
+   order — "latest actual" always means the highest index carrying one,
+   not whichever was entered most recently in wall-clock time. */
+function lastActualIndex(){
+  if(!activeSession) return -1;
+  let max = -1;
+  Object.keys(activeSession.actuals).forEach(k => {
+    const n = Number(k);
+    if(Number.isFinite(n) && n > max) max = n;
+  });
+  return max;
+}
+/** Elapsed-from-gun projection for section i, derived from the latest
+    (by index) checkpoint carrying an actual plus the FROZEN plan's
+    remaining durations on top of it. null when i is not after the last
+    actual, or there is no actual yet. */
+function revisedElapsed(i){
+  const lastIdx = lastActualIndex();
+  if(lastIdx < 0 || i <= lastIdx) return null;
+  const lastElapsed = activeSession.actuals[String(lastIdx)];
+  return lastElapsed + (cumulative(i) - cumulative(lastIdx));
+}
+/** Revised finish: same derivation as revisedElapsed(), evaluated at the
+    last section, but defined even when the last actual IS the last
+    section (the "remaining" duration is then zero, so it collapses to
+    the actual itself). null when no actual has been entered at all. */
+function revisedFinishElapsed(){
+  const lastIdx = lastActualIndex();
+  if(lastIdx < 0) return null;
+  const lastElapsed = activeSession.actuals[String(lastIdx)];
+  const lastSectionIdx = active.sections.length - 1;
+  return lastElapsed + (cumulative(lastSectionIdx) - cumulative(lastIdx));
+}
+/** One of "finished" | "past" | "upcoming" (the R22-R27 state diagram),
+    or null outside watch mode. Finished (has an actual) takes priority
+    over Past (wall clock beyond the frozen planned end, no actual). */
+function watchRowState(i){
+  if(mode !== "watch" || !activeSession) return null;
+  if(activeSession.actuals[String(i)] != null) return "finished";
+  const wp = wallPhase();
+  if(wp.phase === "after") return "past";
+  if(wp.phase === "mid" && wp.d >= cumulative(i)) return "past";
+  return "upcoming";
+}
+/** A leg takes the state of its checkpoints: Finished only once every
+    checkpoint in it carries an actual; Past once the wall clock is
+    beyond the leg's frozen end with at least one checkpoint still
+    lacking an actual. */
+function watchLegState(items){
+  if(mode !== "watch" || !activeSession) return null;
+  if(items.every(({i}) => activeSession.actuals[String(i)] != null)) return "finished";
+  const wp = wallPhase();
+  const lastIdx = items[items.length-1].i;
+  const past = wp.phase === "after" || (wp.phase === "mid" && wp.d >= cumulative(lastIdx));
+  return past ? "past" : "upcoming";
+}
+/** Seconds-of-day (any sign/range) -> elapsed-from-gun, day-wrapped. The one
+    piece of piecewise day-wrap math both the live marker (wallPhase()) and
+    watch-mode actual entry (watchClockToElapsed()) need — race.start is
+    seconds-of-day only, so this is never the elapsed-edit path's
+    clamp-to-zero, which would record a post-midnight checkpoint as zero. */
+function elapsedFromClock(clockSecs){
+  return ((clockSecs - active.start) % 86400 + 86400) % 86400;
+}
+/** Parses a typed CLOCK time (what a volunteer reads off a watch, not an
+    elapsed duration) into elapsed-from-gun seconds. */
+function watchClockToElapsed(raw){
+  const secs = parseFlexDur(raw);
+  if(secs == null) return null;
+  const clockOfDay = ((secs % 86400) + 86400) % 86400;
+  return elapsedFromClock(clockOfDay);
+}
+/** Commits (or, given "", clears) an actual for section i into the
+    SESSION blob only — never the race blob. Validates elapsed order
+    against the nearest earlier/later section that already carries an
+    actual (by section index, R22's "as they pass" ordering), rejecting
+    a time-travel entry with a toast instead of silently accepting it. */
+function commitActual(i, raw){
+  if(!activeSession) return;
+  const key = String(i);
+  if(raw === ""){
+    if(activeSession.actuals[key] != null){
+      delete activeSession.actuals[key];
+      saveWatchSession(activeSession);
+    }
+    render();
+    return;
+  }
+  const elapsed = watchClockToElapsed(raw);
+  if(elapsed == null){ toast("Could not read that as a clock time"); render(); return; }
+
+  let minBound = null, maxBound = null;   // nearest earlier / later section already carrying an actual
+  Object.keys(activeSession.actuals).forEach(k => {
+    const n = Number(k);
+    if(!Number.isFinite(n) || n === i) return;
+    if(n < i){ if(minBound == null || n > minBound) minBound = n; }
+    else { if(maxBound == null || n < maxBound) maxBound = n; }
+  });
+  if(minBound != null && elapsed < activeSession.actuals[String(minBound)]){
+    toast("That time is earlier than an already-recorded checkpoint — not saved");
+    render();
+    return;
+  }
+  if(maxBound != null && elapsed > activeSession.actuals[String(maxBound)]){
+    toast("That time is later than an already-recorded checkpoint — not saved");
+    render();
+    return;
+  }
+
+  activeSession.actuals[key] = elapsed;
+  saveWatchSession(activeSession);
+  render();
 }
 
 /* ============================================================
@@ -703,16 +1049,21 @@ function moveSection(from, insertAt, sport){
   if(pos === from && !changesSport) return;
 
   const before = JSON.stringify(active);
+  const raceRef = active;   // captured for the undo guard below
   snapshot();
   const [s] = arr.splice(from, 1);
   if(changesSport) s.sport = sport;
   s.dur = 0;
   s.dist = null;
-  s.est = false;
   arr.splice(pos, 0, s);
   commit();
-  toast((s.name || "Checkpoint") + " moved — split and distance cleared",
-        () => { active = JSON.parse(before); save(); render(); });
+  toast((s.name || "Checkpoint") + " moved — split and distance cleared", () => {
+    // The toast outlives navigation, so a stale click after leaving this
+    // race (or this race being re-mounted as a fresh object) must not
+    // silently overwrite whatever is on screen now and rewrite its URL.
+    if(mode !== "edit" || active !== raceRef) return;
+    active = JSON.parse(before); save(); render(); refreshUrl();
+  });
 }
 
 /* ---- drag to reorder ----------------------------------------
@@ -785,7 +1136,7 @@ function endDrag(){
   moveSection(from, d.before ? t : t+1, sport);
 }
 
-function commit(){ save(); render(); }
+function commit(){ save(); render(); refreshUrl(); }
 
 function addSection(sport, atIndex){
   snapshot();
@@ -797,11 +1148,15 @@ function addSection(sport, atIndex){
 }
 function removeSection(i){
   const before = JSON.stringify(active);
+  const raceRef = active;   // captured for the undo guard below
   snapshot();
   const [gone] = active.sections.splice(i,1);
   if(!active.sections.length) active.sections.push(sec("", "swim", null, 0));
   commit();
-  toast((gone.name || "Section")+" removed", () => { active = JSON.parse(before); save(); render(); });
+  toast((gone.name || "Section")+" removed", () => {
+    if(mode !== "edit" || active !== raceRef) return;
+    active = JSON.parse(before); save(); render(); refreshUrl();
+  });
 }
 
 /* ============================================================
@@ -812,15 +1167,28 @@ const legsEl = $("#legs");
 const PIN_OUT = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s7-6.2 7-11a7 7 0 1 0-14 0c0 4.8 7 11 7 11z" fill="none" stroke="currentColor" stroke-width="1.7"/><circle cx="12" cy="10" r="2.4" fill="none" stroke="currentColor" stroke-width="1.7"/></svg>';
 const PIN_IN  = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s7-6.2 7-11a7 7 0 1 0-14 0c0 4.8 7 11 7 11zm0-8.6a2.4 2.4 0 1 1 0-4.8 2.4 2.4 0 0 1 0 4.8z"/></svg>';
 const GRIP = '<svg viewBox="0 0 8 14" aria-hidden="true"><circle cx="2" cy="2" r="1.3"/><circle cx="6" cy="2" r="1.3"/><circle cx="2" cy="7" r="1.3"/><circle cx="6" cy="7" r="1.3"/><circle cx="2" cy="12" r="1.3"/><circle cx="6" cy="12" r="1.3"/></svg>';
+const COG = '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="1.7" d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7z"/><path fill="none" stroke="currentColor" stroke-width="1.7" d="M19.4 13.5c.04-.33.06-.66.06-1s-.02-.67-.06-1l2.02-1.58a.5.5 0 0 0 .12-.64l-1.92-3.32a.5.5 0 0 0-.6-.22l-2.38.96a7.4 7.4 0 0 0-1.73-1l-.36-2.53a.5.5 0 0 0-.5-.42h-3.84a.5.5 0 0 0-.5.42l-.36 2.53c-.63.24-1.21.58-1.73 1l-2.38-.96a.5.5 0 0 0-.6.22L2.7 9.28a.5.5 0 0 0 .12.64L4.84 11.5c-.04.33-.06.66-.06 1s.02.67.06 1L2.82 15.08a.5.5 0 0 0-.12.64l1.92 3.32a.5.5 0 0 0 .6.22l2.38-.96c.52.42 1.1.76 1.73 1l.36 2.53a.5.5 0 0 0 .5.42h3.84a.5.5 0 0 0 .5-.42l.36-2.53c.63-.24 1.21-.58 1.73-1l2.38.96a.5.5 0 0 0 .6-.22l1.92-3.32a.5.5 0 0 0-.12-.64L19.4 13.5z"/></svg>';
+/* U6: masthead icon controls (Copy/Paste/Share) — same stroke vocabulary as
+   PIN_OUT/PIN_IN/COG (viewBox 0 0 24 24, aria-hidden, name lives on the
+   parent .icon button via aria-label/title). */
+const ICON_COPY  = '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="8" y="8" width="12" height="12" rx="2" fill="none" stroke="currentColor" stroke-width="1.7"/><path fill="none" stroke="currentColor" stroke-width="1.7" d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"/></svg>';
+const ICON_PASTE = '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="4" width="12" height="17" rx="2" fill="none" stroke="currentColor" stroke-width="1.7"/><path fill="none" stroke="currentColor" stroke-width="1.7" d="M9 4h6a1 1 0 0 1 1 1v1a1 1 0 0 1-1 1H9a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1z"/><path fill="none" stroke="currentColor" stroke-width="1.7" d="M9 13h6M9 17h4"/></svg>';
+const ICON_SHARE = '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="18" cy="6" r="2.6" fill="none" stroke="currentColor" stroke-width="1.7"/><circle cx="6" cy="12" r="2.6" fill="none" stroke="currentColor" stroke-width="1.7"/><circle cx="18" cy="18" r="2.6" fill="none" stroke="currentColor" stroke-width="1.7"/><path fill="none" stroke="currentColor" stroke-width="1.7" d="M8.3 10.7l7.4-3.4M8.3 13.3l7.4 3.4"/></svg>';
+(function initMastheadIcons(){
+  const ic = document.getElementById("btn-import"), cp = document.getElementById("btn-copy"), sh = document.getElementById("btn-share");
+  if(ic) ic.innerHTML = ICON_PASTE;
+  if(cp) cp.innerHTML = ICON_COPY;
+  if(sh) sh.innerHTML = ICON_SHARE;
+})();
+// U9: pin icons are static per page load — set once rather than every paintMarker() tick.
+(function initTimelinePins(){
+  const pp = document.getElementById("pin-plan"), pa = document.getElementById("pin-actual");
+  if(pp) pp.innerHTML = PIN_OUT;
+  if(pa) pa.innerHTML = PIN_IN;
+})();
 
-const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
-function fmtDate(s){
-  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(s||"").trim());
-  return m ? (+m[3])+" "+MONTHS[(+m[2])-1]+" "+m[1] : String(s||"");
-}
-const distKm = m => +(m/1000).toFixed(2);
-
-/** Masthead reflects the active race's identity + leg distances. */
+/** Masthead reflects the active race's identity + leg distances, derived
+    from the sections themselves (R9) rather than any stored per-race total. */
 function renderMasthead(){
   const nameEl = $("#race-name");
   if(nameEl){
@@ -831,12 +1199,11 @@ function renderMasthead(){
   }
   const w = $("#race-where");
   if(!w) return;
-  const d = active.dist || defaultDist();
-  const parts = [];
-  if(active.location) parts.push(esc(active.location));
-  if(active.date) parts.push(esc(fmtDate(active.date)));
-  parts.push("<b>"+distKm(d.swim)+" km</b> swim, <b>"+distKm(d.bike)+" km</b> bike, <b>"+distKm(d.run)+" km</b> run");
-  w.innerHTML = parts.join(" · ");
+  const tot = legTotals();
+  const parts = ORDER
+    .filter(sport => tot[sport] && tot[sport].dist)
+    .map(sport => "<b>"+fmtDistLabel(sport, tot[sport].dist)+"</b> "+SPORTS[sport].label.toLowerCase());
+  w.innerHTML = parts.join(", ");
 }
 
 function render(){
@@ -853,6 +1220,22 @@ function render(){
 function renderBoard(){
   const t = total();
   $("#finish").textContent = t ? fmtHMS(t) : "—";
+  const finLab = $("#finish-lab"), revWrap = $("#finish-revised"), clockWrap = $("#finish-clock");
+  const showRevised = mode === "watch" && !!t && lastActualIndex() >= 0;
+  if(finLab){
+    finLab.textContent = showRevised ? "Finish (plan)" : (mode === "edit" ? "Finish Estimate" : "Finish");
+  }
+  if(revWrap){
+    revWrap.hidden = !showRevised;
+    if(showRevised) $("#finish-revised-val").textContent = fmtHMS(revisedFinishElapsed());
+  }
+  // Edit mode only (R7) — follow/watch's headline area is already spoken
+  // for by the plan/revised display above.
+  const showClock = mode === "edit";
+  if(clockWrap){
+    clockWrap.hidden = !showClock;
+    if(showClock) $("#finish-clock-val").textContent = t ? fmtClock(active.start + t) : "—";
+  }
   const bar = $("#bar"), ticks = $("#ticks");
   bar.innerHTML = ""; ticks.innerHTML = "";
 
@@ -894,15 +1277,25 @@ function renderBoard(){
   ORDER.forEach(sport => {
     const v = tot[sport];
     if(!v) return;
-    const p = paceOf(sport, v.dist, v.dur);
+    const p = v.complete ? paceOf(sport, v.dist, v.dur) : null;
     const el = document.createElement("div");
     el.className = "chip"; el.dataset.sport = sport;
     el.innerHTML =
       '<div class="name">'+SPORTS[sport].label+'</div>'+
       '<div class="pace">'+(p ? p.v+' <span class="u">'+p.u+'</span>' : "—")+'</div>'+
-      '<div class="sub">'+fmtHMS(v.dur)+' · '+(v.dist ? fmtDistLabel(sport,v.dist) : "no distance")+(v.est?" (est.)":"")+'</div>';
+      '<div class="sub">'+fmtHMS(v.dur)+' · '+(v.dist ? fmtDistLabel(sport,v.dist) : "no distance")+'</div>';
     chips.appendChild(el);
   });
+  const trans = tot.trans;
+  if(trans){
+    const el = document.createElement("div");
+    el.className = "chip trans"; el.dataset.sport = "trans";
+    el.innerHTML =
+      '<div class="name">'+SPORTS.trans.label+'</div>'+
+      '<div class="pace">—</div>'+
+      '<div class="sub">'+fmtHMS(trans.dur)+'</div>';
+    chips.appendChild(el);
+  }
 }
 
 function renderLegs(){
@@ -911,10 +1304,13 @@ function renderLegs(){
     const meta = SPORTS[g.sport];
     const dur  = g.items.reduce((a,x)=>a+x.s.dur,0);
     const dist = g.items.reduce((a,x)=>a+(x.s.dist||0),0);
-    const p = paceOf(g.sport, dist, dur);
+    const complete = !meta.unit || g.items.every(x => x.s.dist != null);
+    const p = complete ? paceOf(g.sport, dist, dur) : null;
 
     const leg = document.createElement("section");
     leg.className = "leg"; leg.dataset.sport = g.sport;
+    const legState = watchLegState(g.items);
+    if(legState) leg.classList.add("watch-"+legState);
 
     const head = document.createElement("div");
     head.className = "leg-head";
@@ -956,6 +1352,8 @@ function rowFor(s, i){
   const row = document.createElement("div");
   row.className = "row"+(selected===s.id?" on expanded":"")+(s.note?" expanded":"");
   row.dataset.id = s.id;
+  const wState = watchRowState(i);
+  if(wState) row.classList.add("watch-"+wState);
 
   if(readOnly){
     row.appendChild(document.createElement("div"));   // empty grip column, keeps the grid aligned
@@ -974,7 +1372,7 @@ function rowFor(s, i){
   }
 
   row.appendChild(cell(textField(s.name, "Checkpoint name", v => {
-    snapshot(); s.name = v; save(); renderBoard();
+    snapshot(); s.name = v; save(); renderBoard(); refreshUrl();
   }, "name"), null));
 
   row.appendChild(cell(
@@ -991,9 +1389,13 @@ function rowFor(s, i){
     v => { const n = parseFlexDur(v); n!=null ? setCumulative(i,n) : render(); },
     n => setCumulative(i, cum+n)), "Elapsed"));
 
-  row.appendChild(cell(timeField(fmtClock(active.start+cum), "Clock",
-    v => { const n = parseFlexDur(v); n!=null ? setCumulative(i, n-active.start) : render(); },
-    n => setCumulative(i, cum+n)), "Clock"));
+  row.appendChild(cell(
+    mode === "watch"
+      ? watchActualCell(s, i)
+      : timeField(fmtClock(active.start+cum), "Clock",
+          v => { const n = parseFlexDur(v); n!=null ? setCumulative(i, n-active.start) : render(); },
+          n => setCumulative(i, cum+n)),
+    "Clock"));
 
   const pc = document.createElement("div");
   pc.className = "derived pace";
@@ -1025,7 +1427,7 @@ function rowFor(s, i){
   const nr = document.createElement("div");
   nr.className = "noterow";
   nr.appendChild(textField(s.note, "Note for the timeline — nutrition, weather, mechanical…", v => {
-    snapshot(); s.note = v; save(); renderBoard();
+    snapshot(); s.note = v; save(); renderBoard(); refreshUrl();
   }));
   row.appendChild(nr);
 
@@ -1052,28 +1454,37 @@ function staticText(text, cls){
   return el;
 }
 
+/** R29: Enter commits like blur does, without duplicating a commit call —
+    shared by every plain editable field (textField/distField; timeField
+    folds the same check into its own Arrow/Escape keydown handler instead
+    of taking a second listener). */
+function blurOnEnter(el){
+  el.addEventListener("keydown", ev => {
+    if(ev.key === "Enter"){ ev.preventDefault(); el.blur(); }
+  });
+}
 function textField(value, ph, onCommit, cls){
   if(readOnly) return staticText(value||"", cls||"");
   const el = document.createElement("input");
   el.className = "f "+(cls||"");
   el.value = value||""; el.placeholder = ph; el.setAttribute("aria-label", ph);
   el.addEventListener("change", () => onCommit(el.value.trim()));
+  blurOnEnter(el);
   return el;
 }
 function distField(s){
   const meta = SPORTS[s.sport];
-  if(readOnly) return staticText(distOut(s) || "", "num"+(s.est?" est":""));
+  if(readOnly) return staticText(distOut(s) || "", "num");
   const el = document.createElement("input");
-  el.className = "f num"+(s.est?" est":"");
+  el.className = "f num";
   el.value = distOut(s); el.inputMode = "decimal"; el.placeholder = meta.unit;
   el.setAttribute("aria-label", "Distance in "+meta.unit);
-  if(s.est) el.title = "Estimated — the leg distance split evenly. Type the real one to confirm it.";
   el.addEventListener("change", () => {
     snapshot();
     s.dist = distIn(s, el.value.trim());
-    s.est = false;
     commit();
   });
+  blurOnEnter(el);
   return el;
 }
 function timeField(value, label, onCommit, onNudge){
@@ -1088,8 +1499,47 @@ function timeField(value, label, onCommit, onNudge){
       onNudge((ev.shiftKey?60:1) * (ev.key === "ArrowUp" ? 1 : -1));
     }
     if(ev.key === "Escape"){ el.value = value; el.blur(); }
+    if(ev.key === "Enter"){ ev.preventDefault(); el.blur(); }
   });
   return el;
+}
+
+/** Watch mode's ONLY editable field (R22): the Clock cell, writing an
+    actual into the session, not the race blob. Distinct from timeField()
+    — everything else in the row stays staticText() via the global
+    readOnly flag, which is true throughout watch mode; only this cell
+    overrides that. Shows the entered actual when present, the frozen
+    planned clock as a placeholder when not, and — for any checkpoint
+    after the latest actual by section index — the revised projected
+    clock alongside the frozen one (R23). */
+function watchActualCell(s, i){
+  const wrap = document.createElement("div");
+  wrap.className = "watch-clock";
+  const key = String(i);
+  const actual = activeSession.actuals[key];
+  const frozenClock = fmtClock(active.start + cumulative(i));
+
+  const input = document.createElement("input");
+  input.className = "f num";
+  input.inputMode = "numeric";
+  input.value = actual != null ? fmtClock(active.start + actual) : "";
+  input.placeholder = frozenClock;
+  input.setAttribute("aria-label", "Actual clock time for "+(s.name||"this checkpoint")+" — leave blank to clear");
+  input.addEventListener("change", () => commitActual(i, input.value.trim()));
+  input.addEventListener("keydown", ev => {
+    if(ev.key === "Escape"){ input.value = actual != null ? fmtClock(active.start + actual) : ""; input.blur(); }
+  });
+  wrap.appendChild(input);
+
+  const meta = document.createElement("div");
+  meta.className = "watch-clock-meta";
+  let html = '<span class="frozen">plan '+frozenClock+'</span>';
+  const revised = revisedElapsed(i);
+  if(revised != null) html += '<span class="revised">rev '+fmtClock(active.start + revised)+'</span>';
+  meta.innerHTML = html;
+  wrap.appendChild(meta);
+
+  return wrap;
 }
 
 /* ============================================================
@@ -1143,93 +1593,91 @@ $("#map-remove").addEventListener("click", () => {
 });
 
 /* ============================================================
-   7. Importer — understands the raw race notes
+   7. Importer — canonical race text: writer and parser (R11-R13)
+
+   race      := nameLine gunLine entry+
+   nameLine  := <free text, never blank — "Untitled race" for unnamed>
+   gunLine   := <clock, h:mm or h:mm:ss>
+   entry     := sport SP dist SP split SP name   ; sport is S | B | R
+              | "T"   SP split SP name           ; transition, no distance
+   dist      := <kilometres, up to 3 decimals> | "-"   ; "-" = no distance
+   split     := [h:]mm:ss
+   Blank lines are skipped. Distances are km for every sport (KTD2) — the
+   on-screen fields keep rendering swim in metres via SPORTS' unit table;
+   only this text format is km-for-everything. Notes and map links are
+   per-device decoration and never appear here (KTD9, R14).
    ============================================================ */
-const RE_TIME = /\b(\d{1,3}):([0-5]\d)(?::([0-5]\d))?\b/g;
-const HEADERS = [[/^nata[çc][ãa]o/i,"swim"],[/^(bike|ciclismo)/i,"bike"],[/^(corrida|run)/i,"run"]];
-const HINTS   = [[/nata[çc]|swim|nado|barrag/i,"swim"],[/\bt\s*[12]\b|transi/i,"trans"],
-                 [/cicl|bike|pedal|serra|rastr|retão|retao|cruzamento/i,"bike"],
-                 [/corr|run|trail|e[óo]lic|mirante|c[âa]nion/i,"run"]];
-const IS_START = /largada|sa[íi]da|\bstart\b|gun/i;
+const SPORT_TOKEN = {S:"swim", B:"bike", R:"run"};
+const SPORT_LETTER = {swim:"S", bike:"B", run:"R"};
 
-function parseRaw(text){
-  const lines = text.split(/\r?\n/);
-  const events = [];
-  let sport = null;
-  for(const line of lines){
-    const l = line.trim();
-    if(!l) continue;
-
-    const head = HEADERS.find(([re]) => re.test(l) && !/\d/.test(l));
-    if(head){ sport = head[1]; continue; }
-
-    const tm = l.match(/\bT\s*([12])\b/i);
-    if(tm && !/:/.test(l.replace(/\bT\s*[12]\b/i,""))){
-      const d = parseFlexDur(l.replace(/.*?=\s*/,"").replace(/[()]/g,"").trim());
-      if(d != null){ events.push({kind:"trans", name:"T"+tm[1], dur:d}); continue; }
-    }
-
-    RE_TIME.lastIndex = 0;
-    const found = [...l.matchAll(RE_TIME)];
-    if(!found.length) continue;
-
-    let name = l.replace(RE_TIME," ")
-                .replace(/\((?:[^)]*?(?:\d\s*(?:h|'|min))[^)]*?)\)/gi," ")
-                .replace(/[;,\t|]+/g," ").replace(/\s{2,}/g," ")
-                .replace(/^[\s\-–—]+|[\s\-–—]+$/g,"").trim();
-    const toSec = m => (+m[1])*3600 + (+m[2])*60 + (+(m[3]||0));
-    const clock = toSec(found[0]);
-    const elapsed = found.length >= 2 ? toSec(found[found.length-1]) : null;
-
-    if(IS_START.test(name)) events.push({kind:"start", clock, name, sport});
-    else events.push({kind:"cp", clock, elapsed, name, sport: sport || guess(name)});
-  }
-  return events;
+function kmStr(meters){
+  if(meters == null) return "-";
+  let s = (meters/1000).toFixed(3);
+  s = s.replace(/0+$/,"").replace(/\.$/,"");
+  return s === "" ? "0" : s;
 }
-function guess(name){ for(const [re,sp] of HINTS) if(re.test(name)) return sp; return "bike"; }
 
-function buildSections(events){
-  const out = [];
-  let gun = null, cursor = null, tcount = 0;
-  for(const e of events){
-    if(e.kind === "start"){
-      if(gun == null){ gun = e.clock; cursor = e.clock; continue; }
-      if(cursor != null && e.clock > cursor){           // an untyped transition
-        tcount++;
-        out.push(sec("T"+tcount, "trans", null, e.clock - cursor));
-        cursor = e.clock;
-      }
-      continue;
-    }
-    if(e.kind === "trans"){
-      tcount++;
-      out.push(sec(e.name || ("T"+tcount), "trans", null, e.dur));
-      if(cursor != null) cursor += e.dur;
-      continue;
-    }
-    if(gun == null){ gun = e.clock - (e.elapsed||0); cursor = gun; }
-    const dur = cursor != null ? Math.max(0, e.clock - cursor)
-                               : Math.max(0, (e.elapsed||0));
-    if(dur === 0 && !out.length) continue;
-    out.push(sec(e.name || "", e.sport, null, dur));
-    cursor = e.clock;
-  }
-  ORDER.forEach(sport => {
-    const mine = out.filter(s => s.sport === sport);
-    if(!mine.length) return;
-    // Split this race's own leg distance evenly; SPORTS[sport].official is only
-    // the seed default for a brand-new race (never the bare SPORTS.official — F5).
-    const legDist = (active && active.dist && typeof active.dist[sport] === "number")
-      ? active.dist[sport] : SPORTS[sport].official;
-    const each = Math.round(legDist / mine.length);
-    mine.forEach(s => { s.dist = each; s.est = mine.length > 1; });
+function toRaceText(race){
+  const lines = [race.name || "Untitled race", fmtClock(race.start)];
+  race.sections.forEach(s => {
+    lines.push(s.sport === "trans"
+      ? ["T", fmtSplit(s.dur), s.name || ""].join(" ")
+      : [SPORT_LETTER[s.sport], kmStr(s.dist), fmtSplit(s.dur), s.name || ""].join(" "));
   });
-  return {gun, sections: out};
+  return lines.join("\n");
+}
+
+const DIST_RE = /^\d+(\.\d+)?$/;
+const SPLIT_RE = /^\d+:\d{2}(:\d{2})?$/;
+// SPLIT_RE's leading \d+ has no digit-count limit, so a crafted split (e.g.
+// from a hostile share link) can parse to an enormous number of seconds.
+// Nothing downstream bounds it — the timeline's hourly tick loop in
+// renderBoard() runs from the gun to the total duration, so an unbounded
+// total turns that loop into a browser hang. 30 days is far past any real
+// race this app is for; reject past it instead of trusting the input.
+const MAX_SPLIT_SECONDS = 30 * 86400;
+
+/** Single-pass parser for the canonical text format. Returns
+    {name, start, sections} or {error} naming the offending line. */
+function parseRaceText(text){
+  const lines = text.split(/\r?\n/).map(l => l.trim()).filter(l => l.length);
+  if(lines.length < 2) return {error:"Need a name line and a gun time line."};
+  const name = lines[0];
+  const start = parseDur(lines[1]);
+  if(start == null) return {error:"Line 2: gun time must be h:mm or h:mm:ss."};
+
+  const sections = [];
+  for(let i = 2; i < lines.length; i++){
+    const lineNo = i + 1;
+    const parts = lines[i].split(/\s+/);
+    const tok = parts[0].toUpperCase();
+
+    if(tok === "T"){
+      if(parts.length < 3) return {error:"Line "+lineNo+": transition needs a split and a name."};
+      if(!SPLIT_RE.test(parts[1])) return {error:"Line "+lineNo+": malformed split."};
+      const tDur = parseDur(parts[1]);
+      if(tDur > MAX_SPLIT_SECONDS) return {error:"Line "+lineNo+": split is unreasonably long."};
+      sections.push(sec(parts.slice(2).join(" "), "trans", null, tDur));
+      continue;
+    }
+
+    if(!SPORT_TOKEN[tok]) return {error:"Line "+lineNo+": unknown sport token “"+parts[0]+"”. Use S, B, R, or T."};
+    if(parts.length < 4) return {error:"Line "+lineNo+": checkpoint needs a distance, a split, and a name."};
+    const distTok = parts[1], splitTok = parts[2];
+    if(distTok !== "-" && !DIST_RE.test(distTok)) return {error:"Line "+lineNo+": malformed distance."};
+    if(!SPLIT_RE.test(splitTok)) return {error:"Line "+lineNo+": malformed split."};
+    const dur = parseDur(splitTok);
+    if(dur > MAX_SPLIT_SECONDS) return {error:"Line "+lineNo+": split is unreasonably long."};
+    const dist = distTok === "-" ? null : Math.round(parseFloat(distTok)*1000);
+    sections.push(sec(parts.slice(3).join(" "), SPORT_TOKEN[tok], dist, dur));
+  }
+  if(!sections.length) return {error:"No checkpoints found."};
+  return {name, start, sections};
 }
 
 function previewRows(built){
   const box = $("#preview");
-  if(!built.sections.length){ box.hidden = true; return; }
+  if(!built.sections || !built.sections.length){ box.hidden = true; return; }
   box.hidden = false;
   let html = "<table><thead><tr><th>Checkpoint</th><th>Leg</th><th>Split</th><th>Elapsed</th></tr></thead><tbody>";
   let cum = 0;
@@ -1243,7 +1691,134 @@ function previewRows(built){
 function esc(s){ return String(s).replace(/[&<>]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;"}[c])); }
 
 /* ============================================================
-   8. Wiring
+   8. Content-addressed links — token encode/decode + digest (R15,R18)
+
+   A race's URL fragment carries its canonical text (U2's toRaceText) as a
+   deflate-raw-compressed, base64url-encoded payload behind a one-byte
+   prefix: 1 = deflate-raw compressed, 0 = raw UTF-8 (used only when
+   CompressionStream/DecompressionStream are unavailable, KTD3). The
+   decoder reads the prefix and never has to guess which path produced a
+   given token, so a link made on an older browser still opens correctly
+   everywhere — it is just longer. A link CREATED as compressed can only be
+   READ where DecompressionStream exists; that failure is reported as
+   "needs a newer browser", distinct from a corrupt/malformed token.
+
+   digestText() is a short, synchronous, non-cryptographic hash of the
+   canonical text (not the compressed bytes) — it is how a decoded link is
+   matched against the library (KTD4: the digest addresses a race in a URL
+   but is never its storage key). Collisions are tolerated: link resolution
+   in mountFromToken() prefers the most recently saved match.
+   ============================================================ */
+function bytesToBase64Url(bytes){
+  let bin = "";
+  for(let i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]);
+  return btoa(bin).replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,"");
+}
+function base64UrlToBytes(str){
+  let s = String(str).replace(/-/g,"+").replace(/_/g,"/");
+  while(s.length % 4) s += "=";
+  const bin = atob(s);
+  const bytes = new Uint8Array(bin.length);
+  for(let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+  return bytes;
+}
+const TOKEN_RAW = 0, TOKEN_DEFLATE = 1;   // one-byte token prefix (KTD3)
+
+/** race text -> URL-safe token. Always succeeds; falls back to an
+    uncompressed (longer) token when CompressionStream is absent. */
+async function encodeToken(text){
+  const utf8 = new TextEncoder().encode(text);
+  if(typeof CompressionStream !== "function"){
+    const out = new Uint8Array(utf8.length + 1);
+    out[0] = TOKEN_RAW; out.set(utf8, 1);
+    return bytesToBase64Url(out);
+  }
+  const cs = new CompressionStream("deflate-raw");
+  const writer = cs.writable.getWriter();
+  writer.write(utf8); writer.close();
+  const compressed = new Uint8Array(await new Response(cs.readable).arrayBuffer());
+  const out = new Uint8Array(compressed.length + 1);
+  out[0] = TOKEN_DEFLATE; out.set(compressed, 1);
+  return bytesToBase64Url(out);
+}
+
+/** URL token -> {text} or {error}. error is "needs-newer-browser" for a
+    compressed token read where DecompressionStream is missing, or
+    "corrupt" for anything else that fails to decode. */
+async function decodeToken(token){
+  let bytes;
+  try{ bytes = base64UrlToBytes(token); }catch(e){ return {error:"corrupt"}; }
+  if(!bytes.length) return {error:"corrupt"};
+  const prefix = bytes[0], payload = bytes.slice(1);
+  if(prefix === TOKEN_RAW){
+    try{ return {text: new TextDecoder("utf-8", {fatal:true}).decode(payload)}; }
+    catch(e){ return {error:"corrupt"}; }
+  }
+  if(prefix === TOKEN_DEFLATE){
+    if(typeof DecompressionStream !== "function") return {error:"needs-newer-browser"};
+    try{
+      const ds = new DecompressionStream("deflate-raw");
+      const writer = ds.writable.getWriter();
+      writer.write(payload); writer.close();
+      // A tiny deflate stream can expand into an enormous output (a
+      // decompression bomb) before parseRaceText ever gets a chance to
+      // reject it — read incrementally and bail out once the output is far
+      // past anything a real race's canonical text could produce (security
+      // review + adversarial review, independently).
+      const MAX_DECOMPRESSED_BYTES = 2 * 1024 * 1024; // 2 MiB, generous for KB-scale race text
+      const reader = ds.readable.getReader();
+      const chunks = []; let total = 0;
+      for(;;){
+        const {done, value} = await reader.read();
+        if(done) break;
+        total += value.length;
+        if(total > MAX_DECOMPRESSED_BYTES){ reader.cancel(); return {error:"corrupt"}; }
+        chunks.push(value);
+      }
+      const buf = new Uint8Array(total);
+      let off = 0; for(const c of chunks){ buf.set(c, off); off += c.length; }
+      return {text: new TextDecoder("utf-8", {fatal:true}).decode(buf)};
+    }catch(e){ return {error:"corrupt"}; }
+  }
+  return {error:"corrupt"};
+}
+
+/** Short synchronous digest (cyrb128-derived, base36) over canonical
+    text — good enough for link-matching; collisions are handled by the
+    caller, not avoided here. */
+function digestText(text){
+  const str = String(text);
+  let h1 = 0x9e3779b9 ^ str.length, h2 = 0x85ebca6b ^ str.length;
+  for(let i = 0; i < str.length; i++){
+    const ch = str.charCodeAt(i);
+    h1 = Math.imul(h1 ^ ch, 2654435761);
+    h2 = Math.imul(h2 ^ ch, 1597334677);
+  }
+  h1 = Math.imul(h1 ^ (h1 >>> 16), 2246822507) ^ Math.imul(h2 ^ (h2 >>> 13), 3266489909);
+  h2 = Math.imul(h2 ^ (h2 >>> 16), 2246822507) ^ Math.imul(h1 ^ (h1 >>> 13), 3266489909);
+  return (h1 >>> 0).toString(36) + (h2 >>> 0).toString(36);
+}
+
+/** Finds a library race whose canonical text digests to `digest`. Reads the
+    cached entry.digest (U4) first; only an entry missing that field (should
+    not occur once migrateBackfillIndex() has run, but handled for safety)
+    falls back to loading its blob and computing the digest on the fly.
+    Ties broken by most-recently-saved (KTD4, R18 test scenario). */
+function findRaceByDigest(digest){
+  const entries = readIndex().slice().sort((a,b) => (b.savedAt||0) - (a.savedAt||0));
+  for(const entry of entries){
+    if(entry.digest != null){
+      if(entry.digest === digest) return loadRace(entry.id);
+      continue;
+    }
+    const race = loadRace(entry.id);
+    if(race && digestText(toRaceText(race)) === digest) return race;
+  }
+  return null;
+}
+
+/* ============================================================
+   9. Wiring
    ============================================================ */
 const dlg = $("#dlg"), raw = $("#raw");
 $("#btn-import").addEventListener("click", () => { dlg.showModal(); raw.focus(); });
@@ -1257,11 +1832,15 @@ raw.addEventListener("input", () => {
     if(!restored) w.textContent = "That looks like a backup, but it will not parse.";
     return;
   }
-  const built = buildSections(parseRaw(raw.value));
-  previewRows(built);
-  if(raw.value.trim() && !built.sections.length){
-    w.hidden = false; w.textContent = "No checkpoints found. Each timed line needs an h:mm or h:mm:ss value.";
-  } else w.hidden = true;
+  const parsed = parseRaceText(raw.value);
+  if(parsed.error){
+    previewRows({sections:[]});
+    if(raw.value.trim()){ w.hidden = false; w.textContent = parsed.error; }
+    else w.hidden = true;
+    return;
+  }
+  previewRows(parsed);
+  w.hidden = true;
 });
 $("#dlg-backup").addEventListener("click", async () => {
   const json = JSON.stringify(active);
@@ -1280,23 +1859,24 @@ $("#dlg-apply").addEventListener("click", () => {
   if(!active) return;
   const restored = tryRestoreBackup(raw.value);
   if(restored){
-    // Replace only the splits — keep this race's id/name/location/date/dist so it
-    // stays the same race in the index rather than becoming an orphaned blob (F8).
+    // Replace only the splits — keep this race's id/name so it stays the
+    // same race in the index rather than becoming an orphaned blob (F8).
     snapshot(); active.start = restored.start; active.sections = restored.sections;
     commit(); dlg.close();
     toast("Backup restored");
     return;
   }
-  const built = buildSections(parseRaw(raw.value));
-  if(!built.sections.length){
-    const w = $("#parse-warn"); w.hidden = false; w.textContent = "Nothing to load yet.";
+  const parsed = parseRaceText(raw.value);
+  if(parsed.error){
+    const w = $("#parse-warn"); w.hidden = false; w.textContent = parsed.error;
     return;
   }
   snapshot();
-  active.start = built.gun != null ? built.gun : active.start;
-  active.sections = built.sections;
+  active.name = parsed.name;
+  active.start = parsed.start;
+  active.sections = parsed.sections;
   commit(); dlg.close();
-  toast(built.sections.length+" sections loaded");
+  toast(parsed.sections.length+" sections loaded");
 });
 
 $("#start").addEventListener("change", e => {
@@ -1312,16 +1892,56 @@ $("#btn-add").addEventListener("click", () => { if(active) addSection($("#new-sp
 
 $("#btn-copy").addEventListener("click", async () => {
   if(!active) return;
-  const lines = ["checkpoint\tleg\tdistance_m\tsplit\telapsed\tclock\tpace\tmap\tnote"];
-  active.sections.forEach((s,i) => {
-    const cum = cumulative(i), p = paceOf(s.sport, s.dist, s.dur);
-    lines.push([s.name, s.sport, s.dist ?? "", fmtSplit(s.dur), fmtHMS(cum),
-                fmtClock(active.start+cum), p ? p.v+" "+p.u : "", s.map, s.note].join("\t"));
-  });
-  const text = lines.join("\n");
-  try{ await navigator.clipboard.writeText(text); toast("Copied as a tab-separated table"); }
+  const text = toRaceText(active);
+  try{ await navigator.clipboard.writeText(text); toast("Copied"); }
   catch(e){ raw.value = text; dlg.showModal(); raw.select(); }
 });
+
+/* U6: the edit masthead's Watch Live is the primary action — resolved to a
+   bare-token watch entry point at click time, mirroring the home-card
+   Watch Live button (U5) rather than the old .../follow route, so it opens
+   a real watch session instead of the plain read-only view. A plain <a
+   href> populated reactively would need refreshRaceChrome() to await the
+   async encodeToken before every render (a stale/absent-href window on
+   first paint); a button with a click-time-only async resolve has no such
+   window and matches U5's already-established pattern for the identical
+   problem, so it's the simpler and more consistent choice here. */
+$("#watch-live").addEventListener("click", async () => {
+  if(!active) return;
+  const mySeq = routeSeq;
+  const token = await encodeToken(toRaceText(active));
+  // Navigating away while the encode is in flight must not let this stale
+  // result overwrite wherever the user ended up (adversarial review: "slow
+  // watch-link encoding resurrects an abandoned route").
+  if(routeSeq !== mySeq) return;
+  location.hash = "#/race/" + token;
+});
+
+/* R17: copies the bare "#/race/<token>" watch-route form (KTD10) — the
+   same shape the router already resolves for a shared/watched link, not
+   the /edit or /follow form. Warns instead of copying past the ~2000-char
+   shareable-URL budget (KTD3), offering the canonical text as a fallback
+   share mechanism (still copyable/importable via Paste results). */
+$("#btn-share").addEventListener("click", async () => {
+  if(!active) return;
+  const text = toRaceText(active);
+  const token = await encodeToken(text);
+  const url = location.origin + location.pathname + "#/race/" + token;
+  if(url.length > 2000){
+    toast("That race is too big for a link — copying race text instead");
+    try{ await navigator.clipboard.writeText(text); }
+    catch(e){ raw.value = text; dlg.showModal(); raw.select(); }
+    return;
+  }
+  try{ await navigator.clipboard.writeText(url); toast("Link copied"); }
+  catch(e){ raw.value = url; dlg.showModal(); raw.select(); }
+});
+
+const saveStripBtn = $("#save-strip-btn");
+if(saveStripBtn) saveStripBtn.addEventListener("click", saveTransientRace);
+
+const watchResetBtn = $("#btn-watch-reset");
+if(watchResetBtn) watchResetBtn.addEventListener("click", resetWatchSession);
 
 let toastTimer = null, toastAction = null;
 function toast(msg, action){
@@ -1351,7 +1971,7 @@ window.addEventListener("pagehide", flush);
 document.addEventListener("visibilitychange", () => { if(document.hidden) flush(); });
 
 /* ============================================================
-   9. Router + view mounting
+   10. Router + view mounting
    ============================================================ */
 const VIEWS = ["home-view","race-view"];
 function show(id){ VIEWS.forEach(v => { const el = $("#"+v); if(el) el.hidden = v !== id; }); }
@@ -1361,11 +1981,36 @@ function focusHeading(viewId){                       // F11: land AT/keyboard fo
   const h = view.querySelector("h1,h2");
   if(h){ h.setAttribute("tabindex","-1"); h.focus(); }
 }
+/* Route shapes (R15,R19,KTD10):
+     "/"                          -> home
+     "/race/<x>/edit"             -> <x> checked against the library index
+                                      as an id FIRST (legacy bookmark); a
+                                      token only when no index entry matches
+     "/race/<x>/follow"           -> same id-first rule
+     "/race/<token>/watch/<wid>"  -> that exact watch session, by id (U7)
+     "/race/<token>"  (bare)      -> watch (KTD10) — this browser's most
+                                      recent session for that plan, or a
+                                      new one (U7)
+   A legacy id and a token are the same URL shape: the existing 7-char
+   uid() is itself valid base64url, so the id-vs-token distinction is
+   resolved by looking the string up in the index, never by its shape. */
 function parseHash(){
   const h = location.hash.replace(/^#/, "");
-  const m = h.match(/^\/race\/([^/]+)\/(edit|follow)$/);
-  if(m) return {view:m[2], id:decodeURIComponent(m[1])};
-  return {view:"home", id:null};                     // "", "/", or anything unknown -> home
+  let m;
+  // decodeURIComponent throws on malformed percent-encoding (e.g. a stray
+  // "%" from a corrupted/hand-edited link) — caught here so a bad hash
+  // falls back to home like any other unrecognized route, rather than
+  // throwing inside router()'s async body with nothing to catch it
+  // (api-contract review).
+  try{
+    if((m = h.match(/^\/race\/([^/]+)\/watch\/([^/]+)$/)))
+      return {view:"watch", token:decodeURIComponent(m[1]), watchId:decodeURIComponent(m[2])};
+    if((m = h.match(/^\/race\/([^/]+)\/(edit|follow)$/)))
+      return {view:m[2], token:decodeURIComponent(m[1])};
+    if((m = h.match(/^\/race\/([^/]+)$/)))
+      return {view:"watch", token:decodeURIComponent(m[1]), watchId:null};
+  }catch(e){ return {view:"home", token:null}; }
+  return {view:"home", token:null};                  // "", "/", or anything unknown -> home
 }
 
 let markerTimer = null;
@@ -1378,17 +2023,87 @@ function teardownActiveView(){
      them — there is nothing to unbind here (F6). */
 }
 
-function router(){
+/* KTD6 ordering: every navigation bumps routeSeq before any await, and
+   every async step below re-checks it on the far side of that await,
+   discarding stale work instead of mounting over whatever navigated in
+   after it. lastMountedHash short-circuits router() when the incoming
+   hash already resolves to what is on screen (including hashes we wrote
+   ourselves via replaceState, which fire no hashchange but should still
+   make a redundant real navigation to the same hash a no-op). */
+let routeSeq = 0;
+let lastMountedHash = null;
+
+async function router(){
+  if(location.hash === lastMountedHash) return;
+  const mySeq = ++routeSeq;
   const route = parseHash();
   teardownActiveView();
-  if(route.view === "home") return mountHome();
-  const race = loadRace(route.id);
-  if(!race){                                         // deleted/unknown id or malformed hash (F3)
-    toast("That race is no longer here");
-    location.hash = "#/";                             // re-fires hashchange -> mountHome
+
+  if(route.view === "home"){
+    mountHome();
+    lastMountedHash = location.hash;
     return;
   }
-  return route.view === "follow" ? mountFollow(race) : mountEdit(race);
+
+  if(route.view === "edit" || route.view === "follow"){
+    const isLegacyId = readIndex().some(e => e.id === route.token);
+    if(isLegacyId){
+      const race = loadRace(route.token);
+      if(!race){                                     // deleted id (F3)
+        toast("That race is no longer here");
+        location.hash = "#/";                        // re-fires hashchange -> mountHome
+        return;
+      }
+      mountRace(race, route.view, mySeq, null, {});
+      lastMountedHash = location.hash;
+      refreshUrl();                                   // R19: rewrite the legacy id URL to token form
+      return;
+    }
+    await mountFromToken(route.token, route.view, null, mySeq);
+    return;
+  }
+
+  await mountFromToken(route.token, "watch", route.watchId, mySeq);
+}
+
+/** Decodes a token route (bare, or one that fell through the legacy-id
+    check) and mounts either the matching library race or a transient one
+    (R18). Every await is re-guarded against routeSeq moving on (KTD7). */
+async function mountFromToken(token, view, watchId, mySeq){
+  const decoded = await decodeToken(token);
+  if(mySeq !== routeSeq) return;                       // navigated away meanwhile
+  if(decoded.error === "needs-newer-browser"){
+    toast("This link needs a newer browser");
+    location.hash = "#/";
+    return;
+  }
+  if(decoded.error){
+    toast("That race link looks corrupted");
+    location.hash = "#/";
+    return;
+  }
+  const parsed = parseRaceText(decoded.text);
+  if(parsed.error){
+    toast("That race link looks corrupted");
+    location.hash = "#/";
+    return;
+  }
+  const digest = digestText(decoded.text);
+  const stored = findRaceByDigest(digest);
+  if(stored){
+    mountRace(stored, view, mySeq, watchId, {}, digest);
+  }else{
+    const transient = {id:null, name:parsed.name, start:parsed.start, sections:parsed.sections, savedAt:null};
+    mountRace(transient, view, mySeq, watchId, {transient:true}, digest);
+  }
+  lastMountedHash = location.hash;
+}
+
+function mountRace(race, view, mySeq, watchId, opts, digest){
+  if(mySeq !== routeSeq) return;                       // stale by the time decode/lookup settled
+  if(view === "edit") return mountEdit(race, opts);
+  if(view === "follow") return mountFollow(race, opts);
+  return mountWatch(race, watchId, opts, digest);
 }
 
 function applyReadOnly(ro){
@@ -1397,80 +2112,279 @@ function applyReadOnly(ro){
   if(rv) rv.classList.toggle("readonly", ro);
 }
 
+/** Sets watch-live/open-edit hrefs (hidden entirely for a transient race,
+    which has no id to link to) and toggles the CSS hook that hides them.
+    The `active.id` guard covers watch mode too: a watch session with no
+    backing library race (session.raceId null) mounts a frozen race-shaped
+    `active` with `id: null` while leaving transientRace false (U7 — that
+    flag is reserved for the distinct R18 concept), so this link-hiding
+    logic keys off `active.id` rather than transientRace alone. */
+function refreshRaceChrome(){
+  const rv = $("#race-view");
+  if(rv) rv.classList.toggle("transient-race", transientRace);
+  const oe = $("#open-edit");
+  if(oe){
+    // #open-edit is a persistent DOM node reused across every mount, so a
+    // raceId-less watch session (active.id null, transientRace still false
+    // — a session started from someone else's link) must clear the href
+    // rather than leave it pointing at whatever race was open before
+    // (correctness review: "Open in edit link can point at a stale,
+    // unrelated race in watch mode").
+    if(!transientRace && active.id) oe.href = "#/race/" + encodeURIComponent(active.id) + "/edit";
+    else oe.removeAttribute("href");
+  }
+}
+function renderSaveStrip(){
+  const el = $("#save-strip");
+  if(el) el.hidden = !transientRace;
+}
+function renderWatchReset(){
+  const el = $("#btn-watch-reset");
+  if(el) el.hidden = mode !== "watch";
+}
+
 function mountHome(){
   mode = "home"; active = null; readOnly = false; selected = null; undoStack = [];
+  transientRace = false; activeWatchId = null; activeSession = null;
   renderHome();
   show("home-view");
   document.title = "Race splits";
   focusHeading("home-view");
 }
-function mountEdit(race){
+function mountEdit(race, opts){
+  opts = opts || {};
   mode = "edit"; active = race; selected = null; undoStack = [];
+  transientRace = !!opts.transient; activeWatchId = null; activeSession = null;
   applyReadOnly(false);
-  const wl = $("#watch-live");
-  if(wl) wl.href = "#/race/" + encodeURIComponent(race.id) + "/follow";   // F15
+  refreshRaceChrome();
   show("race-view");
   render();
   showSaved();
+  renderSaveStrip();
+  renderWatchReset();
   document.title = (race.name || "Untitled race") + " — Splits";
   focusHeading("race-view");
 }
-function mountFollow(race){
+function mountFollow(race, opts){
+  opts = opts || {};
   mode = "follow"; active = race; selected = null; undoStack = [];
+  transientRace = !!opts.transient; activeWatchId = null; activeSession = null;
   applyReadOnly(true);
-  const oe = $("#open-edit");
-  if(oe) oe.href = "#/race/" + encodeURIComponent(race.id) + "/edit";
+  refreshRaceChrome();
   show("race-view");
   render();                 // readOnly render: static fields, no chrome
+  showSaved();
+  renderSaveStrip();
+  renderWatchReset();
   startMarker();
   document.title = (race.name || "Untitled race") + " — Live";
   focusHeading("race-view");
 }
+/** Watch mode (U7): runs inside a named session that owns its own frozen
+    copy of the plan (KTD5/KD2). `race` here is whatever mountFromToken
+    resolved for the token (a library race or a transient one) — it is
+    ONLY used to seed a brand-new session's frozen text/raceId; once a
+    session exists (found by watchId or by digest), rendering comes
+    entirely from the session's stored planText, never from `race` again,
+    so a later edit to the library race cannot reach a running session.
+    `digest` is the incoming link's plan digest, computed by
+    mountFromToken — used for the bare-token "resume this browser's most
+    recent session for this plan, else start one" resolution (R20). */
+function mountWatch(race, watchId, opts, digest){
+  let session = watchId ? loadWatchSession(watchId) : null;
+  if(watchId && !session) toast("That watch session is no longer here — starting a new one");
+  if(!session) session = findWatchSessionByDigest(digest) || createWatchSession(race.id, toRaceText(race));
+  mountWatchFromSession(session);
+}
+/** Mounts (or re-mounts, after reset) a watch session from its own
+    stored/frozen planText — never from the live library race (this is
+    what keeps a running session immune to a later split edit, AE2). */
+function mountWatchFromSession(session){
+  const parsed = parseRaceText(session.planText);   // normalizeWatch() already guaranteed this parses
+  const frozen = {id: session.raceId || null, name:parsed.name, start:parsed.start, sections:parsed.sections, savedAt:null};
+  mode = "watch"; active = frozen; selected = null; undoStack = [];
+  transientRace = false; activeSession = session; activeWatchId = session.id;
+  applyReadOnly(true);
+  refreshRaceChrome();
+  show("race-view");
+  render();
+  showSaved();
+  renderSaveStrip();
+  renderWatchReset();
+  startMarker();
+  document.title = (frozen.name || "Untitled race") + " — Watch";
+  focusHeading("race-view");
+  refreshUrl();             // writes the "/watch/<id>" URL once the session id is known (R20)
+}
+
+/** Persists a transient (link-only) race as a new library race (R18) —
+    the only path that ever turns transientRace off, per the explicit-save
+    requirement: edits to a transient race never auto-persist (see save()). */
+function saveTransientRace(){
+  if(!active || !transientRace) return;
+  const savedRace = createRace({name:active.name, start:active.start, sections:active.sections});
+  active = savedRace;
+  transientRace = false;
+  refreshRaceChrome();
+  renderSaveStrip();
+  showSaved();
+  refreshUrl();
+  toast("Saved as a new race");
+}
+
+/** Rewrites the address bar to match active's current canonical text, via
+    replaceState so it fires no hashchange and adds no history entry
+    (KTD6/R16). Async because encodeToken is; the two captured sequence
+    numbers (KTD6) — routeSeq for "did we navigate elsewhere" and
+    commitSeq for "did a later edit supersede this one" — are checked
+    after the await so a stale encode never overwrites a newer one (this
+    is what makes a rapid arrow-key nudge land the URL in the right order). */
+let commitSeq = 0;
+async function refreshUrl(){
+  if(!active) return;
+  if(mode !== "edit" && mode !== "follow" && mode !== "watch") return;
+  const myCommitSeq = ++commitSeq;
+  const myRouteSeq = routeSeq;
+  const raceRef = active;
+  const text = toRaceText(raceRef);
+  const token = await encodeToken(text);
+  if(commitSeq !== myCommitSeq) return;                 // a later edit already refreshed the URL
+  if(routeSeq !== myRouteSeq) return;                    // navigated to a different route meanwhile
+  if(active !== raceRef) return;                          // active swapped under us (e.g. undo, save-transient)
+  let hash;
+  if(mode === "edit") hash = "#/race/" + token + "/edit";
+  else if(mode === "follow") hash = "#/race/" + token + "/follow";
+  else hash = activeWatchId ? "#/race/" + token + "/watch/" + encodeURIComponent(activeWatchId) : "#/race/" + token;
+  if(location.hash !== hash) history.replaceState(null, "", hash);
+  lastMountedHash = location.hash;
+}
 
 /* ---- live position marker (wall-clock driven, KTD5) ---- */
 function nowClockSeconds(){ const n = new Date(); return n.getHours()*3600 + n.getMinutes()*60 + n.getSeconds(); }
-let lastMarkerPhase = null, lastMarkerSeg = null;
+let lastMarkerSig = null;
 function startMarker(){
   stopMarker();
-  lastMarkerPhase = null; lastMarkerSeg = null;
+  lastMarkerSig = null;
   paintMarker();
   const reduced = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   if(!reduced) markerTimer = setInterval(paintMarker, 1000);   // reduced motion -> single static paint
 }
-function paintMarker(){
-  const marker = $("#marker"), status = $("#marker-status");
-  if(!marker || !active) return;
+/** Shared piecewise wall-clock/plan comparison (F1): race.start is
+    seconds-of-day only, so before-gun and after-finish share a clock
+    region once day-wrapped; disambiguate by nearest boundary, never with
+    a single elapsed/total formula that would clamp a negative delta to
+    "finished". Used by both the live marker and watch-mode row/leg
+    Past/Upcoming states (U8), so they never disagree about "now". */
+function wallPhase(){
   const t = total();
-  if(t <= 0){ marker.hidden = true; if(status) status.textContent = ""; return; }   // splitless race (F9)
-  // race.start is seconds-of-day only, so before-gun and after-finish share a clock
-  // region once day-wrapped; disambiguate piecewise by nearest boundary (F1), never
-  // with a single elapsed/total formula that would clamp a negative delta to "finished".
-  const d = ((nowClockSeconds() - active.start) % 86400 + 86400) % 86400;
-  let phase, pos, seg = -1, label;
-  if(d <= t){
+  if(t <= 0) return {phase:"empty", d:0, t:0};
+  const d = elapsedFromClock(nowClockSeconds());
+  if(d <= t) return {phase:"mid", d, t};
+  if((86400 - d) < (d - t)) return {phase:"before", d, t};
+  return {phase:"after", d, t};
+}
+/** "Behind"/"ahead" wording for a signed gap in seconds (R24). */
+function gapLabel(gapSeconds){
+  if(gapSeconds === 0) return "On pace";
+  return fmtHMS(Math.abs(gapSeconds)) + (gapSeconds > 0 ? " behind" : " ahead");
+}
+function paintMarker(){
+  const pinPlan = $("#pin-plan"), pinActual = $("#pin-actual"), status = $("#marker-status-text");
+  const elapsedEl = $("#watch-elapsed"), gapEl = $("#watch-gap");
+  if(!pinPlan || !active) return;
+  const wp = wallPhase();
+  if(wp.phase === "empty"){          // splitless race (F9)
+    pinPlan.hidden = true;
+    if(pinActual) pinActual.hidden = true;
+    if(status) status.textContent = "";
+    if(elapsedEl) elapsedEl.hidden = true;
+    if(gapEl) gapEl.hidden = true;
+    return;
+  }
+  const t = wp.t, d = wp.d;
+  let phase, pos, seg = -1, planLabel;
+  if(wp.phase === "mid"){
     phase = "mid"; pos = d / t;
     let cum = 0, idx = active.sections.length - 1;
     for(let i = 0; i < active.sections.length; i++){ cum += active.sections[i].dur; if(d <= cum){ idx = i; break; } }
     seg = idx;
     const s = active.sections[idx];
-    label = "On course · " + (s.name || SPORTS[s.sport].label) + " · " + fmtSplit(d - (cum - s.dur)) + " into this segment";
-  }else if((86400 - d) < (d - t)){
-    phase = "before"; pos = 0; label = "Not started — gun at " + fmtClock(active.start);
+    planLabel = "On course · " + (s.name || SPORTS[s.sport].label) + " · " + fmtSplit(d - (cum - s.dur)) + " into this segment";
+  }else if(wp.phase === "before"){
+    phase = "before"; pos = 0; planLabel = "Not started — gun at " + fmtClock(active.start);
   }else{
-    phase = "after"; pos = 1; label = "Finished · " + fmtHMS(t);
+    phase = "after"; pos = 1; planLabel = "Finished · " + fmtHMS(t);
   }
-  marker.hidden = false;
-  marker.style.left = (pos * 100) + "%";
-  // The marker is aria-hidden; announce position on a polite region only when the phase
-  // or segment changes, so the 1 s tick does not spam screen readers (F14).
-  if(phase !== lastMarkerPhase || seg !== lastMarkerSeg){
-    if(status) status.textContent = label;
-    lastMarkerPhase = phase; lastMarkerSeg = seg;
+  pinPlan.hidden = false;
+  pinPlan.style.left = (pos * 100) + "%";
+
+  /* ---- actual pin (U9, R24/KD5) --------------------------------------
+     Only meaningful once a checkpoint has been recorded, and only once
+     the wall clock has an elapsed-from-gun value to compare against (the
+     "before" phase has no such axis — hide it there too, same as the
+     plan pin reading "not started" rather than a fabricated position).
+
+     lastElapsed/lastCum are the last recorded checkpoint's ACTUAL and
+     PLAN elapsed-from-gun. Their difference is a fixed offset — how much
+     longer/shorter the athlete took to reach that checkpoint than the
+     plan predicted — computed the same way revisedElapsed()/
+     revisedFinishElapsed() already treat "continue at plan pace from the
+     last actual", so it deliberately does NOT reset or shrink as more
+     wall-clock time passes with no new actual: that's what keeps a late
+     athlete reading correctly behind long after the frozen finish
+     (traced through the "still on course past the frozen finish" test:
+     d keeps growing past t, gapSeconds stays fixed, so the reported gap
+     holds steady rather than freezing at 0 the way reading it off the
+     clamped pin positions would).
+
+     The pin's PLACEMENT then creeps forward from that checkpoint's own
+     plan-axis position (lastCum) at the same rate as the wall clock —
+     "as if running the revised pace with no new data" — landing exactly
+     on the checkpoint the instant it's entered (d === lastElapsed) and
+     advancing 1:1 with d afterward. Position is clamped to [0,1] for
+     drawing; the gap read-out is NOT clamped (R24), on purpose. */
+  const lastIdx = lastActualIndex();
+  const showActual = lastIdx >= 0 && phase !== "before";
+  let gapSeconds = null;
+  if(showActual){
+    const lastElapsed = activeSession.actuals[String(lastIdx)];
+    const lastCum = cumulative(lastIdx);
+    gapSeconds = lastElapsed - lastCum;                       // unclamped — positive = behind, negative = ahead
+    const actualElapsed = Math.max(lastCum, d - gapSeconds);  // clamped only at the low end, to the checkpoint itself
+    const actualPos = Math.min(1, Math.max(0, actualElapsed / t));
+    if(pinActual){ pinActual.hidden = false; pinActual.style.left = (actualPos * 100) + "%"; }
+  }else if(pinActual){
+    pinActual.hidden = true;
+  }
+
+  // R25: elapsed counter against the gun time, sharing this same tick.
+  if(elapsedEl){
+    elapsedEl.hidden = false;
+    if(phase === "before") elapsedEl.textContent = "Starts in " + fmtHMS(86400 - d);
+    else if(phase === "mid") elapsedEl.textContent = "Elapsed " + fmtHMS(d);
+    else elapsedEl.textContent = "Finished in " + fmtHMS(t);
+  }
+  // R24 visible gap read-out — separate from the aria-live phase announcement below,
+  // so it can refresh every tick without triggering a screen-reader announcement.
+  if(gapEl){
+    gapEl.hidden = gapSeconds == null;
+    if(gapSeconds != null) gapEl.textContent = gapLabel(gapSeconds);
+  }
+
+  // Both pins are aria-hidden; announce on a single polite region only when the
+  // combined phase/segment/gap signature changes, so the 1 s tick never spams
+  // screen readers (F14) even though two pins now feed it instead of one.
+  const gapSig = gapSeconds == null ? "none" : (gapSeconds > 0 ? "behind" : gapSeconds < 0 ? "ahead" : "even");
+  const sig = phase + "|" + seg + "|" + gapSig;
+  if(sig !== lastMarkerSig){
+    if(status) status.textContent = planLabel + (gapSeconds != null ? " · " + gapLabel(gapSeconds) : "");
+    lastMarkerSig = sig;
   }
 }
 
-/* Home / library: every saved race with its identity + finish, and per-race
-   Open / Follow / Rename / Duplicate / Delete actions (R1-R4). */
+/* Home / library: every saved race with its identity + finish, Watch Live
+   as the dominant action, and Edit / Rename / Duplicate / Delete tucked
+   behind one cog menu (R1-R3, U5). */
 function renderHome(){
   const el = $("#home-view");
   if(!el) return;
@@ -1485,25 +2399,29 @@ function renderHome(){
   }else{
     html += '<div class="legs">';
     races.forEach(r => {
-      const id = encodeURIComponent(r.id);
-      const race = loadRace(r.id);
-      const t = race ? raceTotal(race) : 0;
-      const meta = [];
-      if(r.location) meta.push(esc(r.location));
-      if(r.date) meta.push(esc(fmtDate(r.date)));
+      const id = esc(r.id);
+      const t = r.finish || 0;
+      const hasStart = typeof r.start === "number";
+      const clocks = hasStart
+        ? '<div class="card-clocks">Gun '+fmtClock(r.start)+(t ? ' · Finish '+fmtClock(r.start + t) : '')+'</div>'
+        : '';
       html += '<section class="leg race-card">'+
         '<div class="leg-head">'+
           '<div class="leg-title"><span class="t">'+esc(r.name || "Untitled race")+'</span></div>'+
           '<div class="leg-tot"><span class="finish-lab">Finish</span>'+
             '<span class="fin">'+(t ? fmtHMS(t) : "—")+'</span></div>'+
-        '</div>'+
-        (meta.length ? '<div class="race-meta">'+meta.join('<span class="sep">·</span>')+'</div>' : '')+
+        '</div>'+clocks+
         '<div class="leg-foot">'+
-          '<a class="btn primary" href="#/race/'+id+'/edit">Open</a>'+
-          '<a class="btn" href="#/race/'+id+'/follow">Follow</a>'+
-          '<button class="btn ghost spread" data-act="rename" data-id="'+esc(r.id)+'">Rename</button>'+
-          '<button class="btn ghost" data-act="dup" data-id="'+esc(r.id)+'">Duplicate</button>'+
-          '<button class="btn ghost" data-act="del" data-id="'+esc(r.id)+'">Delete</button>'+
+          '<button class="btn primary spread" type="button" data-act="watch" data-id="'+id+'">Watch Live</button>'+
+          '<div class="card-menu-wrap">'+
+            '<button class="icon" type="button" data-act="menu" data-id="'+id+'" aria-haspopup="true" aria-expanded="false" aria-label="More actions" title="More actions">'+COG+'</button>'+
+            '<div class="card-menu" role="menu" hidden>'+
+              '<button class="card-menu-item" type="button" role="menuitem" data-act="edit" data-id="'+id+'">Edit</button>'+
+              '<button class="card-menu-item" type="button" role="menuitem" data-act="rename" data-id="'+id+'">Rename</button>'+
+              '<button class="card-menu-item" type="button" role="menuitem" data-act="dup" data-id="'+id+'">Duplicate</button>'+
+              '<button class="card-menu-item" type="button" role="menuitem" data-act="del" data-id="'+id+'">Delete</button>'+
+            '</div>'+
+          '</div>'+
         '</div>'+
       '</section>';
     });
@@ -1512,17 +2430,84 @@ function renderHome(){
   el.innerHTML = html;
 }
 
+/** Closes any open card menu; restores focus to its cog trigger unless
+    the caller passes focusTrigger:false (used by the click-outside/select
+    paths, where focus should just land wherever the click went). */
+function closeCardMenu(focusTrigger){
+  const open = document.querySelector("#home-view .card-menu:not([hidden])");
+  if(!open) return;
+  open.hidden = true;
+  const trigger = open.previousElementSibling;
+  if(trigger) trigger.setAttribute("aria-expanded", "false");
+  if(focusTrigger !== false && trigger) trigger.focus();
+}
+
+/** Positions a fixed-position card menu against its cog trigger — fixed
+    (not the card's local absolute) so the card's overflow:hidden (needed
+    for its rounded corners) never clips the menu, and viewport edges are
+    clamped so it stays on screen at narrow widths. */
+function positionCardMenu(btn, menu){
+  const r = btn.getBoundingClientRect();
+  const mw = menu.offsetWidth || 150;
+  let left = r.right - mw;
+  left = Math.max(8, Math.min(left, window.innerWidth - mw - 8));
+  let top = r.bottom + 6;
+  if(top + menu.offsetHeight > window.innerHeight - 8) top = r.top - menu.offsetHeight - 6;
+  menu.style.left = left + "px";
+  menu.style.top = top + "px";
+}
+
 /* One delegated handler on the (persistent) home container survives every
-   renderHome() rebuild — no per-mount rebinding, no listener growth. */
-$("#home-view").addEventListener("click", e => {
+   renderHome() rebuild — no per-mount rebinding, no listener growth. Watch
+   Live is resolved to a token only at click time (mirrors the masthead
+   Share button, U4) so renderHome() itself stays fully synchronous. */
+$("#home-view").addEventListener("click", async e => {
   const btn = e.target.closest("[data-act]");
-  if(!btn) return;
+  if(!btn){
+    closeCardMenu(false);
+    return;
+  }
   const act = btn.dataset.act, id = btn.dataset.id;
+  if(act === "menu"){
+    const menu = btn.nextElementSibling;
+    const isOpen = !menu.hidden;
+    closeCardMenu(false);
+    if(!isOpen){
+      menu.hidden = false;
+      btn.setAttribute("aria-expanded", "true");
+      positionCardMenu(btn, menu);
+    }
+    return;
+  }
+  if(act !== "watch") closeCardMenu(false);
   if(act === "new"){ const r = createRace({}); location.hash = "#/race/" + encodeURIComponent(r.id) + "/edit"; }
+  else if(act === "watch"){
+    const race = loadRace(id);
+    if(!race){ toast("That race is no longer here"); renderHome(); return; }
+    const mySeq = routeSeq;
+    const token = await encodeToken(toRaceText(race));
+    if(routeSeq !== mySeq) return;   // navigated away while the encode was pending
+    location.hash = "#/race/" + token;
+  }
+  else if(act === "edit") location.hash = "#/race/" + encodeURIComponent(id) + "/edit";
   else if(act === "rename") openRename(id);
   else if(act === "dup") duplicateRace(id);
   else if(act === "del") doDeleteRace(id);
 });
+
+/* Registered once (not per-card): Escape closes an open card menu and
+   returns focus to its cog; any other click outside a menu closes it too
+   (the #home-view listener above already handles clicks inside the view
+   that miss a [data-act], so this only needs to cover clicks elsewhere). */
+document.addEventListener("keydown", e => {
+  if(e.key === "Escape") closeCardMenu();
+});
+document.addEventListener("click", e => {
+  if(e.target.closest("#home-view")) return;
+  closeCardMenu(false);
+});
+window.addEventListener("scroll", () => closeCardMenu(false), true);
+window.addEventListener("resize", () => closeCardMenu(false));
 
 const renamedlg = $("#renamedlg");
 let renameId = null;
@@ -1548,7 +2533,7 @@ if(nameEl){
     if(!active || readOnly) return;
     const v = nameEl.textContent.trim();
     if(v === active.name) return;
-    snapshot(); active.name = v; save(); renderMasthead();
+    snapshot(); active.name = v; save(); renderMasthead(); refreshUrl();
   });
   nameEl.addEventListener("keydown", e => {
     if(e.key === "Enter"){ e.preventDefault(); nameEl.blur(); }
@@ -1556,45 +2541,13 @@ if(nameEl){
   });
 }
 
-/* ---- race details dialog (location, date, per-race leg distances) ---- */
-const detailsdlg = $("#detailsdlg");
-$("#btn-details").addEventListener("click", () => {
-  if(!active) return;
-  $("#det-loc").value = active.location || "";
-  $("#det-date").value = /^\d{4}-\d{2}-\d{2}$/.test(active.date || "") ? active.date : "";
-  const d = active.dist || defaultDist();
-  $("#det-swim").value = d.swim;            // stored + shown in metres
-  $("#det-bike").value = +(d.bike / 1000);  // km
-  $("#det-run").value  = +(d.run / 1000);   // km
-  detailsdlg.showModal();
-  $("#det-loc").focus();
-});
-$("#det-cancel").addEventListener("click", () => detailsdlg.close());
-$("#det-save").addEventListener("click", () => {
-  if(!active){ detailsdlg.close(); return; }
-  const num = (v, f) => { const n = parseFloat(String(v).replace(",", ".")); return (isFinite(n) && n >= 0) ? n : f; };
-  const d = active.dist || defaultDist();
-  snapshot();
-  active.location = $("#det-loc").value.trim();
-  active.date = $("#det-date").value.trim();
-  active.dist = {
-    swim: Math.round(num($("#det-swim").value, d.swim)),
-    bike: Math.round(num($("#det-bike").value, d.bike / 1000) * 1000),
-    run:  Math.round(num($("#det-run").value,  d.run / 1000) * 1000)
-  };
-  save(); renderMasthead(); detailsdlg.close();
-  toast("Race details saved");
-});
-
 function duplicateRace(id){
   const src = loadRace(id);
   if(!src) return;
   const copy = createRace({
     name: src.name ? src.name + " copy" : "Untitled race copy",
-    location: src.location, date: src.date,
-    dist: {swim:src.dist.swim, bike:src.dist.bike, run:src.dist.run},
     start: src.start,
-    sections: src.sections.map(s => ({id:uid(), name:s.name, sport:s.sport, dist:s.dist, dur:s.dur, est:s.est, note:s.note, map:s.map}))
+    sections: src.sections.map(s => ({id:uid(), name:s.name, sport:s.sport, dist:s.dist, dur:s.dur, note:s.note, map:s.map}))
   });
   renderHome();
   toast("Duplicated as “" + copy.name + "”");
@@ -1609,6 +2562,8 @@ function doDeleteRace(id){
 }
 
 migrateLegacy();
+migrateDropMetadata();
+migrateBackfillIndex();
 window.addEventListener("hashchange", router);
 router();
 })();

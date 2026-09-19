@@ -2,13 +2,19 @@
 
 A single-page tool for working with checkpoint times across several races. It
 began as a one-off for the **FODAXMAN XTRI Solo Point Five** (Serra do Rio do
-Rastro, SC — 2 km swim, 87 km bike, 22 km run) and now keeps a library of races
-in the browser. It serves three jobs:
+Rastro, SC) and now keeps a library of races in the browser, built around
+watching one live: on race day, anyone with a link can see where the athlete
+should be and when to expect them, and anyone close enough to the course can
+correct the picture by typing in times as checkpoints go by. It serves three
+jobs:
 
 - **Library.** A home list of saved races; create, rename, duplicate, delete.
-- **Simulation (edit).** The athlete changes a split and watches the rest of the day move.
-- **Race day (follow).** A read-only view with a live wall-clock marker showing
-  where the athlete is on the timeline right now.
+- **Simulation (edit).** The athlete changes a split and watches the rest of
+  the day move.
+- **Watch.** A live view with a running elapsed counter, two timeline pins —
+  where the plan says the athlete should be, and where entered times say they
+  are — and a resumable session in which typing in an actual time revises the
+  projected finish while the original estimate stays on screen next to it.
 
 No build step, no dependencies, no server. Open `index.html`.
 
@@ -25,44 +31,52 @@ it falls back to the system sans and everything else still works.
 
 ## Views & routing
 
-Three views addressed by URL hash, so each is bookmarkable and back-navigable:
+A race's URL carries the race itself, not just a reference to it — see
+**Content-addressed links** below. Four route shapes, all bookmarkable and
+back-navigable:
 
 | Hash | View |
 |---|---|
 | `#/` | Home — the race library |
-| `#/race/:id/edit` | Edit one race (the full simulation surface) |
-| `#/race/:id/follow` | Follow one race (read-only + live marker) |
+| `#/race/:token/edit` | Edit one race (the full simulation surface) |
+| `#/race/:token/watch/:watchId` | Watch a named, resumable session for one race |
+| `#/race/:token` (bare) | Watch — resumes this browser's most recent session for that plan, or starts one |
 
-An unknown hash, or a well-formed route whose `id` is no longer stored (deleted
-race, stale bookmark), redirects to home with a toast. Each view mounts against
-one race loaded from storage; the module-level `active` race is the mount's only
-mutable context.
+`#/race/:id/edit` and `#/race/:id/follow` from before this rework still
+resolve: an `:id` that matches a race already in this browser's library is
+treated as that stable internal id, loaded, and the address bar is rewritten
+to the token form in place. `follow` mounts the same read-only timeline watch
+now uses, without a session — it has no actuals, no resumability, and stays
+only as a landing spot for old bookmarks; nothing in the app links to it
+anymore.
+
+A token that fails to decode, or a `:watchId` this browser has no record of,
+toasts and falls back to home or to a fresh session for that plan — it never
+throws. Each view mounts against one race (or, in watch mode, a session's
+frozen copy of one) loaded from storage; the module-level `active` race is
+the mount's only mutable context.
 
 ## Data model
 
-A **race** wraps identity and metadata around one flat, ordered array of
-sections. A section is a stretch of course ending at a checkpoint — not a point
-in time.
+A **race** is a name, a gun time, and one flat, ordered array of sections — no
+location, date, or per-race leg distances. A section is a stretch of course
+ending at a checkpoint, not a point in time.
 
 ```js
 {
   id:       "h84paun",           // stable per-race id
   name:     "Fodaxman Solo Point Five 2025",
-  location: "Serra do Rio do Rastro, SC",
-  date:     "2025-09-27",        // ISO, or ""
-  dist:     { swim: 2000, bike: 87000, run: 22000 },  // per-race leg metres
-  start:    21600,               // gun time, seconds since midnight
-  savedAt:  1758193200000,       // ms epoch of the last write
+  start:    21600,                // gun time, seconds since midnight
+  savedAt:  1758193200000,        // ms epoch of the last write
   sections: [
     {
-      id:    "k3f9a2p",          // stable, used for DOM keying and drag
+      id:    "k3f9a2p",           // stable, used for DOM keying and drag
       name:  "Mirante Serra",
       sport: "swim" | "bike" | "run" | "trans",
-      dist:  14500,              // metres, or null
-      dur:   4800,               // seconds — THE source of truth
-      est:   true,               // dist is a placeholder, not measured
+      dist:  14500,               // metres, or null if not yet known
+      dur:   4800,                // seconds — THE source of truth
       note:  "",
-      map:   ""                  // https URL
+      map:   ""                   // https URL
     }
   ]
 }
@@ -71,10 +85,10 @@ in time.
 **`dur` is primary; everything else is derived.** Elapsed time is a prefix sum
 over `dur`; clock time is `start + elapsed`; pace is `dist / dur`. Legs are
 computed as runs of consecutive sections sharing a `sport`, so nothing stores
-leg membership and inserting a section can never desynchronise it.
-
-The per-race `dist` seeds the even-split importer (below) for that race only;
-new races seed it from the per-sport defaults (2 km / 87 km / 22 km).
+leg membership and inserting a section can never desynchronise it. A leg
+reports the distance it has even when a section is missing one, but withholds
+its pace figure until every distance-bearing section in it carries a distance
+— a wrong number is worse than none.
 
 ## The two editing rules
 
@@ -87,7 +101,9 @@ Both are live, and which one applies depends on the column you type in.
 
 Editing a split is how you ask *"what if the Serra climb had taken 10 minutes
 less?"*. Editing an elapsed time is how you correct a mis-recorded checkpoint
-without moving the finish.
+without moving the finish. Pressing Enter in any editable field commits it and
+leaves the field, the same as blurring it; Escape reverts a time field without
+saving.
 
 ## Reordering
 
@@ -95,10 +111,10 @@ Sections drag by their handle — pointer events rather than HTML5
 drag-and-drop, so it works under a finger. Keyboard: focus a handle, arrow up
 or down.
 
-A move **clears `dur`, `dist` and `est`**: both were measured between the
-section's old neighbours and mean nothing in a new slot. `name`, `note` and
-`map` describe the place rather than its position, so they travel with it.
-Every move is undoable (toast, or Cmd/Ctrl+Z).
+A move **clears `dur` and `dist`**: both were measured between the section's
+old neighbours and mean nothing in a new slot. `name`, `note` and `map`
+describe the place rather than its position, so they travel with it. Every
+move is undoable (toast, or Cmd/Ctrl+Z).
 
 Dropping a section inside another leg adopts that leg's sport. Transitions are
 the exception both ways: they keep their own type wherever they land, and
@@ -106,62 +122,118 @@ dropping onto one never converts a checkpoint into a transition.
 
 ## Importing
 
-The paste dialog takes three things, previewing each before it commits:
+*Copy data* and the paste dialog share one canonical text format: a name
+line, a gun-time line, then one line per checkpoint — `S|B|R distance split
+name` (`T split name` for a transition, which never carries a distance).
+Distances are kilometres for every sport, up to three decimals; `-` marks a
+checkpoint whose distance isn't known. The preview shows what will import; a
+malformed line surfaces a warning naming it and commits nothing. This is the
+only accepted input format — the old raw-race-notes parser (leg headings,
+`6:44 - fim natação (44')` lines) is gone; a stray older-format paste is just
+a parse error now, not a silently-misread one.
 
-1. **Raw race notes** — leg headings, `6:44 - fim natação (44')`,
-   `(T1 = 11')`. Parenthetical durations are ignored as redundant; a
-   `largada da bike` line following an explicit `T1` is recognised as the same
-   moment rather than a duplicate checkpoint.
-2. **Three columns** — clock, name, elapsed (tab or comma separated).
-3. **A JSON backup** produced by *Copy backup*, which restores map links and
-   notes too.
+The paste dialog also accepts **a JSON backup** produced by *Copy backup*,
+which restores map links and notes too — those are per-device decoration,
+excluded from the canonical text format and from share links (see below), and
+never restored by a plain-text import.
 
-Clock times win over parenthetical elapsed times where the two disagree.
+Importing replaces a race's `name`, `start` and `sections`, keeping its place
+in the library — a restore never orphans the race.
 
-Imported checkpoints get their leg's distance (from the race's own `dist`)
-split evenly and flagged `est`, so the leg pace is right while the per-section
-numbers are honestly marked as guesses. Typing a real distance clears the flag.
+## Content-addressed links
 
-Import and JSON-backup restore replace only a race's `start` and `sections` —
-its identity (`id`/`name`/`location`/`date`/`dist`) is preserved, so a restore
-never orphans the race or overwrites its metadata.
+A race's URL carries the race itself: the canonical text (above) is
+`deflate-raw`-compressed and base64url-encoded into the fragment behind a
+one-byte prefix distinguishing that from an uncompressed fallback used when
+`CompressionStream`/`DecompressionStream` aren't available — a link made on
+an older browser still opens correctly everywhere, it's just longer. A short
+digest of the canonical text is the race's link-matching key: it addresses a
+race in a URL but never keys it in storage, so renaming, duplicating, or
+editing a race never breaks a link to it under its *old* text — reopening
+that exact old link finds no match and mounts a **transient** race straight
+from the link instead, with a persistent on-screen control offering to save
+it as a new race (never silently, and never overwriting an existing one).
 
-## Follow mode
+Editing rewrites the address bar in place (`history.replaceState`, no history
+entry per keystroke) every time the canonical text changes, so the current
+URL is always a live, shareable pointer to what's on screen. *Share link*
+copies the bare `#/race/:token` form — the same one-tap entry into watch —
+and warns instead of silently handing back a broken link if a race is too
+large for a practical URL, offering the canonical text to copy instead.
 
-`#/race/:id/follow` renders the same timeline read-only — no inputs, drag
-handles, add/remove, import, or gun-time editing — and overlays a live position
-marker driven by the real wall clock.
+## Watch sessions
 
-Because `start` is stored as seconds-of-day only (no date), before-gun and
-after-finish fall in the same clock region once the elapsed window wraps past
-midnight, and a single `elapsed / total` ratio can't tell them apart. The marker
-is placed piecewise instead: let `d = (now − start) mod 86400`; if `d ≤ total`
-the marker sits at `d / total`, otherwise it snaps to the nearest boundary —
-not-started (0) or finished (`total`). A splitless race shows no marker. The
-marker is `aria-hidden` and its position is announced on a polite live region
-only when the segment changes, not on every tick; the 1 s tick is cleared on
-navigation away and skipped under `prefers-reduced-motion` (one static paint).
+Watching a race happens inside a **session**, its own stored record separate
+from the race library: a library race id (nullable — a session can start from
+a link to a race not yet saved in this browser), a *frozen* copy of the
+canonical text taken the moment the session starts, and a sparse map of
+entered actual times keyed by checkpoint. A session is addressed by
+`#/race/:token/watch/:watchId`; the bare `#/race/:token` form resumes this
+browser's most recent session for that plan, or starts one.
+
+**A session is immune to later edits.** It always renders from its own frozen
+text, never from the live race, so simulating a change to the plan in edit
+mode leaves a running session's timeline and finish estimate untouched until
+it's explicitly **reset** — which clears its entered times and re-freezes
+against the race's current plan. Nothing deletes a session on its own; each
+watched plan adds one, and there is no retention rule yet (see *Not done
+yet*).
+
+Within a session, any checkpoint can be given an actual time, typed as a
+clock time, whether or not the plan's own clock has reached it yet — an
+athlete running ahead of plan is recorded as they pass. Entering one revises
+the projected time of every remaining checkpoint, the finish included; the
+frozen plan's original estimate stays visible next to the revision, never
+overwritten. An actual earlier than an already-recorded later checkpoint (or
+later than an already-recorded earlier one) is rejected with a reason rather
+than silently accepted. A checkpoint carrying an actual is visually
+emphasised, as is a leg whose checkpoints all do; a checkpoint the wall clock
+has passed with no actual yet is de-emphasised instead.
+
+The timeline carries two pins on top of the same piecewise wall-clock
+placement `follow` always used (so a race crossing midnight still places
+correctly): a hollow **plan** pin at the frozen plan's position for right now,
+and — once at least one actual exists — a filled **actual** pin, projected
+forward from the last recorded checkpoint at the wall clock's own rate. The
+gap between them is read from the unclamped numbers, not the drawn (and
+therefore end-clamped) pin positions, so a late-running athlete keeps reading
+correctly behind long after the frozen finish time has passed rather than the
+number decaying toward zero. A running elapsed counter (countdown before the
+gun, elapsed during, final time after) shares the same tick. Nothing in a
+watch session ever writes to the race blob — entering actuals, like editing
+splits in a session's own frozen copy, only ever touches the session's own
+stored record.
 
 ## Persistence
 
 `localStorage`, written on every mutation, validated field by field on read.
-The library is a light **index** key (`race-splits:index`) listing
-`{id, name, location, date, savedAt}`, plus one blob per race under
-`race-splits:race:<id>`; editing rewrites only the active race blob and the
-index. The header shows the clock time of the last write, and turns red if the
-browser refuses to store (private window, blocked site data) instead of failing
-silently.
+The **race library** is a light index key (`race-splits:index`) listing
+`{id, name, savedAt, digest, finish, start}` — the digest, finish time and gun
+time are cached here so the home library can render every card, including its
+Watch Live link's target, without loading a single race blob — plus one blob
+per race under `race-splits:race:<id>`; editing rewrites only the active race
+blob and the index. **Watch sessions** mirror that same split under their own
+prefix: a light `race-splits:watch-index` (`{id, raceId, digest, createdAt}`)
+plus one blob per session under `race-splits:watch:<id>`. The header shows
+the clock time of the last write, and turns red if the browser refuses to
+store (private window, blocked site data) instead of failing silently.
 
-The single race from the previous version migrates in once, non-destructively:
-gated on a `race-splits:migrated` sentinel (not an empty index, which the user
-can reach by deleting every race), it copies the legacy blob into the new store
-and leaves the old key untouched.
+The single race from the version before the multi-race rework migrates in
+once, non-destructively, gated on a `race-splits:migrated` sentinel (not an
+empty index, which the user can reach by deleting every race). Two further
+one-time migrations run after it: one strips the removed `location`/`date`/
+per-race `dist` fields (and the retired `est` flag) from every stored race,
+and one backfills the library index's cached `digest`/`finish`/`start` for
+any entry saved before those fields existed. Each is gated on its own
+sentinel and touches only what it says it touches.
 
-It is per-device by design. *Copy backup* → paste elsewhere is how the data
-moves. The published-artifact runtime also offers a server-backed `db`
-capability, which would sync across devices and viewers, but declaring it makes
-the artifact organisation-internal and kills public link sharing — not viable
-while race staff need to open it.
+It is per-device by design — a shared link carries the *plan*, never the
+times a viewer has entered; each viewer's watch session lives only on the
+device that typed into it. *Copy backup* → paste elsewhere is how the full-
+fidelity data (notes and map links included) moves between devices. The
+published-artifact runtime also offers a server-backed `db` capability, which
+would sync across devices and viewers, but declaring it makes the artifact
+organisation-internal and kills the public link sharing this is built around.
 
 ## Layout of the source
 
@@ -170,15 +242,16 @@ artifact, whose hosting requires a self-contained document. The script is
 sectioned with banner comments in dependency order:
 
 ```
-1. Model            SPORTS table, per-race store, migration
-2. Time             parsing and formatting (h:mm:ss, 11', 1h15')
-3. Derived          cumulative, totals, pace, leg grouping
-4. Mutations        the two editing rules, move, add, remove
-5. Render           timeline strip, leg tables, rows (readOnly-aware)
-6. Map links        coordinate detection and URL validation
-7. Importer         raw-notes parser (per-race leg distances)
-8. Wiring           dialogs, toasts, undo, keyboard
-9. Router + views   hash routing, home library, edit/follow mounts, live marker
+1. Model                    SPORTS table, race + watch-session stores, migrations
+2. Time                     parsing and formatting (h:mm:ss, 11', 1h15')
+3. Derived + watch actuals  cumulative, totals, pace, leg grouping, revised projection
+4. Mutations                the two editing rules, move, add, remove
+5. Render                   timeline strip, leg tables, rows (readOnly- and watch-aware)
+6. Map links                coordinate detection and URL validation
+7. Importer                 canonical text format: writer and parser
+8. Content-addressed links  token encode/decode, digest
+9. Wiring                   dialogs, toasts, undo, keyboard
+10. Router + views          hash routing, home library, edit/watch/follow mounts, live pins
 ```
 
 Only `http:` and `https:` URLs are accepted as map links; bare `lat, lng` is
@@ -188,8 +261,12 @@ converted to a Google Maps search URL.
 
 - Elevation per checkpoint, feeding an elevation profile under the timeline.
 - Cut-off times per checkpoint, with the margin shown against each.
-- A projected/target-pace overlay in follow mode (the marker shows *position*,
-  not a projection).
-- Real bike checkpoint distances for the sample race — its six bike checkpoints
-  are still even splits of the leg total, so per-section km/h is not yet
-  meaningful.
+- Real bike checkpoint distances for the sample race — its six bike
+  checkpoints are still even splits of the leg total, so per-section km/h is
+  not yet meaningful.
+- A retention rule for watch sessions — nothing prunes them yet, and each
+  watched plan adds one.
+- A share link scoped to one specific watch session rather than only the
+  plan — sessions and their entered times are local to the device that made
+  them, by design (see *Watch sessions*), and sharing one would mean sharing
+  state, which is out of scope for this tool.
