@@ -1,4 +1,4 @@
-# Race splits
+# Race Planner
 
 A single-page tool for working with checkpoint times across several races. It
 began as a one-off for the **FODAXMAN XTRI Solo Point Five** (Serra do Rio do
@@ -8,7 +8,9 @@ should be and when to expect them, and anyone close enough to the course can
 correct the picture by typing in times as checkpoints go by. It serves three
 jobs:
 
-- **Library.** A home list of saved races; create, rename, duplicate, delete.
+- **Library.** A home list of saved races. Each card carries **Watch Live**
+  and an outlined **Edit** beside it, with rename / duplicate / delete behind
+  the cog; new races come from *New race* or a template.
 - **Simulation (edit).** The athlete changes a split and watches the rest of
   the day move.
 - **Watch.** A live view with a running elapsed counter, two timeline pins —
@@ -32,7 +34,7 @@ it falls back to the system sans and everything else still works.
 ## Views & routing
 
 A race's URL carries the race itself, not just a reference to it — see
-**Content-addressed links** below. Four route shapes, all bookmarkable and
+**Content-addressed links** below. Five route shapes, all bookmarkable and
 back-navigable:
 
 | Hash | View |
@@ -40,7 +42,8 @@ back-navigable:
 | `#/` | Home — the race library |
 | `#/race/:token/edit` | Edit one race (the full simulation surface) |
 | `#/race/:token/watch/:watchId` | Watch a named, resumable session for one race |
-| `#/race/:token` (bare) | Watch — resumes this browser's most recent session for that plan, or starts one |
+| `#/race/:token/watch` | Watch — resumes this browser's most recent session for that plan, or starts one |
+| `#/race/:token` (bare) | Edit — the shared-link landing. The plan is filed in this browser's library on arrival (see **Content-addressed links**) and Watch Live in the masthead is one tap away |
 
 `#/race/:id/edit` and `#/race/:id/follow` from before this rework still
 resolve: an `:id` that matches a race already in this browser's library is
@@ -49,6 +52,13 @@ to the token form in place. `follow` mounts the same read-only timeline watch
 now uses, without a session — it has no actuals, no resumability, and stays
 only as a landing spot for old bookmarks; nothing in the app links to it
 anymore.
+
+A link hands the reader the plan itself, so the bare form lands them in
+**edit**, on a race that is now theirs: arriving on a plan this browser has
+never seen saves it to the library before mounting (toasting that it did),
+rather than the old link-only *transient* mount that vanished the moment they
+navigated home. Opening the same link twice matches by digest and files
+nothing new.
 
 A token that fails to decode, or a `:watchId` this browser has no record of,
 toasts and falls back to home or to a fresh session for that plan — it never
@@ -90,20 +100,68 @@ reports the distance it has even when a section is missing one, but withholds
 its pace figure until every distance-bearing section in it carries a distance
 — a wrong number is worse than none.
 
-## The two editing rules
+## The editing rules
 
-Both are live, and which one applies depends on the column you type in.
+All three are live, and which one applies depends on the column you type in.
 
 | You edit | What happens | Invariant held |
 |---|---|---|
 | **Split** | `dur[i] = v`. Every later checkpoint shifts. | All other splits |
+| **Pace** | `dur[i]` = what that pace implies over the row's distance, then the split rule above. | All other splits |
 | **Elapsed** or **Clock** | `dur[i]` absorbs the delta and `dur[i+1]` gives it back. | The finish time |
+
+The Pace column is an input in edit mode wherever the arithmetic is defined —
+a sport with a pace unit *and* a distance on the row; without a distance it
+stays the derived dash it always was. It is a third way of saying the split,
+never a stored field: `dur` remains the only source of truth, and neither the
+storage shape nor the canonical text format carries a pace. `m:ss` fields
+(swim `/100 m`, run `/km`) mask as you type — `430` shows as `4:30` — and the
+bike's `km/h` field masks to digits with a single separator, comma read as a
+dot.
 
 Editing a split is how you ask *"what if the Serra climb had taken 10 minutes
 less?"*. Editing an elapsed time is how you correct a mis-recorded checkpoint
 without moving the finish. Pressing Enter in any editable field commits it and
 leaves the field, the same as blurring it; Escape reverts a time field without
 saving.
+
+## The timeline strip
+
+Below ~760px every segment is held to a 44px floor rather than crushed to a
+sliver, so the bar is wider than the screen and scrolls sideways. On a phone
+that scroll is: swipe-only (the scrollbar is hidden on a coarse pointer), it
+never chains to the page or the browser's back-gesture
+(`overscroll-behavior-x: contain`), the drag is claimed for panning up front
+(`touch-action: pan-x pan-y`), and whichever edge the bar continues past is
+faded — a mask toggled from the measured scroll position, so you can see it
+is cut off rather than read it as the end of the race.
+
+Because the floor makes the bar no longer a straight time→x mapping, pins
+and hour ticks are placed off measured segment boxes; an hour can therefore
+compress to a few pixels, so a tick is drawn only where it clears the
+previous label. The live position is recentred (smoothly, unless the reader
+asked for reduced motion) whenever the pin drifts out of the middle half of
+the visible strip and nobody has panned for 30s. Tapping a segment jumps to
+its checkpoint row, the same as tapping its course card.
+
+## The course panel
+
+One card per contiguous leg, in race order. A card is a button: tapping it
+jumps to that leg's first checkpoint — the row is selected, scrolled clear of
+the sticky panel, and given focus (the row itself, not a field in it, so a
+phone keyboard is never raised uninvited). It works the same in edit and in
+watch.
+
+Scrolling past the panel brings the same legs back as a pinned rail of
+pills at the top of the viewport — a **fixed overlay**, not the panel
+collapsing in place, and the panel itself is left alone. Collapsing it took
+~330px out of the flow mid-scroll, and the document changing height under
+the reader is what caused both earlier bugs: the browser's scroll anchoring
+pulled the viewport back up, which put the sentinel back on screen, which
+expanded the panel — a scroll-down that bounced; and reserving the lost
+height instead stopped the bounce but left a hole under the rail on a phone.
+Out of the flow, the rail costs the layout nothing. Its pills are clones of
+the panel's own chips, so label, sport hue and live state have one source.
 
 ## Reordering
 
@@ -150,14 +208,14 @@ an older browser still opens correctly everywhere, it's just longer. A short
 digest of the canonical text is the race's link-matching key: it addresses a
 race in a URL but never keys it in storage, so renaming, duplicating, or
 editing a race never breaks a link to it under its *old* text — reopening
-that exact old link finds no match and mounts a **transient** race straight
-from the link instead, with a persistent on-screen control offering to save
-it as a new race (never silently, and never overwriting an existing one).
+that exact old link finds no match and is filed as a **new** race from the
+link's own text (never overwriting an existing one).
 
 Editing rewrites the address bar in place (`history.replaceState`, no history
 entry per keystroke) every time the canonical text changes, so the current
 URL is always a live, shareable pointer to what's on screen. *Share link*
-copies the bare `#/race/:token` form — the same one-tap entry into watch —
+copies the bare `#/race/:token` form — the plan-carrying landing that opens
+in edit and files the race in the receiver's library —
 and warns instead of silently handing back a broken link if a race is too
 large for a practical URL, offering the canonical text to copy instead.
 
@@ -256,6 +314,23 @@ sectioned with banner comments in dependency order:
 
 Only `http:` and `https:` URLs are accepted as map links; bare `lat, lng` is
 converted to a Google Maps search URL.
+
+## Versioning and release notes
+
+The app is one file, so it carries one version number: `APP_VERSION` in
+`index.html`, `0.2.0` at the time of writing. The footer under every view
+prints it and opens **What's new** — the `RELEASES` table in `index.html`,
+rendered newest first in the reader's language.
+
+[`CHANGELOG.md`](CHANGELOG.md) holds the same entries in prose. The two are
+kept in step by hand: when you bump `APP_VERSION`, add the matching `RELEASES`
+entry (it must sit first, and its `v` must equal `APP_VERSION`) and the
+matching changelog section.
+
+The minor number moves when the app gains behaviour, the patch number when it
+only gets fixes, and the major number when a stored race or an existing link
+would stop resolving — which nothing has done yet: every version so far reads
+what the one before it wrote.
 
 ## Not done yet
 

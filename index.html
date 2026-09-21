@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Race splits</title>
+<title>Race Planner</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,100..900&display=swap" rel="stylesheet">
@@ -171,7 +171,30 @@ button{font:inherit;color:inherit;cursor:pointer}
 .finish-clock .val{font-size:13.5px;color:var(--muted);font-variation-settings:"wdth" 100,"wght" 480;letter-spacing:0}
 .finish-clock[hidden]{display:none}
 
-.strip{position:relative;overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch;overscroll-behavior-x:contain;margin-inline:-12px;padding-inline:12px}
+/* The timeline is a horizontal scroller on a phone (U11 gives every segment
+   a 44px floor, so the bar is wider than the screen). Three things make that
+   readable under a thumb: the swipe never chains to the page or triggers a
+   back-gesture (overscroll-behavior), the drag is claimed for panning rather
+   than waiting on a scroll-vs-zoom decision (touch-action), and the edge the
+   bar continues past is faded so it is visibly cut off rather than looking
+   like the end of the race. The fades are masks toggled by .can-left /
+   .can-right, set from the measured scroll position. */
+.strip{position:relative;overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch;
+  overscroll-behavior-x:contain;overscroll-behavior-y:auto;touch-action:pan-x pan-y;
+  margin-inline:-12px;padding-inline:12px;--fade:26px;scrollbar-width:thin}
+.strip.can-left{-webkit-mask-image:linear-gradient(to right,transparent 0,#000 var(--fade));
+  mask-image:linear-gradient(to right,transparent 0,#000 var(--fade))}
+.strip.can-right{-webkit-mask-image:linear-gradient(to left,transparent 0,#000 var(--fade));
+  mask-image:linear-gradient(to left,transparent 0,#000 var(--fade))}
+.strip.can-left.can-right{
+  -webkit-mask-image:linear-gradient(to right,transparent 0,#000 var(--fade),#000 calc(100% - var(--fade)),transparent 100%);
+  mask-image:linear-gradient(to right,transparent 0,#000 var(--fade),#000 calc(100% - var(--fade)),transparent 100%)}
+/* a touch device scrolls by swiping and has no pointer to aim at a scrollbar;
+   the bar itself is just a grey rule across the board there */
+@media (pointer:coarse){
+  .strip{scrollbar-width:none}
+  .strip::-webkit-scrollbar{display:none}
+}
 .strip-inner{position:relative;padding-top:52px;padding-bottom:26px;min-width:0}
 /* the headroom above the bar is there for the live pins; edit mode has none,
    so it does not pay for the empty band */
@@ -217,7 +240,12 @@ button{font:inherit;color:inherit;cursor:pointer}
 .course-head h2{margin:0;font-size:17px;font-variation-settings:"wdth" 112,"wght" 680}
 .course-head .sub{color:var(--muted);font-size:12.5px}
 .chips{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-.chip{border:1px solid var(--rule);border-radius:var(--r);padding:10px 12px;background:var(--surface-2);border-left:3px solid var(--sp,var(--rule));min-width:0}
+/* A chip is a button (U17: it jumps to its stretch of course), so the UA
+   button styling is reset back to the card it looks like. */
+.chip{border:1px solid var(--rule);border-radius:var(--r);padding:10px 12px;background:var(--surface-2);border-left:3px solid var(--sp,var(--rule));min-width:0;
+  display:block;width:100%;text-align:left;font:inherit;color:inherit;cursor:pointer;
+  transition:border-color .12s ease,background .12s ease}
+.chip:hover{background:var(--surface);border-top-color:var(--ink-2);border-right-color:var(--ink-2);border-bottom-color:var(--ink-2)}
 .chip.wide{grid-column:1/-1}
 .chip .live{display:flex;gap:8px;align-items:baseline;margin-top:4px;font-size:12.5px;color:var(--ink-2)}
 .chip .live b{font-variation-settings:"wdth" 100,"wght" 660;color:var(--ink)}
@@ -239,33 +267,45 @@ button{font:inherit;color:inherit;cursor:pointer}
   background-image:linear-gradient(var(--surface-2),var(--surface-2)),
     repeating-linear-gradient(135deg,var(--trans) 0 3px,transparent 3px 7px);
   background-origin:border-box;background-clip:padding-box,border-box}
-/* Pinned course panel (U14): once the splits scroll under it, the panel
-   sticks to the top and collapses into one row of leg pills — state as a dot,
-   no pace/times — so the splits stay readable underneath. The stuck class is
-   set by an IntersectionObserver on a sentinel above the panel. */
-.course{position:sticky;top:0;z-index:30;transition:padding .16s ease,border-radius .16s ease}
-.course.stuck{display:flex;align-items:center;gap:10px;padding:8px 12px;border-radius:0 0 14px 14px;
+/* Pinned rail (U14): once the course panel scrolls off the top, the same
+   legs come back as one row of pills — state as a dot, no pace/times — so
+   the splits stay readable underneath. Shown by an IntersectionObserver on
+   a sentinel above the panel. It is FIXED, not the panel collapsing in
+   place: the panel keeps its size and its place in the flow, so nothing
+   the reader is scrolling through ever changes height. */
+#course-rail{position:fixed;top:0;left:0;right:0;z-index:30;
+  display:flex;align-items:center;gap:10px;padding:8px 12px;
+  background:var(--surface);border-bottom:1px solid var(--rule);
   box-shadow:0 14px 26px -22px rgba(0,0,0,.8)}
-.course.stuck .course-head{margin:0;flex:none}
-.course.stuck .chips{flex:1 1 auto;min-width:0}
-.course.stuck .course-head h2,.course.stuck .course-head .sub{display:none}
-.course.stuck .livebadge{display:none}
-.course.stuck .chips{display:flex;gap:6px;overflow-x:auto;overscroll-behavior-x:contain;-webkit-overflow-scrolling:touch;padding-bottom:2px}
-.course.stuck .chip{flex:0 0 auto;padding:6px 11px;border-radius:999px;overflow:visible;animation:none}
-.course.stuck .chip::before,.course.stuck .chip::after{display:none}
-.course.stuck .chip .pace,.course.stuck .chip .sub,.course.stuck .chip .live,.course.stuck .chip .state{display:none}
-.course.stuck .chip .name{display:flex;align-items:center;gap:7px;font-size:13px;color:var(--ink-2);
+#course-rail[hidden]{display:none}
+/* the language picker is fixed over the top right below 1300px (see its own
+   rule) — the rail keeps its pills out from under it rather than letting the
+   last one slide beneath */
+@media (max-width:1300px){ #course-rail{padding-right:86px} }
+@media (max-width:560px){ #course-rail{padding-right:74px} }
+.rail-chips{flex:1 1 auto;min-width:0;display:flex;gap:6px;overflow-x:auto;
+  overscroll-behavior-x:contain;-webkit-overflow-scrolling:touch;padding-bottom:2px;
+  scrollbar-width:none}
+/* the rail scrolls by drag/swipe; a scrollbar across the pinned header reads
+   as a stray rule over the page, so it is hidden */
+.rail-chips::-webkit-scrollbar{display:none}
+/* width:auto undoes the panel chip's width:100% (a chip is a button, so it
+   takes that to fill its grid cell) — as a pill it sizes to its own label. */
+#course-rail .chip{flex:0 0 auto;width:auto;padding:6px 11px;border-radius:999px;overflow:visible;animation:none}
+#course-rail .chip::before,#course-rail .chip::after{display:none}
+#course-rail .chip .pace,#course-rail .chip .sub,#course-rail .chip .live,#course-rail .chip .state{display:none}
+#course-rail .chip .name{display:flex;align-items:center;gap:7px;font-size:13px;color:var(--ink-2);
   font-variation-settings:"wdth" 100,"wght" 600;white-space:nowrap}
-.course.stuck .chip.is-live{border-color:var(--live)}
-.course.stuck .chip.is-live .name{color:var(--ink)}
-.course.stuck .chip.is-overdue{border-color:var(--behind);border-style:dashed}
-/* state dot, only drawn in the collapsed strip */
+#course-rail .chip.is-live{border-color:var(--live)}
+#course-rail .chip.is-live .name{color:var(--ink)}
+#course-rail .chip.is-overdue{border-color:var(--behind);border-style:dashed}
+/* state dot, only drawn in the rail */
 .chip .mark{display:none}
-.course.stuck .chip .mark{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--rule);flex:none}
-.course.stuck .chip.is-done .mark{background:var(--logged)}
-.course.stuck .chip.is-past .mark{background:var(--rule);box-shadow:inset 0 0 0 2px var(--muted)}
-.course.stuck .chip.is-overdue .mark{background:var(--behind)}
-.course.stuck .chip.is-live .mark{background:var(--live);animation:badge-breathe 2s ease-in-out infinite}
+#course-rail .chip .mark{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--rule);flex:none}
+#course-rail .chip.is-done .mark{background:var(--logged)}
+#course-rail .chip.is-past .mark{background:var(--rule);box-shadow:inset 0 0 0 2px var(--muted)}
+#course-rail .chip.is-overdue .mark{background:var(--behind)}
+#course-rail .chip.is-live .mark{background:var(--live);animation:badge-breathe 2s ease-in-out infinite}
 
 .chip .gap.behind{color:var(--behind)}
 .chip .gap.ahead{color:var(--ahead)}
@@ -340,9 +380,18 @@ input.f::placeholder{color:var(--muted);opacity:.7}
 .derived{text-align:right;padding:6px 8px;font-size:14px;color:var(--ink-2)}
 .derived.pace{font-variation-settings:"wdth" 100,"wght" 620;color:var(--ink)}
 .derived .u{font-size:11px;color:var(--muted);margin-left:3px;font-variation-settings:"wdth" 100,"wght" 400}
+/* Pace is editable in edit mode (U18): the input keeps the derived cell's
+   right-aligned, weighted look, with the unit parked beside it. */
+.pacefield{display:flex;align-items:baseline;gap:3px;justify-content:flex-end}
+.pacefield input.f.pace{width:100%;min-width:0;text-align:right;font-variation-settings:"wdth" 100,"wght" 620}
+.pacefield .u{font-size:11px;color:var(--muted);flex:none}
 .acts{display:flex;gap:2px;justify-content:flex-end}
 .icon{border:1px solid transparent;background:transparent;color:var(--muted);border-radius:7px;width:30px;height:30px;display:grid;place-items:center;padding:0}
 .icon:hover{border-color:var(--rule);color:var(--ink)}
+/* .icon sets display:grid, which is an author rule and so outranks the UA's
+   [hidden]{display:none} — without this, hiding an icon button by its hidden
+   attribute (Reset watch, outside watch mode) does nothing. */
+.icon[hidden]{display:none}
 .icon svg{width:16px;height:16px;display:block}
 .icon.set{color:var(--ink-2)}
 .icon.set svg path{fill:currentColor}
@@ -358,6 +407,37 @@ select.f{font:inherit;font-size:13.5px;padding:8px 10px;border-radius:var(--r);b
 .noterow input{width:100%}
 
 /* ---------- dialogs ---------- */
+/* ---------- site footer ----------
+   One quiet line under every view: what this is, which version is running,
+   and the door to the release notes. Outside .wrap so no render path owns
+   it, and muted throughout — it is chrome, never an action the eye hunts. */
+.sitefoot{
+  display:flex;justify-content:center;align-items:center;gap:8px;flex-wrap:wrap;
+  padding:0 20px calc(26px + env(safe-area-inset-bottom,0px));
+  color:var(--muted);font-size:12.5px;
+}
+.sitefoot .v{font-variation-settings:"wdth" 100,"wght" 560}
+.sitefoot .sep{opacity:.55}
+.sitefoot .notes{
+  background:none;border:0;padding:0;color:inherit;font:inherit;
+  text-decoration:underline;text-underline-offset:3px;text-decoration-color:var(--rule);
+}
+.sitefoot .notes:hover{color:var(--ink-2);text-decoration-color:currentColor}
+
+/* release notes: one block per version, newest first */
+.rel{max-height:52vh;overflow:auto;margin-top:2px}
+.rel-item{padding:12px 0;border-top:1px solid var(--rule)}
+.rel-item:first-child{border-top:0;padding-top:2px}
+.rel-head{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}
+.rel-head .n{font-size:15px;font-variation-settings:"wdth" 106,"wght" 700}
+.rel-head .d{color:var(--muted);font-size:12.5px}
+.rel-head .now{
+  font-size:11px;letter-spacing:.04em;text-transform:uppercase;
+  border:1px solid var(--rule);border-radius:999px;padding:1px 7px;color:var(--ink-2);
+}
+.rel-item ul{margin:8px 0 0;padding-left:18px;color:var(--ink-2);font-size:13.5px}
+.rel-item li{margin:3px 0}
+
 dialog{border:1px solid var(--rule);border-radius:14px;background:var(--surface);color:var(--ink);padding:0;max-width:720px;width:calc(100% - 32px);box-shadow:0 30px 60px -30px rgba(0,0,0,.5)}
 dialog.narrow{max-width:460px}
 dialog::backdrop{background:rgba(10,20,18,.42)}
@@ -446,6 +526,10 @@ input.wide{width:100%;font:inherit;font-size:14px;padding:10px 11px;border-radiu
 .race-card .leg-foot{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
 .race-card .leg-foot .spread{margin-right:auto}
 .race-card .leg-foot .btn.primary{padding:9px 18px;font-size:14.5px}
+/* Edit sits beside Watch Live as a plain outlined button: same weight of
+   control, none of the live hue, so the amber stays unique to watching. */
+.race-card .leg-foot .btn.edit{display:inline-flex;align-items:center;gap:7px;background:transparent}
+.race-card .leg-foot .btn.edit .bi{margin-right:0}
 .card-menu-wrap{position:relative}
 .card-menu{position:fixed;min-width:150px;background:var(--surface);border:1px solid var(--rule);border-radius:10px;box-shadow:0 14px 30px -14px rgba(0,0,0,.35);padding:6px;display:flex;flex-direction:column;gap:1px;z-index:50}
 .card-menu[hidden]{display:none}
@@ -600,6 +684,8 @@ input.wide{width:100%;font:inherit;font-size:14px;padding:10px 11px;border-radiu
   /* label sits above its value, so the value reads left-aligned under it
      instead of drifting to the far edge of its column */
   input.num,.derived,.static.num{text-align:left}
+  .pacefield{justify-content:flex-start}
+  .pacefield input.f.pace{text-align:left;width:auto;flex:0 1 6.5em}
   .grip{height:34px;width:26px}
   .k{display:block;padding:0 8px 1px}
   input.f{padding:4px 8px}
@@ -692,6 +778,16 @@ input.wide{width:100%;font:inherit;font-size:14px;padding:10px 11px;border-radiu
 
   <div id="course-sentinel" aria-hidden="true"></div>
 
+  <!-- U14: the pinned rail is its OWN fixed overlay, not the course panel
+       collapsing in place. Collapsing the panel changed the document's
+       height mid-scroll, and either the browser re-anchored the viewport
+       (stick/unstick bounce) or the reserved height left a hole under the
+       rail. A fixed element is outside the flow, so showing it costs the
+       layout nothing. Its pills are clones of the panel's own chips. -->
+  <div id="course-rail" hidden>
+    <div class="rail-chips" id="rail-chips"></div>
+  </div>
+
   <section class="board course" id="course" aria-label="Course" data-i18n-aria="course.aria">
     <div class="course-head">
       <h2 data-i18n="course.title">Course</h2>
@@ -719,6 +815,8 @@ input.wide{width:100%;font:inherit;font-size:14px;padding:10px 11px;border-radiu
 
   </div><!-- /#race-view -->
 </div>
+
+<footer class="sitefoot" id="sitefoot"></footer>
 
 <div class="langpick" id="langpick" role="group"></div>
 
@@ -766,6 +864,17 @@ input.wide{width:100%;font:inherit;font-size:14px;padding:10px 11px;border-radiu
   </div>
 </dialog>
 
+<dialog id="reldlg">
+  <div class="dlg">
+    <h3 data-i18n="dlg.relTitle">Release notes</h3>
+    <p data-i18n="dlg.relHelp">What changed, newest first. Saved races and shared links carry over between versions.</p>
+    <div class="rel" id="rel-list"></div>
+    <div class="dlg-foot">
+      <button class="btn primary" id="rel-close" type="button" data-i18n="dlg.close">Close</button>
+    </div>
+  </div>
+</dialog>
+
 <dialog id="mapdlg" class="narrow">
   <div class="dlg">
     <h3 id="map-title">Map link</h3>
@@ -800,7 +909,7 @@ en:{
 
   "sport.swim":"Swim", "sport.bike":"Bike", "sport.run":"Run", "sport.trans":"Transition",
 
-  "app.title":"Race splits",
+  "app.title":"Race Planner",
   "home.fromTemplate":"From template",
   "home.newRace":"New race plan",
   "home.empty":"No races yet — <b>New race</b> starts an empty one, <b>From template</b> starts from a known course.",
@@ -849,6 +958,7 @@ en:{
   "toast.needsNewerBrowser":"This link needs a newer browser",
   "toast.linkCorrupt":"That race link looks corrupted",
   "toast.watchGone":"That watch session is no longer here — starting a new one",
+  "toast.linkFiled":"Saved “{name}” to your races",
   "toast.savedAsNew":"Saved as a new race",
   "toast.templateUnreadable":"That template could not be read",
   "toast.duplicated":"Duplicated as “{name}”",
@@ -869,6 +979,7 @@ en:{
   "course.aria":"Course",
   "course.planned":"{time} planned",
   "chip.done":"Done", "chip.live":"On course", "chip.past":"No time",
+  "chip.jump":"Go to {name} on the course",
   "chip.overdue":"Overdue", "chip.upcoming":"Upcoming",
   "chip.noDistance":"no distance",
   "chip.transition":"transition",
@@ -894,6 +1005,7 @@ en:{
   "row.sectionFallback":"Section",
   "row.sectionLower":"section",
   "row.remove":"Remove {name}",
+  "field.pace":"Pace ({unit})",
   "field.checkpointName":"Checkpoint name",
   "field.distance":"Distance in {unit}",
   "field.note":"Note for the timeline — nutrition, weather, mechanical…",
@@ -977,7 +1089,15 @@ en:{
   "err.cpNeeds":"Line {n}: checkpoint needs a distance, a split, and a name.",
   "err.badDist":"Line {n}: malformed distance.",
   "err.noCheckpoints":"No checkpoints found.",
-  "err.badBackup":"That looks like a backup, but it will not parse."
+  "err.badBackup":"That looks like a backup, but it will not parse.",
+
+  "foot.version":"Race Planner {v}",
+  "foot.whatsNew":"What’s new",
+  "foot.notesAria":"Release notes for Race Planner {v}",
+  "dlg.relTitle":"Release notes",
+  "dlg.relHelp":"What changed, newest first. Saved races and shared links carry over between versions.",
+  "dlg.close":"Close",
+  "rel.current":"current"
 },
 "pt-BR":{
   "lang.group":"Idioma", "lang.en":"Inglês", "lang.pt":"Português (Brasil)",
@@ -1033,6 +1153,7 @@ en:{
   "toast.needsNewerBrowser":"Este link precisa de um navegador mais novo",
   "toast.linkCorrupt":"Este link de prova parece corrompido",
   "toast.watchGone":"Esse acompanhamento não está mais aqui — começando um novo",
+  "toast.linkFiled":"“{name}” salva nas suas provas",
   "toast.savedAsNew":"Salva como nova prova",
   "toast.templateUnreadable":"Não foi possível ler esse modelo",
   "toast.duplicated":"Duplicada como “{name}”",
@@ -1053,6 +1174,7 @@ en:{
   "course.aria":"Percurso",
   "course.planned":"{time} planejado",
   "chip.done":"Feito", "chip.live":"No percurso", "chip.past":"Sem tempo",
+  "chip.jump":"Ir para {name} no percurso",
   "chip.overdue":"Atrasado", "chip.upcoming":"A seguir",
   "chip.noDistance":"sem distância",
   "chip.transition":"transição",
@@ -1078,6 +1200,7 @@ en:{
   "row.sectionFallback":"Trecho",
   "row.sectionLower":"trecho",
   "row.remove":"Remover {name}",
+  "field.pace":"Ritmo ({unit})",
   "field.checkpointName":"Nome do checkpoint",
   "field.distance":"Distância em {unit}",
   "field.note":"Nota para a linha do tempo — nutrição, clima, mecânica…",
@@ -1161,7 +1284,15 @@ en:{
   "err.cpNeeds":"Linha {n}: o checkpoint precisa de distância, parcial e nome.",
   "err.badDist":"Linha {n}: distância malformada.",
   "err.noCheckpoints":"Nenhum checkpoint encontrado.",
-  "err.badBackup":"Isso parece um backup, mas não dá para ler."
+  "err.badBackup":"Isso parece um backup, mas não dá para ler.",
+
+  "foot.version":"Race Planner {v}",
+  "foot.whatsNew":"Novidades",
+  "foot.notesAria":"Notas da versão {v} do Race Planner",
+  "dlg.relTitle":"Notas de versão",
+  "dlg.relHelp":"O que mudou, da mais nova para a mais antiga. Provas salvas e links compartilhados seguem valendo entre versões.",
+  "dlg.close":"Fechar",
+  "rel.current":"atual"
 }
 };
 let lang = "en";
@@ -1225,6 +1356,11 @@ function applyStaticI18n(){
   document.querySelectorAll("[data-i18n-aria]").forEach(el => { el.setAttribute("aria-label", tr(el.dataset.i18nAria)); });
   document.querySelectorAll("[data-i18n-dph]").forEach(el => { el.setAttribute("data-placeholder", tr(el.dataset.i18nDph)); });
   renderLangPicker();
+  renderFooter();
+  // the notes are rendered on open, so a language switch with the dialog up
+  // (keyboard-reachable even though the flags are behind the backdrop) repaints
+  const reldlg = document.getElementById("reldlg");
+  if(reldlg && reldlg.open) renderReleaseNotes();
 }
 /** Switching language re-mounts the current route (clearing the
     short-circuit hash) so every JS-rendered view is rebuilt in the new
@@ -1238,6 +1374,95 @@ function setLang(next){
   lastMountedHash = null;
   router();
 }
+
+/* ============================================================
+   0b. Version and release notes
+   One file, one version: APP_VERSION is the whole app's version
+   number, and RELEASES is its changelog — the same entries as
+   CHANGELOG.md, carried in-app so a reader on a phone can see
+   what changed without leaving the page. Newest entry first;
+   RELEASES[0].v must equal APP_VERSION.
+   ============================================================ */
+const APP_VERSION = "0.2.0";
+const RELEASES = [
+  {
+    v: "0.2.0", date: "2026-09-21",
+    notes: {
+      en: [
+        "Watch view: one-tap arrivals, a running elapsed counter, a pinned course strip, and a clock-first finish.",
+        "Library cards lead with Watch Live, keep Edit beside it, and tuck rename / duplicate / delete behind the cog.",
+        "Content-addressed links: a link carries the plan itself and files it in the reader’s library on arrival.",
+        "Start from a template, and paste results in the canonical race-text format.",
+        "Português (Brasil) alongside English, switchable from the flags at the top right.",
+        "Pace is editable wherever the arithmetic is defined; the sport hues are reserved and live wears amber."
+      ],
+      "pt-BR": [
+        "Acompanhamento: registro em um toque, cronômetro de tempo decorrido, faixa do percurso fixada e chegada pelo relógio.",
+        "Os cartões da biblioteca destacam Acompanhar, mantêm Editar ao lado e guardam renomear / duplicar / excluir na engrenagem.",
+        "Links com o plano dentro: o link carrega a prova e a salva na biblioteca de quem abre.",
+        "Começar por um template e colar resultados no formato de texto canônico.",
+        "Português (Brasil) junto com inglês, alternável pelas bandeiras no canto superior direito.",
+        "O ritmo virou campo editável onde a conta existe; as cores de esporte são reservadas e o ao vivo usa âmbar."
+      ]
+    }
+  },
+  {
+    v: "0.1.0", date: "2026-09-18",
+    notes: {
+      en: [
+        "Several races in one library, with create, rename, duplicate and delete.",
+        "Edit view: change a split and watch the rest of the day move, with the finish held or shifted by the column you type in.",
+        "Read-only follow view with a live position marker.",
+        "Races stored in this browser, with a copyable text backup."
+      ],
+      "pt-BR": [
+        "Várias provas em uma biblioteca, com criar, renomear, duplicar e excluir.",
+        "Modo de edição: mude uma parcial e veja o resto do dia se mover, com a chegada mantida ou deslocada conforme a coluna digitada.",
+        "Modo de acompanhamento somente leitura, com marcador de posição ao vivo.",
+        "Provas guardadas neste navegador, com backup em texto copiável."
+      ]
+    }
+  }
+];
+
+/** The footer is chrome shared by every view, so it lives outside .wrap and
+    is painted by the language pass rather than by any route. */
+function renderFooter(){
+  const box = document.getElementById("sitefoot");
+  if(!box) return;
+  box.innerHTML =
+    '<span class="v">'+esc(tr("foot.version", {v: APP_VERSION}))+'</span>'+
+    '<span class="sep" aria-hidden="true">\u00b7</span>'+
+    '<button class="notes" id="foot-notes" type="button" aria-label="'+
+      esc(tr("foot.notesAria", {v: APP_VERSION}))+'">'+esc(tr("foot.whatsNew"))+'</button>';
+}
+
+/** Release notes, newest first, in the reader’s language (English is the
+    fallback for a version whose notes were never translated). */
+function renderReleaseNotes(){
+  const box = document.getElementById("rel-list");
+  if(!box) return;
+  box.innerHTML = RELEASES.map(r => {
+    const notes = (r.notes && (r.notes[lang] || r.notes.en)) || [];
+    return '<div class="rel-item">'+
+      '<div class="rel-head"><span class="n">'+esc(r.v)+'</span>'+
+        '<span class="d">'+esc(r.date)+'</span>'+
+        (r.v === APP_VERSION ? '<span class="now">'+esc(tr("rel.current"))+'</span>' : '')+
+      '</div>'+
+      '<ul>'+notes.map(n => '<li>'+esc(n)+'</li>').join("")+'</ul>'+
+    '</div>';
+  }).join("");
+}
+
+document.addEventListener("click", e => {
+  if(e.target.closest("#foot-notes")){
+    renderReleaseNotes();
+    document.getElementById("reldlg").showModal();
+  }
+});
+document.getElementById("rel-close").addEventListener("click", () => {
+  document.getElementById("reldlg").close();
+});
 
 /* ============================================================
    1. Model
@@ -2117,23 +2342,38 @@ function renderBoard(){
       d.title = (s.name||sportLabel(s.sport))+" · "+fmtSplit(s.dur)+(s.note?" · "+s.note:"");
       if(s.dur/t > 0.07) d.innerHTML = "<span>"+fmtSplit(s.dur)+"</span>";
       d.addEventListener("click", () => {
-        selected = selected===s.id ? null : s.id;
-        render();
-        const row = document.querySelector('[data-id="'+s.id+'"]');
-        if(row && selected) row.scrollIntoView({block:"center", behavior:"smooth"});
+        // tapping a segment is the same gesture as tapping its course card:
+        // one jump path, so both clear the pinned rail the same way
+        if(selected === s.id){ selected = null; render(); return; }
+        jumpToSection(s.id);
       });
       bar.appendChild(d);
     });
+    /* Hour ticks are placed off MEASURED segment boxes (barPct), so once
+       short splits are held at their 44px floor an hour can compress to a
+       few pixels and the labels pile into each other — the worst of it on a
+       phone. So a tick is only drawn where it clears the previous one by a
+       label's width; the hours in between are still readable from the
+       splits themselves. */
     const firstHour = Math.ceil(active.start/3600)*3600;
+    const innerW = inner ? inner.clientWidth : 0;
+    let lastTickX = -Infinity;
     for(let c = firstHour; c <= active.start + t; c += 3600){
+      const pct = barPct(c-active.start);
+      if(innerW){
+        const x = (pct/100) * innerW;
+        if(x - lastTickX < TICK_MIN_GAP_PX) continue;
+        lastTickX = x;
+      }
       const el = document.createElement("div");
       el.className = "tick";
-      el.style.left = barPct(c-active.start)+"%";
+      el.style.left = pct+"%";
       el.textContent = pad(Math.floor(c/3600)%24)+":00";
       ticks.appendChild(el);
     }
   }
 
+  updateStripFades();       // the bar's width just changed: so did the edges
   renderCourse();
 }
 
@@ -2183,14 +2423,23 @@ function cardLive(card, snap){
   const off = snap.gapSeconds || 0;
   return {state:"upcoming", main:fmtClock(active.start + planStart + off), sub:off ? tr("card.projectedStart") : tr("card.plannedStart")};
 }
-/* U14: flips the course panel into its collapsed, stuck presentation the
-   moment the sentinel just above it leaves the top of the viewport. An
-   observer (not a scroll handler) so it costs nothing while scrolling. */
+/* U14: shows the pinned rail the moment the sentinel just above the course
+   panel leaves the top of the viewport. An observer (not a scroll handler)
+   so it costs nothing while scrolling.
+
+   The rail is a fixed overlay and the panel below is left exactly as it is.
+   An earlier version collapsed the panel in place, which took ~330 px out
+   of the flow mid-scroll: the browser's scroll anchoring then pulled the
+   viewport back up, the sentinel came back on screen, the panel expanded,
+   and the page bounced instead of scrolling. Reserving the lost height as
+   margin stopped the bounce but left the reader a hole under the rail on a
+   narrow screen. Taking the collapsed state out of the flow entirely is
+   what makes both go away. */
 (function watchCourseStick(){
-  const sentinel = $("#course-sentinel"), panel = $("#course");
-  if(!sentinel || !panel || !("IntersectionObserver" in window)) return;
+  const sentinel = $("#course-sentinel"), rail = $("#course-rail");
+  if(!sentinel || !rail || !("IntersectionObserver" in window)) return;
   new IntersectionObserver(
-    ([e]) => panel.classList.toggle("stuck", e.intersectionRatio === 0),
+    ([e]) => { rail.hidden = e.intersectionRatio !== 0; },
     {threshold:[0, 1]}
   ).observe(sentinel);
 })();
@@ -2202,16 +2451,24 @@ function renderCourse(){
   const sub = $("#course-sub");
   const t = total();
   if(sub) sub.textContent = t ? tr("course.planned", {time: fmtHMS(t)}) : "";
+  const rail = $("#rail-chips");
   chips.innerHTML = "";
+  if(rail) rail.innerHTML = "";
   courseCards().forEach(c => {
     const live = (snap && snap.phase !== "empty") ? cardLive(c, snap) : null;
     const p = c.complete ? paceOf(c.sport, c.dist, c.dur) : null;
-    const el = document.createElement("div");
+    const el = document.createElement("button");
+    el.type = "button";
     const justLogged = flashUntil > Date.now() && live && live.state === "done" &&
                        c.items.some(({i}) => i === flashIndex);
     el.className = "chip" + (c.sport === "bike" ? " wide" : "") + (c.sport === "trans" ? " trans" : "") +
                    (live ? " is-" + live.state : "") + (justLogged ? " flash" : "");
     el.dataset.sport = c.sport;
+    // U17: a card is a jump to its stretch of course — the first checkpoint
+    // of the leg it describes. Held as the section id (not an index) so it
+    // survives a reorder between render and click.
+    el.dataset.jump = c.items[0].s.id;
+    el.setAttribute("aria-label", tr("chip.jump", {name: c.label}));
     const stateLab = live ? tr("chip." + live.state) : "";
     const gapCls = (live && live.state === "done" && live.gap) ? (live.gap > 0 ? " behind" : " ahead") : "";
     el.innerHTML =
@@ -2222,8 +2479,42 @@ function renderCourse(){
         (SPORTS[c.sport].unit ? (c.dist ? fmtDistLabel(c.sport, c.dist) : tr("chip.noDistance")) : tr("chip.transition"))+'</div>'+
       (live ? '<div class="live"><b>'+esc(live.main)+'</b><span class="gap'+gapCls+'">'+esc(live.sub)+'</span></div>' : '');
     chips.appendChild(el);
+    // the rail's pill is the same chip, minus the parts CSS hides there —
+    // one source of truth for label, sport hue and live state
+    if(rail) rail.appendChild(el.cloneNode(true));
   });
 }
+
+/** Scrolls a checkpoint row into view under the sticky course panel and
+    selects it, so the jump lands on something visibly picked out rather
+    than on an anonymous row. Offsets by the panel's own height: with
+    `position:sticky; top:0` a plain scrollIntoView would park the row
+    underneath it. */
+function jumpToSection(id){
+  const row = document.querySelector('.row[data-id="'+CSS.escape(id)+'"]');
+  if(!row) return;
+  selected = id;
+  render();
+  const target = document.querySelector('.row[data-id="'+CSS.escape(id)+'"]') || row;
+  const rail = $("#course-rail");
+  const off = (rail && !rail.hidden ? rail.getBoundingClientRect().height : 0) + 12;
+  const y = target.getBoundingClientRect().top + window.scrollY - off;
+  window.scrollTo({top: Math.max(0, y), behavior: "smooth"});
+  // the row itself takes focus, not a field inside it: a jump should land
+  // the reader on the checkpoint, not raise a phone keyboard uninvited
+  target.setAttribute("tabindex", "-1");
+  target.focus({preventScroll:true});
+}
+/* One delegated listener on the persistent chips container survives every
+   renderCourse() rebuild. */
+(function wireCourseJump(){
+  [$("#chips"), $("#rail-chips")].forEach(host => {
+    if(host) host.addEventListener("click", e => {
+      const chip = e.target.closest("[data-jump]");
+      if(chip) jumpToSection(chip.dataset.jump);
+    });
+  });
+})();
 
 function renderLegs(){
   legsEl.innerHTML = "";
@@ -2328,10 +2619,7 @@ function rowFor(s, i){
   if(mode === "watch") clockCell.classList.add("cell-clock");
   row.appendChild(clockCell);
 
-  const pc = document.createElement("div");
-  pc.className = "derived pace";
-  pc.innerHTML = p ? p.v+'<span class="u">'+p.u+'</span>' : "—";
-  row.appendChild(cell(pc, tr("cols.pace")));
+  row.appendChild(cell(paceField(s, i, p), tr("cols.pace")));
 
   const acts = document.createElement("div");
   acts.className = "acts";
@@ -2433,6 +2721,86 @@ function timeField(value, label, onCommit, onNudge){
     if(ev.key === "Enter"){ ev.preventDefault(); el.blur(); }
   });
   return el;
+}
+
+/* ---- pace as an input (U18) ---------------------------------
+   `dur` stays the stored truth — nothing about the data model or the
+   canonical text format changes. A pace is just the third way to say the
+   same split: type 4:30 /km against a known distance and the split it
+   implies is what gets written. Editable only where the arithmetic is
+   defined: a sport with a pace unit AND a distance on the row. Without a
+   distance the cell stays the derived dash it always was, because there
+   is nothing to multiply. */
+/** Digit mask for a m:ss pace field: the reader types 430, the field shows
+    4:30. Applied on input (not on commit) so the shape is visible while
+    typing; the parser below still accepts anything parseDur() does, so a
+    pasted "4:30" or a typed "4:3" is not rejected. */
+function maskMS(el){
+  el.addEventListener("input", () => {
+    const atEnd = el.selectionStart === el.value.length;
+    const d = el.value.replace(/\D/g, "").slice(0, 4);
+    const next = d.length <= 2 ? d : d.slice(0, -2) + ":" + d.slice(-2);
+    if(next === el.value) return;
+    el.value = next;
+    if(atEnd) try{ el.setSelectionRange(next.length, next.length); }catch(e){}
+  });
+}
+/** Decimal mask for km/h: digits and one separator, comma read as a dot. */
+function maskDecimal(el){
+  el.addEventListener("input", () => {
+    let v = el.value.replace(",", ".").replace(/[^\d.]/g, "");
+    const i = v.indexOf(".");
+    if(i >= 0) v = v.slice(0, i+1) + v.slice(i+1).replace(/\./g, "");
+    if(v === el.value) return;
+    const atEnd = el.selectionStart === el.value.length;
+    el.value = v;
+    if(atEnd) try{ el.setSelectionRange(v.length, v.length); }catch(e){}
+  });
+}
+/** Pace text -> the split it implies over `meters`. Null when the text is
+    not a pace, or the distance cannot carry one. */
+function durFromPace(sport, meters, str){
+  const v = String(str || "").trim();
+  if(!v || !meters) return null;
+  if(sport === "bike"){
+    const kmh = parseFloat(v.replace(",", "."));
+    if(!isFinite(kmh) || kmh <= 0) return null;
+    return Math.round((meters/1000) / kmh * 3600);
+  }
+  const per = parseDur(v);
+  if(per == null || per <= 0) return null;
+  if(sport === "swim") return Math.round(per * (meters/100));
+  if(sport === "run")  return Math.round(per * (meters/1000));
+  return null;
+}
+function paceField(s, i, p){
+  const meta = SPORTS[s.sport];
+  if(readOnly || !meta.pace || s.dist == null){
+    const pc = document.createElement("div");
+    pc.className = "derived pace";
+    pc.innerHTML = p ? p.v+'<span class="u">'+p.u+'</span>' : "—";
+    return pc;
+  }
+  const wrap = document.createElement("div");
+  wrap.className = "pacefield";
+  const el = document.createElement("input");
+  el.className = "f num pace";
+  el.value = p ? p.v : "";
+  el.placeholder = s.sport === "bike" ? "0.0" : "0:00";
+  el.inputMode = s.sport === "bike" ? "decimal" : "numeric";
+  el.setAttribute("aria-label", tr("field.pace", {unit: meta.pace === "kmh" ? "km/h" : (meta.pace === "per100m" ? "/100 m" : "/km")}));
+  if(s.sport === "bike") maskDecimal(el); else maskMS(el);
+  el.addEventListener("change", () => {
+    const n = durFromPace(s.sport, s.dist, el.value);
+    n != null ? setDur(i, n) : render();       // unparseable: redraw from the stored split
+  });
+  blurOnEnter(el);
+  wrap.appendChild(el);
+  const u = document.createElement("span");
+  u.className = "u";
+  u.textContent = p ? p.u : (meta.pace === "kmh" ? "km/h" : (meta.pace === "per100m" ? "/100 m" : "/km"));
+  wrap.appendChild(u);
+  return wrap;
 }
 
 /** Watch mode's ONLY editable field (R22): the Clock cell, writing an
@@ -2877,7 +3245,7 @@ $("#watch-live").addEventListener("click", async () => {
   // result overwrite wherever the user ended up (adversarial review: "slow
   // watch-link encoding resurrects an abandoned route").
   if(routeSeq !== mySeq) return;
-  location.hash = "#/race/" + token;
+  location.hash = "#/race/" + token + "/watch";
 });
 
 /* R17: copies the bare "#/race/<token>" watch-route form (KTD10) — the
@@ -2973,9 +3341,17 @@ function focusHeading(viewId){                       // F11: land AT/keyboard fo
                                       token only when no index entry matches
      "/race/<x>/follow"           -> same id-first rule
      "/race/<token>/watch/<wid>"  -> that exact watch session, by id (U7)
-     "/race/<token>"  (bare)      -> watch (KTD10) — this browser's most
-                                      recent session for that plan, or a
-                                      new one (U7)
+     "/race/<token>/watch"        -> watch — this browser's most recent
+                                      session for that plan, or a new one (U7)
+     "/race/<token>"  (bare)      -> EDIT. A shared link hands the reader the
+                                      plan itself, and the plan is theirs to
+                                      open and change; watching is one tap
+                                      away behind the masthead's Watch Live.
+                                      Opening one also files the plan in this
+                                      browser's library (see mountFromToken),
+                                      so Home lists what the reader just
+                                      opened instead of losing it on the next
+                                      navigation.
    A legacy id and a token are the same URL shape: the existing 7-char
    uid() is itself valid base64url, so the id-vs-token distinction is
    resolved by looking the string up in the index, never by its shape. */
@@ -2990,10 +3366,12 @@ function parseHash(){
   try{
     if((m = h.match(/^\/race\/([^/]+)\/watch\/([^/]+)$/)))
       return {view:"watch", token:decodeURIComponent(m[1]), watchId:decodeURIComponent(m[2])};
+    if((m = h.match(/^\/race\/([^/]+)\/watch$/)))
+      return {view:"watch", token:decodeURIComponent(m[1]), watchId:null};
     if((m = h.match(/^\/race\/([^/]+)\/(edit|follow)$/)))
       return {view:m[2], token:decodeURIComponent(m[1])};
     if((m = h.match(/^\/race\/([^/]+)$/)))
-      return {view:"watch", token:decodeURIComponent(m[1]), watchId:null};
+      return {view:"edit", token:decodeURIComponent(m[1])};
   }catch(e){ return {view:"home", token:null}; }
   return {view:"home", token:null};                  // "", "/", or anything unknown -> home
 }
@@ -3069,8 +3447,13 @@ async function router(){
 }
 
 /** Decodes a token route (bare, or one that fell through the legacy-id
-    check) and mounts either the matching library race or a transient one
-    (R18). Every await is re-guarded against routeSeq moving on (KTD7). */
+    check) and mounts the matching library race — or, when this browser has
+    never seen that plan, FILES IT in the library first and mounts the saved
+    race. A link is how a plan travels between devices, so arriving on one
+    must leave the reader with a race they can find again on Home; the old
+    transient (link-only, save-if-you-want) mount lost it the moment they
+    navigated away. Every await is re-guarded against routeSeq moving on
+    (KTD7). */
 async function mountFromToken(token, view, watchId, mySeq){
   const decoded = await decodeToken(token);
   if(mySeq !== routeSeq) return;                       // navigated away meanwhile
@@ -3091,14 +3474,15 @@ async function mountFromToken(token, view, watchId, mySeq){
     return;
   }
   const digest = digestText(decoded.text);
-  const stored = findRaceByDigest(digest);
-  if(stored){
-    mountRace(stored, view, mySeq, watchId, {}, digest);
-  }else{
-    const transient = {id:null, name:parsed.name, start:parsed.start, sections:parsed.sections, savedAt:null};
-    mountRace(transient, view, mySeq, watchId, {transient:true}, digest);
+  let race = findRaceByDigest(digest);
+  if(!race){
+    race = createRace({name:parsed.name, start:parsed.start, sections:parsed.sections});
+    if(mySeq !== routeSeq) return;
+    toast(tr("toast.linkFiled", {name: race.name || tr("race.untitled")}));
   }
+  mountRace(race, view, mySeq, watchId, {}, digest);
   lastMountedHash = location.hash;
+  if(view === "edit") refreshUrl();      // bare-token arrival settles on the /edit form
 }
 
 function mountRace(race, view, mySeq, watchId, opts, digest){
@@ -3230,7 +3614,11 @@ function mountWatchFromSession(session){
 
 /** Persists a transient (link-only) race as a new library race (R18) —
     the only path that ever turns transientRace off, per the explicit-save
-    requirement: edits to a transient race never auto-persist (see save()). */
+    requirement: edits to a transient race never auto-persist (see save()).
+    Currently unreached: mountFromToken files an unknown plan in the library
+    on arrival, so nothing mounts transient any more. Kept (with the save
+    strip and its CSS hooks) as the one place that knows how to turn a
+    link-only race into a stored one. */
 function saveTransientRace(){
   if(!active || !transientRace) return;
   const savedRace = createRace({name:active.name, start:active.start, sections:active.sections});
@@ -3265,7 +3653,7 @@ async function refreshUrl(){
   let hash;
   if(mode === "edit") hash = "#/race/" + token + "/edit";
   else if(mode === "follow") hash = "#/race/" + token + "/follow";
-  else hash = activeWatchId ? "#/race/" + token + "/watch/" + encodeURIComponent(activeWatchId) : "#/race/" + token;
+  else hash = activeWatchId ? "#/race/" + token + "/watch/" + encodeURIComponent(activeWatchId) : "#/race/" + token + "/watch";
   if(location.hash !== hash) history.replaceState(null, "", hash);
   lastMountedHash = location.hash;
   // a revealed share link must follow the edit that just changed the token
@@ -3275,6 +3663,8 @@ async function refreshUrl(){
 /* ---- live position marker (wall-clock driven, KTD5) ---- */
 /** Minimum drawn width of one timeline segment on a narrow screen (U11). */
 const SEG_MIN_PX = 44;
+/** Minimum gap between two drawn hour labels on the timeline (U19). */
+const TICK_MIN_GAP_PX = 52;
 /* ---- liveness (U13) ----
    OVERDUE_AFTER: grace period past a leg's planned end before its course card
    stops saying "no time" and starts saying "overdue".
@@ -3318,23 +3708,47 @@ let stripResizeTimer = null;
 window.addEventListener("resize", () => {
   if(!active || mode === "home") return;
   clearTimeout(stripResizeTimer);
-  stripResizeTimer = setTimeout(() => { renderBoard(); if(mode !== "edit") paintMarker(); }, 120);
+  stripResizeTimer = setTimeout(() => { renderBoard(); updateStripFades(); if(mode !== "edit") paintMarker(); }, 120);
 });
-/** Centres the horizontally scrolling timeline on `pos` (0..1 of the bar). */
-function scrollTimelineTo(pos){
+/** Centres the horizontally scrolling timeline on `pos` (0..1 of the bar).
+    `smooth` animates it — used when the strip is already on screen and a
+    jump would otherwise teleport under the reader's eyes; the first paint
+    of a mount passes false so the timeline simply starts in the right
+    place. Reduced motion always lands instantly. */
+function scrollTimelineTo(pos, smooth){
   const strip = $("#strip");
   if(!strip) return;
   const over = strip.scrollWidth - strip.clientWidth;
   if(over <= 0) return;                                // fits: nothing to scroll
-  const x = pos * strip.scrollWidth - strip.clientWidth / 2;
+  const x = Math.min(over, Math.max(0, pos * strip.scrollWidth - strip.clientWidth / 2));
+  const reduced = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   selfScrolling = true;                                // so the scroll handler below doesn't read this as panning
-  strip.scrollLeft = Math.min(over, Math.max(0, x));
-  setTimeout(() => { selfScrolling = false; }, 120);
+  if(smooth && !reduced) strip.scrollTo({left:x, behavior:"smooth"});
+  else strip.scrollLeft = x;
+  // a smooth scroll keeps firing scroll events after this call returns; the
+  // window has to outlast it or the tail reads as the reader panning and
+  // buys RECENTRE_IDLE of no recentring
+  setTimeout(() => { selfScrolling = false; }, smooth && !reduced ? 600 : 120);
+  updateStripFades();
+}
+/** Which edges the bar continues past. Read off the measured scroll box, so
+    it is right for any segment count and any viewport. */
+function updateStripFades(){
+  const strip = $("#strip");
+  if(!strip) return;
+  const over = strip.scrollWidth - strip.clientWidth;
+  strip.classList.toggle("can-left", over > 1 && strip.scrollLeft > 1);
+  strip.classList.toggle("can-right", over > 1 && strip.scrollLeft < over - 1);
 }
 /* U13: the live position is recentred only while the reader is not panning —
    a pan buys RECENTRE_IDLE of being left alone. */
 const stripEl = $("#strip");
-if(stripEl) stripEl.addEventListener("scroll", () => { if(!selfScrolling) lastPanAt = Date.now(); }, {passive:true});
+let stripFadeRaf = null;
+if(stripEl) stripEl.addEventListener("scroll", () => {
+  if(!selfScrolling) lastPanAt = Date.now();
+  if(stripFadeRaf) return;                             // one fade update per frame, not per scroll event
+  stripFadeRaf = requestAnimationFrame(() => { stripFadeRaf = null; updateStripFades(); });
+}, {passive:true});
 /** Recentres on `pct` (0..100 of the bar) if the reader is idle and the pin has
     drifted out of the middle half of the visible strip. */
 function recentreIfIdle(pct){
@@ -3343,7 +3757,7 @@ function recentreIfIdle(pct){
   if(Date.now() - lastPanAt < RECENTRE_IDLE) return;
   if(strip.scrollWidth - strip.clientWidth <= 0) return;
   const x = (pct / 100) * inner.clientWidth - strip.scrollLeft;
-  if(x < strip.clientWidth * 0.25 || x > strip.clientWidth * 0.75) scrollTimelineTo(pct / 100);
+  if(x < strip.clientWidth * 0.25 || x > strip.clientWidth * 0.75) scrollTimelineTo(pct / 100, true);
 }
 
 /* U13: a spectator watching a road crossing should not have to keep tapping
@@ -3463,7 +3877,7 @@ if(jumpBtn) jumpBtn.addEventListener("click", () => {
   const target = jumpRow(lastSnap);
   if(!target || !target.row) return;
   target.row.scrollIntoView({block:"center", behavior:"smooth"});
-  if(lastSnap && lastSnap.t) scrollTimelineTo(barPct(Math.min(lastSnap.t, Math.max(0, lastSnap.pos))) / 100);
+  if(lastSnap && lastSnap.t) scrollTimelineTo(barPct(Math.min(lastSnap.t, Math.max(0, lastSnap.pos))) / 100, true);
 });
 
 function paintMarker(){
@@ -3488,7 +3902,7 @@ function paintMarker(){
   pinPlan.hidden = false;
   const planPct = phase === "mid" ? barPct(d) : (phase === "before" ? 0 : 100);
   pinPlan.style.left = planPct + "%";
-  if(markerScrollPending){ markerScrollPending = false; scrollTimelineTo(planPct / 100); }
+  if(markerScrollPending){ markerScrollPending = false; scrollTimelineTo(planPct / 100, false); }
 
   /* ---- actual pin (U9, R24/KD5) --------------------------------------
      Only meaningful once a checkpoint has been recorded, and only once the
@@ -3699,8 +4113,8 @@ function useTemplate(tplId){
 }
 
 /* Home / library: every saved race with its identity + finish, Watch Live
-   as the dominant action, and Edit / Rename / Duplicate / Delete tucked
-   behind one cog menu (R1-R3, U5). */
+   as the dominant action, Edit as an outlined second action beside it, and
+   Rename / Duplicate / Delete tucked behind one cog menu (R1-R3, U5). */
 function renderHome(){
   const el = $("#home-view");
   if(!el) return;
@@ -3740,10 +4154,11 @@ function renderHome(){
           '<button class="btn live spread'+(raceIsNow(r) ? ' is-now' : '')+'" type="button" data-act="watch"'+
             ' data-id="'+id+'" data-start="'+(hasStart ? r.start : '')+'" data-finish="'+t+'">'+
             '<i class="dot" aria-hidden="true"></i>'+esc(tr("btn.watchLive"))+'</button>'+
+          '<button class="btn ghost edit" type="button" data-act="edit" data-id="'+id+'">'+
+            '<i class="bi">'+ICON_EDIT+'</i>'+esc(tr("menu.edit"))+'</button>'+
           '<div class="card-menu-wrap">'+
             '<button class="icon" type="button" data-act="menu" data-id="'+id+'" aria-haspopup="true" aria-expanded="false" aria-label="'+esc(tr("home.moreActions"))+'" title="'+esc(tr("home.moreActions"))+'">'+COG+'</button>'+
             '<div class="card-menu" role="menu" hidden>'+
-              '<button class="card-menu-item" type="button" role="menuitem" data-act="edit" data-id="'+id+'">'+esc(tr("menu.edit"))+'</button>'+
               '<button class="card-menu-item" type="button" role="menuitem" data-act="rename" data-id="'+id+'">'+esc(tr("menu.rename"))+'</button>'+
               '<button class="card-menu-item" type="button" role="menuitem" data-act="dup" data-id="'+id+'">'+esc(tr("menu.dup"))+'</button>'+
               '<button class="card-menu-item" type="button" role="menuitem" data-act="del" data-id="'+id+'">'+esc(tr("menu.del"))+'</button>'+
@@ -3815,7 +4230,7 @@ $("#home-view").addEventListener("click", async e => {
     const mySeq = routeSeq;
     const token = await encodeToken(toRaceText(race));
     if(routeSeq !== mySeq) return;   // navigated away while the encode was pending
-    location.hash = "#/race/" + token;
+    location.hash = "#/race/" + token + "/watch";
   }
   else if(act === "edit") location.hash = "#/race/" + encodeURIComponent(id) + "/edit";
   else if(act === "rename") openRename(id);
