@@ -210,6 +210,12 @@ button{font:inherit;color:inherit;cursor:pointer}
 .seg[data-sport="trans"]{background:var(--trans);
   background-image:repeating-linear-gradient(135deg,rgba(255,255,255,.14) 0 6px,transparent 6px 12px)}
 .seg span{color:var(--on-sport);font-size:12px;white-space:nowrap;padding:0 8px;font-variation-settings:"wdth" 100,"wght" 600}
+/* U19: a segment whose width is a MEASURED time rather than a planned one.
+   It keeps its sport hue — the day still reads as swim/bike/run — and says
+   it is recorded with a solid underline and a heavier label, so the revised
+   bar reads as part record, part plan without borrowing the live amber. */
+.seg.measured{box-shadow:inset 0 -3px 0 rgba(255,255,255,.6)}
+.seg.measured span{font-variation-settings:"wdth" 100,"wght" 700}
 .seg.on{filter:brightness(1.12);box-shadow:inset 0 0 0 2px rgba(255,255,255,.8)}
 .seg.pin::after{content:"";position:absolute;top:5px;right:5px;width:6px;height:6px;border-radius:50%;background:rgba(255,255,255,.95)}
 /* U12: the segment the athlete is inside right now — a ring in the live
@@ -969,6 +975,7 @@ en:{
   "board.gunAria":"Race start clock time",
   "board.finish":"Finish",
   "board.finishPlan":"Finish (plan)",
+  "seg.plan":"plan {time}",
   "board.finishEstimate":"Finish Estimate",
   "board.revised":"Revised",
   "board.emptyReadonly":"This race has no splits yet.",
@@ -1164,6 +1171,7 @@ en:{
   "board.gunAria":"Horário de largada",
   "board.finish":"Chegada",
   "board.finishPlan":"Chegada (planejado)",
+  "seg.plan":"planejado {time}",
   "board.finishEstimate":"Chegada estimada",
   "board.revised":"Revisada",
   "board.emptyReadonly":"Esta prova ainda não tem parciais.",
@@ -1383,8 +1391,23 @@ function setLang(next){
    what changed without leaving the page. Newest entry first;
    RELEASES[0].v must equal APP_VERSION.
    ============================================================ */
-const APP_VERSION = "0.2.0";
+const APP_VERSION = "0.3.0";
 const RELEASES = [
+  {
+    v: "0.3.0", date: "2026-09-21",
+    notes: {
+      en: [
+        "The watch timeline now draws the revised plan: a checkpoint already passed is as wide as it really took, and the rest of the day sits on top of the last time logged.",
+        "A measured segment carries its own split, an underline, and the plan it replaced in its tooltip.",
+        "The plan pin keeps pointing at the checkpoint the frozen plan says is due now, on the revised bar."
+      ],
+      "pt-BR": [
+        "A linha do tempo do acompanhamento agora desenha o plano revisado: um ponto já passado ocupa o tempo que realmente levou, e o resto do dia se apoia no último horário registrado.",
+        "Um trecho medido mostra o próprio parcial, um sublinhado e, na dica, o plano que substituiu.",
+        "O pino do plano continua apontando o ponto que o plano congelado diz estar previsto agora, já na barra revisada."
+      ]
+    }
+  },
   {
     v: "0.2.0", date: "2026-09-21",
     notes: {
@@ -1973,6 +1996,59 @@ function revisedFinishElapsed(){
   const lastSectionIdx = active.sections.length - 1;
   return lastElapsed + (cumulative(lastSectionIdx) - cumulative(lastIdx));
 }
+/* ---- the drawn axis: the revised plan, not the frozen one ------
+   The timeline bar is drawn against what the day has turned out to be:
+   every section up to the latest actual takes its MEASURED duration, and
+   everything after it keeps its frozen duration stacked on top of the last
+   actual — the same derivation the revised finish uses, so the bar's right
+   edge and the revised finish are the same instant by construction.
+   Outside watch mode, and before the first actual lands, this is the frozen
+   plan and every mapping below collapses to the identity. */
+function drawDurations(){
+  const frozen = active.sections.map(s => s.dur);
+  const lastIdx = (mode === "watch" && activeSession) ? lastActualIndex() : -1;
+  if(lastIdx < 0) return frozen;
+  const acts = activeSession.actuals;
+  const out = frozen.slice();
+  /* U18 backfills every blank behind an arrival, so `acts` is dense up to
+     lastIdx in practice; a run between two actuals is still handled, sharing
+     the measured span in the frozen plan's own proportion. */
+  let prevIdx = -1, prevElapsed = 0;
+  for(let i = 0; i <= lastIdx; i++){
+    const a = acts[String(i)];
+    if(a == null) continue;
+    const span = Math.max(0, a - prevElapsed);
+    const planSpan = cumulative(i) - (prevIdx < 0 ? 0 : cumulative(prevIdx));
+    let used = 0;
+    for(let k = prevIdx + 1; k <= i; k++){
+      const share = planSpan > 0 ? span * (frozen[k] / planSpan) : span / (i - prevIdx);
+      // the last section of the run absorbs the rounding, so the cumulated
+      // draw axis lands exactly on the entered time
+      out[k] = k === i ? span - used : Math.round(share);
+      used += out[k];
+    }
+    prevIdx = i; prevElapsed = a;
+  }
+  return out;
+}
+function drawTotal(){ return drawDurations().reduce((a,d) => a + d, 0); }
+/** Frozen elapsed-from-gun -> the same point on the drawn axis. What the
+    frozen plan calls 3:12 into the race sits wherever the revised plan now
+    puts that checkpoint, which is what keeps the plan pin (R24) meaningful
+    once the bar has stopped being the frozen plan. */
+function toDrawElapsed(e){
+  const draw = drawDurations();
+  let cumFrozen = 0, cumDraw = 0;
+  for(let i = 0; i < active.sections.length; i++){
+    const f = active.sections[i].dur;
+    if(e <= cumFrozen + f || i === active.sections.length - 1){
+      const frac = f > 0 ? Math.max(0, Math.min(1, (e - cumFrozen) / f)) : 0;
+      return cumDraw + frac * draw[i];
+    }
+    cumFrozen += f; cumDraw += draw[i];
+  }
+  return cumDraw;
+}
 /** One of "finished" | "past" | "upcoming" (the R22-R27 state diagram),
     or null outside watch mode. Finished (has an actual) takes priority
     over Past (wall clock beyond the frozen planned end, no actual). */
@@ -2321,7 +2397,12 @@ function renderBoard(){
   // strip scroll sideways instead of crushing short splits to a sliver.
   // Set as a px value on .strip-inner so the pins/ticks percentages (which
   // resolve against that same element) stay in register with the bar.
-  const segCount = active.sections.filter(x => x.dur > 0).length;
+  // The bar is drawn against the revised plan (drawDurations()): in watch
+  // mode a section already passed is as wide as it really took, and the rest
+  // of the day sits on top of the latest actual. `t` above stays the FROZEN
+  // finish, which is what the headline and the "original estimate" report.
+  const draw = drawDurations(), dt = draw.reduce((a,x) => a + x, 0);
+  const segCount = active.sections.filter((x,i) => draw[i] > 0).length;
   const inner = $("#strip-inner");
   if(inner) inner.style.setProperty("--strip-min", (segCount * SEG_MIN_PX) + "px");
 
@@ -2331,16 +2412,22 @@ function renderBoard(){
     bar.innerHTML = "<p>" + esc(readOnly ? tr("board.emptyReadonly") : tr("board.emptyEdit")) + "</p>";
   }else{
     bar.classList.remove("empty");
-    active.sections.forEach(s => {
-      if(s.dur <= 0) return;
+    active.sections.forEach((s, idx) => {
+      const dur = draw[idx];
+      if(dur <= 0) return;
       const d = document.createElement("div");
-      d.className = "seg" + (selected===s.id?" on":"") + ((s.note||s.map)?" pin":"");
+      d.className = "seg" + (selected===s.id?" on":"") + ((s.note||s.map)?" pin":"")
+        + (dur !== s.dur ? " measured" : "");
       d.dataset.sport = s.sport;
-      d.dataset.dur = s.dur;
-      d.dataset.idx = active.sections.indexOf(s);
-      d.style.flexGrow = s.dur;
-      d.title = (s.name||sportLabel(s.sport))+" · "+fmtSplit(s.dur)+(s.note?" · "+s.note:"");
-      if(s.dur/t > 0.07) d.innerHTML = "<span>"+fmtSplit(s.dur)+"</span>";
+      d.dataset.dur = dur;
+      d.dataset.idx = idx;
+      d.style.flexGrow = dur;
+      // a measured segment carries the plan it replaced in its tooltip, so the
+      // frozen number never just disappears
+      d.title = (s.name||sportLabel(s.sport))+" · "+fmtSplit(dur)
+        + (dur !== s.dur ? " ("+tr("seg.plan", {time: fmtSplit(s.dur)})+")" : "")
+        + (s.note?" · "+s.note:"");
+      if(dur/dt > 0.07) d.innerHTML = "<span>"+fmtSplit(dur)+"</span>";
       d.addEventListener("click", () => {
         // tapping a segment is the same gesture as tapping its course card:
         // one jump path, so both clear the pinned rail the same way
@@ -2358,7 +2445,7 @@ function renderBoard(){
     const firstHour = Math.ceil(active.start/3600)*3600;
     const innerW = inner ? inner.clientWidth : 0;
     let lastTickX = -Infinity;
-    for(let c = firstHour; c <= active.start + t; c += 3600){
+    for(let c = firstHour; c <= active.start + dt; c += 3600){
       const pct = barPct(c-active.start);
       if(innerW){
         const x = (pct/100) * innerW;
@@ -3679,13 +3766,15 @@ let selfScrolling = false;               // true while scrollTimelineTo() drives
     timeline to the live position — a scroll on every 1 s tick would fight
     the reader's own panning. */
 let markerScrollPending = false;
-/** Percentage position along the DRAWN bar for an elapsed-from-gun value.
+/** Percentage position along the DRAWN bar for a DRAW-AXIS elapsed-from-gun
+    value (drawTotal()'s axis, i.e. the revised plan in watch mode — pass a
+    frozen-plan value through toDrawElapsed() first).
     Once segments carry a minimum width (U11) the bar is no longer a straight
     time->x mapping, so pins and hour ticks are placed off the measured
     segment boxes instead of off `elapsed / total`. Falls back to the plain
     ratio before first layout, when nothing has a width yet. */
 function barPct(e){
-  const bar = $("#bar"), inner = $("#strip-inner"), t = total();
+  const bar = $("#bar"), inner = $("#strip-inner"), t = drawTotal();
   const ratio = t > 0 ? Math.max(0, Math.min(1, e / t)) * 100 : 0;
   if(!bar || !inner) return ratio;
   const w = inner.clientWidth;
@@ -3877,9 +3966,19 @@ if(jumpBtn) jumpBtn.addEventListener("click", () => {
   const target = jumpRow(lastSnap);
   if(!target || !target.row) return;
   target.row.scrollIntoView({block:"center", behavior:"smooth"});
-  if(lastSnap && lastSnap.t) scrollTimelineTo(barPct(Math.min(lastSnap.t, Math.max(0, lastSnap.pos))) / 100, true);
+  if(lastSnap && lastSnap.t) scrollTimelineTo(livePct(lastSnap) / 100, true);
 });
 
+/** Where the athlete stands on the DRAWN (revised) bar, as a percentage.
+    The revised axis is measured time, so the athlete's own elapsed time
+    places the pin directly; before the gun and after the finish it pins to
+    the ends. */
+function livePct(snap){
+  const dt = drawTotal();
+  if(snap.phase === "before") return 0;
+  if(snap.phase === "after") return 100;
+  return barPct(Math.min(dt, Math.max(0, snap.d)));
+}
 function paintMarker(){
   const pinPlan = $("#pin-plan"), pinActual = $("#pin-actual"), status = $("#marker-status-text");
   const elapsedEl = $("#watch-elapsed"), gapEl = $("#watch-gap");
@@ -3900,7 +3999,9 @@ function paintMarker(){
   const t = snap.t, d = snap.d;
   const phase = snap.phase;
   pinPlan.hidden = false;
-  const planPct = phase === "mid" ? barPct(d) : (phase === "before" ? 0 : 100);
+  // The bar is the REVISED plan, so the frozen-plan position has to be mapped
+  // onto it: what the plan calls "now" sits wherever that checkpoint now falls.
+  const planPct = phase === "mid" ? barPct(toDrawElapsed(d)) : (phase === "before" ? 0 : 100);
   pinPlan.style.left = planPct + "%";
   if(markerScrollPending){ markerScrollPending = false; scrollTimelineTo(planPct / 100, false); }
 
@@ -3913,9 +4014,13 @@ function paintMarker(){
      stays unclamped (R24) so a late athlete keeps reading behind long
      after the frozen finish. */
   const gapSeconds = snap.gapSeconds;
+  /* On the revised axis the athlete's own elapsed time IS the axis: the last
+     actual sits at its measured place and the projection creeps on from
+     there at the wall-clock rate, so the drawn position is simply `d`. */
+  const actualPct = livePct(snap);
   if(gapSeconds != null && pinActual){
     pinActual.hidden = false;
-    pinActual.style.left = barPct(Math.min(t, Math.max(0, snap.pos))) + "%";
+    pinActual.style.left = actualPct + "%";
   }else if(pinActual){
     pinActual.hidden = true;
   }
@@ -3923,7 +4028,7 @@ function paintMarker(){
   // U12: ring the segment the athlete is inside (actual position when known),
   // and recentre the strip if the reader has stopped panning.
   markCurrentSegment(phase === "mid" ? snap.curIdx : null);
-  if(phase === "mid") recentreIfIdle(gapSeconds != null ? barPct(Math.min(t, Math.max(0, snap.pos))) : planPct);
+  if(phase === "mid") recentreIfIdle(gapSeconds != null ? actualPct : planPct);
 
   // R25: elapsed counter against the gun time, sharing this same tick.
   if(elapsedEl){

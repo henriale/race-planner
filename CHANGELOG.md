@@ -10,6 +10,19 @@ moves when the app gains behaviour, the patch number when it only gets fixes,
 and the major number when a stored race or an existing link would stop
 resolving.
 
+## 0.3.0 — 2026-09-21
+
+- **A revised timeline.** In watch mode the bar is drawn against the revised
+  plan rather than the frozen one: every checkpoint already passed is as wide
+  as it really took, and the rest of the day keeps its planned splits stacked
+  on top of the last time logged, so the bar's right edge and the revised
+  finish are the same instant.
+- **Measured segments.** One that stands for a recorded time carries that
+  split as its label, an underline, and the plan it replaced in its tooltip.
+- **Pins.** The actual pin sits at the athlete's own elapsed time on that
+  measured axis; the plan pin is mapped onto it, so it still points at the
+  checkpoint the frozen plan says is due right now.
+
 ## 0.2.0 — 2026-09-21
 
 - **Watch view.** One-tap arrivals, a running elapsed counter, a pinned course

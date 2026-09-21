@@ -127,6 +127,16 @@ saving.
 
 ## The timeline strip
 
+In watch mode the bar is drawn against the **revised** plan, not the frozen
+one: every section up to the latest actual is as wide as it really took
+(underlined, with its own measured split as the label, and the plan it
+replaced in the tooltip), and the rest of the day keeps its frozen durations
+stacked on top of the last recorded time. The bar's right edge and the
+revised finish are therefore the same instant by construction. A run of
+checkpoints between two actuals shares the measured span in the frozen plan's
+own proportion. Outside watch mode, and before the first actual lands, the
+drawn axis is the frozen plan and every mapping below is the identity.
+
 Below ~760px every segment is held to a 44px floor rather than crushed to a
 sliver, so the bar is wider than the screen and scrolls sideways. On a phone
 that scroll is: swipe-only (the scrollbar is hidden on a coarse pointer), it
@@ -252,7 +262,11 @@ The timeline carries two pins on top of the same piecewise wall-clock
 placement `follow` always used (so a race crossing midnight still places
 correctly): a hollow **plan** pin at the frozen plan's position for right now,
 and — once at least one actual exists — a filled **actual** pin, projected
-forward from the last recorded checkpoint at the wall clock's own rate. The
+forward from the last recorded checkpoint at the wall clock's own rate. Since
+the drawn axis is measured time once actuals exist, the actual pin sits at the
+athlete's own elapsed time directly, while the plan pin is mapped through the
+frozen→revised conversion so it keeps pointing at the checkpoint the frozen
+plan says is due now. The
 gap between them is read from the unclamped numbers, not the drawn (and
 therefore end-clamped) pin positions, so a late-running athlete keeps reading
 correctly behind long after the frozen finish time has passed rather than the
