@@ -10,6 +10,22 @@ moves when the app gains behaviour, the patch number when it only gets fixes,
 and the major number when a stored race or an existing link would stop
 resolving.
 
+## 0.4.7 — 2026-09-22
+
+- **Editing no longer eats the next click (or Tab).** Committing a field
+  redrew the whole board from inside the `change` handler, which the browser
+  fires while focus is still on its way to the cell you clicked or tabbed
+  into. The rebuild destroyed that cell before focus reached it, so it landed
+  on `<body>` and everything typed afterwards went nowhere — most visibly
+  when walking down the Pace column: the first pace committed, the next one
+  looked typed but the Split Time never moved. Field commits now redraw on
+  the next task, after focus has settled, and the caret is restored to the
+  same field and position across the rebuild.
+- **Zero distance carries no pace.** A checkpoint with a distance of `0` got
+  an editable Pace box that could never commit, because there is nothing to
+  multiply. It shows the derived dash now, like a checkpoint with no distance
+  at all.
+
 ## 0.4.6 — 2026-09-21
 
 - **Map pins are shareable.** A checkpoint's map link previously lived only

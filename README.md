@@ -111,7 +111,7 @@ All three are live, and which one applies depends on the column you type in.
 | **Elapsed** or **Clock** | `dur[i]` absorbs the delta and `dur[i+1]` gives it back. | The finish time |
 
 The Pace column is an input in edit mode wherever the arithmetic is defined —
-a sport with a pace unit *and* a distance on the row; without a distance it
+a sport with a pace unit *and* a non-zero distance on the row; without one it
 stays the derived dash it always was. It is a third way of saying the split,
 never a stored field: `dur` remains the only source of truth, and neither the
 storage shape nor the canonical text format carries a pace. `m:ss` fields
@@ -124,6 +124,16 @@ less?"*. Editing an elapsed time is how you correct a mis-recorded checkpoint
 without moving the finish. Pressing Enter in any editable field commits it and
 leaves the field, the same as blurring it; Escape reverts a time field without
 saving.
+
+A commit rebuilds the whole board, and a field commits on `change` — which the
+browser fires *while* focus is still travelling to the cell you tabbed or
+clicked into. Redrawing there would destroy that cell before the focus reached
+it, dropping the cursor on `<body>` so the next thing typed went nowhere. Field
+commits therefore redraw on the next task, once focus has landed on a node that
+still exists, and `renderLegs()` puts the caret back on the same field and
+offset after the rebuild. Every other caller — undo, drag, add/remove, routing
+— still redraws synchronously, because none of them runs inside a focus
+handover.
 
 ## The timeline strip
 

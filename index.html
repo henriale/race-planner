@@ -1413,8 +1413,21 @@ function setLang(next){
    what changed without leaving the page. Newest entry first;
    RELEASES[0].v must equal APP_VERSION.
    ============================================================ */
-const APP_VERSION = "0.4.6";
+const APP_VERSION = "0.4.7";
 const RELEASES = [
+  {
+    v: "0.4.7", date: "2026-09-22",
+    notes: {
+      en: [
+        "Tabbing or clicking from one field straight into another no longer drops the cursor — the edit you type next lands where you aimed it, instead of the table swallowing the click and leaving the split unchanged.",
+        "A checkpoint with a zero distance shows a pace dash again rather than a pace box that quietly ignores what you type."
+      ],
+      "pt-BR": [
+        "Passar de um campo para outro com Tab ou clique não perde mais o cursor — o que você digitar em seguida vai para onde você mirou, em vez de a tabela engolir o clique e o parcial não mudar.",
+        "Um checkpoint com distância zero volta a mostrar um traço no ritmo, em vez de uma caixa de ritmo que ignora silenciosamente o que você digita."
+      ]
+    }
+  },
   {
     v: "0.4.6", date: "2026-09-21",
     notes: {
@@ -2460,8 +2473,35 @@ function renderMasthead(){
   w.innerHTML = parts.join(", ");
 }
 
+/* ---- when a commit is allowed to tear the board down (U20) ----------
+   A field commits on `change`, which the browser fires while focus is
+   still travelling to the next cell — Tab, or a click straight into
+   another field. render() rebuilds every row, so that next cell is
+   destroyed before the focus reaches it and everything typed afterwards
+   goes nowhere: you retype a pace, nothing moves, and the split looks
+   stuck. Field commits therefore redraw on the next task instead, once
+   focus has landed on a node that still exists; renderLegs() puts the
+   caret back where it was after the rebuild. Every other caller — undo,
+   drag, add/remove, routing — still redraws synchronously, because they
+   are not running inside a focus handover. */
+let deferRender = false, pendingRender = 0;
+function renderSoon(){
+  if(pendingRender) return;
+  pendingRender = setTimeout(() => { pendingRender = 0; render(); }, 0);
+}
+/** Wrap a field's `change` listener so the redraw it triggers waits for
+    the focus handover to finish. */
+function fieldCommit(fn){
+  return ev => {
+    deferRender = true;
+    try{ fn(ev); }finally{ deferRender = false; }
+  };
+}
+
 function render(){
   if(!active) return;
+  if(deferRender){ renderSoon(); return; }
+  if(pendingRender){ clearTimeout(pendingRender); pendingRender = 0; }
   renderMasthead();
   const startEl = $("#start");
   if(startEl) startEl.value = fmtClock(active.start);
@@ -2706,7 +2746,32 @@ function jumpToSection(id){
   });
 })();
 
+/** Where the caret is, in terms that survive a rebuild: the row's id and
+    the field's position within it. Row ids are stable across a redraw;
+    DOM nodes are not. */
+function fieldAddress(){
+  const el = document.activeElement;
+  if(!el || el.tagName !== "INPUT" || !legsEl.contains(el)) return null;
+  const row = el.closest(".row");
+  if(!row || !row.dataset.id) return null;
+  const at = [].indexOf.call(row.querySelectorAll("input"), el);
+  if(at < 0) return null;
+  return {id: row.dataset.id, at, start: el.selectionStart, end: el.selectionEnd};
+}
+function restoreField(a){
+  if(!a) return;
+  const rows = legsEl.querySelectorAll(".row");
+  let row = null;
+  for(const r of rows) if(r.dataset.id === a.id){ row = r; break; }
+  if(!row) return;
+  const el = row.querySelectorAll("input")[a.at];
+  if(!el) return;
+  el.focus();
+  try{ el.setSelectionRange(a.start, a.end); }catch(e){}
+}
+
 function renderLegs(){
+  const caret = fieldAddress();
   legsEl.innerHTML = "";
   legsEl.classList.toggle("watch", mode === "watch");
   groups().forEach(g => {
@@ -2756,6 +2821,7 @@ function renderLegs(){
 
     legsEl.appendChild(leg);
   });
+  restoreField(caret);
 }
 
 function rowFor(s, i, cumDist){
@@ -2894,7 +2960,7 @@ function textField(value, ph, onCommit, cls){
   const el = document.createElement("input");
   el.className = "f "+(cls||"");
   el.value = value||""; el.placeholder = ph; el.setAttribute("aria-label", ph);
-  el.addEventListener("change", () => onCommit(el.value.trim()));
+  el.addEventListener("change", fieldCommit(() => onCommit(el.value.trim())));
   blurOnEnter(el);
   return el;
 }
@@ -2913,11 +2979,11 @@ function distField(s){
   el.className = "f num";
   el.value = distOut(s); el.inputMode = "decimal"; el.placeholder = meta.unit;
   el.setAttribute("aria-label", tr("field.distance", {unit: meta.unit}));
-  el.addEventListener("change", () => {
+  el.addEventListener("change", fieldCommit(() => {
     snapshot();
     s.dist = distIn(s, el.value.trim());
     commit();
-  });
+  }));
   blurOnEnter(el);
   wrap.appendChild(el);
   const u = document.createElement("span");
@@ -2931,7 +2997,7 @@ function timeField(value, label, onCommit, onNudge){
   const el = document.createElement("input");
   el.className = "f num"; el.value = value; el.inputMode = "numeric";
   el.setAttribute("aria-label", label);
-  el.addEventListener("change", () => onCommit(el.value.trim()));
+  el.addEventListener("change", fieldCommit(() => onCommit(el.value.trim())));
   el.addEventListener("keydown", ev => {
     if(ev.key === "ArrowUp" || ev.key === "ArrowDown"){
       ev.preventDefault();
@@ -2995,7 +3061,10 @@ function durFromPace(sport, meters, str){
 }
 function paceField(s, i, p){
   const meta = SPORTS[s.sport];
-  if(readOnly || !meta.pace || s.dist == null){
+  // A zero distance cannot carry a pace any more than a missing one can:
+  // without it durFromPace() has nothing to multiply, so the field would
+  // take input and silently drop it. Show the derived dash instead.
+  if(readOnly || !meta.pace || !s.dist){
     const pc = document.createElement("div");
     pc.className = "derived pace";
     pc.innerHTML = p ? p.v+'<span class="u">'+p.u+'</span>' : "—";
@@ -3010,10 +3079,10 @@ function paceField(s, i, p){
   el.inputMode = s.sport === "bike" ? "decimal" : "numeric";
   el.setAttribute("aria-label", tr("field.pace", {unit: meta.pace === "kmh" ? "km/h" : (meta.pace === "per100m" ? "/100 m" : "/km")}));
   if(s.sport === "bike") maskDecimal(el); else maskMS(el);
-  el.addEventListener("change", () => {
+  el.addEventListener("change", fieldCommit(() => {
     const n = durFromPace(s.sport, s.dist, el.value);
     n != null ? setDur(i, n) : render();       // unparseable: redraw from the stored split
-  });
+  }));
   blurOnEnter(el);
   wrap.appendChild(el);
   const u = document.createElement("span");
@@ -3044,7 +3113,7 @@ function watchActualCell(s, i){
   input.value = actual != null ? fmtClock(active.start + actual) : "";
   input.placeholder = frozenClock;
   input.setAttribute("aria-label", tr("watch.actualAria", {name: s.name || tr("row.thisCheckpoint")}));
-  input.addEventListener("change", () => commitActual(i, input.value.trim()));
+  input.addEventListener("change", fieldCommit(() => commitActual(i, input.value.trim())));
   input.addEventListener("keydown", ev => {
     if(ev.key === "Escape"){ input.value = actual != null ? fmtClock(active.start + actual) : ""; input.blur(); }
   });
@@ -3451,12 +3520,12 @@ $("#dlg-apply").addEventListener("click", () => {
   toast(tr("toast.sectionsLoaded", {n: parsed.sections.length}));
 });
 
-$("#start").addEventListener("change", e => {
+$("#start").addEventListener("change", fieldCommit(e => {
   if(!active) return;
   const n = parseFlexDur(e.target.value);
   if(n == null){ render(); return; }
   snapshot(); active.start = n % 86400; commit();
-});
+}));
 $("#btn-add").addEventListener("click", () => { if(active) addSection($("#new-sport").value, active.sections.length); });
 /* The old global "Reset to race" seeded the hardcoded Fodaxman race, which would
    overwrite any race with Fodaxman data — its single-race semantics no longer
