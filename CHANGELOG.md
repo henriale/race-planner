@@ -10,19 +10,25 @@ moves when the app gains behaviour, the patch number when it only gets fixes,
 and the major number when a stored race or an existing link would stop
 resolving.
 
+## 0.4.1 — 2026-09-21
+
+- **Short links removed.** Share goes back to the self-contained link that
+  carries the race in its own URL. It is long, but it needs no service to
+  resolve — it works today, offline, and in ten years, which the short link
+  could not promise.
+- **Why it went.** TinyURL's `api-create.php` is a deprecated endpoint, and
+  links created through it show an 8-second interstitial ad in a real browser
+  (an HTTP-level check misses this — curl sees a clean 301). Beyond that one
+  vendor, any pointer link trades permanence for characters: the payload moves
+  onto someone else's server, and the plan is unrecoverable from the link once
+  that server is gone.
+- **Nothing leaves the browser when you share** again. The Archivo webfont is
+  once more the only external request the app makes.
+
 ## 0.4.0 — 2026-09-21
 
-- **A short share link, behind a flag.** Open the app with `?shorturl` in the
-  address (`index.html?shorturl#/race/…`) and pressing Share gives you a
-  ~28-character link instead of the ~270-character one, short enough to paste
-  into a message without it reading as broken. Without the flag, Share behaves
-  exactly as it did before. The long, self-contained link is still what the
-  app addresses a race by; the short one is a redirect to it.
-- **Shortening sends the race link to TinyURL.** It happens only with the flag
-  on and only when you press Share. The flag is per-session and is not carried
-  by the link you share. If TinyURL is unavailable, or you are offline, Share
-  falls back to the full self-contained link — no error, no second press, and
-  that link works exactly as it always has.
+- **Short share links via TinyURL,** behind an off-by-default `?shorturl`
+  flag. Removed in 0.4.1; see above.
 
 ## 0.3.0 — 2026-09-21
 

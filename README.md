@@ -29,15 +29,6 @@ open index.html          # or: python3 -m http.server 8000
 The only external request is the Archivo webfont from Google Fonts. Offline,
 it falls back to the system sans and everything else still works.
 
-One exception, off by default: open the app with a `shorturl` query parameter
-(`index.html?shorturl#/race/…`) and pressing Share calls TinyURL's
-`api-create.php` to turn the race's ~270-character self-contained link into a
-~28-character one. Without the flag nothing leaves the browser at share time.
-The flag is per-session and does not travel — the link you share carries no
-query string, so it cannot switch the feature on for whoever opens it. If
-TinyURL is unavailable, or you are offline, Share falls back to the full
-self-contained link, which works exactly as it always has.
-
 ---
 
 ## Views & routing

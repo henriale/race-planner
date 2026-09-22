@@ -85,10 +85,6 @@ h1 .yr{color:var(--muted);font-variation-settings:"wdth" 122,"wght" 500}
 }
 .share-url:focus{outline:none;border-color:var(--focus);color:var(--ink);
   box-shadow:0 0 0 3px color-mix(in srgb,var(--focus) 18%,transparent)}
-/* R33: the field holds its place while the short link is being fetched, so
-   the control never looks empty or frozen. Muted and italic so the waiting
-   message is not mistaken for a link that can be copied. */
-.share-url.pending{color:var(--muted);font-style:italic}
 .share-url[hidden]{display:none}
 /* narrow: it keeps its place right after the share icon and takes the next
    line rather than squeezing the save status off the row */
@@ -963,7 +959,6 @@ en:{
   "toast.copied":"Copied",
   "toast.tooBig":"That race is too big for a link — copying race text instead",
   "toast.linkCopied":"Link copied",
-  "share.pending":"Shortening link…",
   "toast.copyByHand":"Copy it by hand — this browser blocked the clipboard",
   "toast.raceGone":"That race is no longer here",
   "toast.needsNewerBrowser":"This link needs a newer browser",
@@ -1160,7 +1155,6 @@ en:{
   "toast.copied":"Copiado",
   "toast.tooBig":"Esta prova é grande demais para um link — copiando o texto da prova",
   "toast.linkCopied":"Link copiado",
-  "share.pending":"Encurtando link…",
   "toast.copyByHand":"Copie à mão — este navegador bloqueou a área de transferência",
   "toast.raceGone":"Essa prova não está mais aqui",
   "toast.needsNewerBrowser":"Este link precisa de um navegador mais novo",
@@ -1397,18 +1391,29 @@ function setLang(next){
    what changed without leaving the page. Newest entry first;
    RELEASES[0].v must equal APP_VERSION.
    ============================================================ */
-const APP_VERSION = "0.4.0";
+const APP_VERSION = "0.4.1";
 const RELEASES = [
+  {
+    v: "0.4.1", date: "2026-09-21",
+    notes: {
+      en: [
+        "Short links are gone again. Share goes back to the link that carries the race inside it — longer, but it needs no service to work, today or in ten years.",
+        "Nothing leaves your browser when you share. The webfont is once again the only external request this app makes."
+      ],
+      "pt-BR": [
+        "Os links curtos saíram. Compartilhar volta ao link que carrega a prova dentro dele — mais longo, mas não depende de nenhum serviço para funcionar, hoje ou daqui a dez anos.",
+        "Nada sai do seu navegador ao compartilhar. A fonte volta a ser a única requisição externa do app."
+      ]
+    }
+  },
   {
     v: "0.4.0", date: "2026-09-21",
     notes: {
       en: [
-        "Share can now give you a short link instead of a wall of characters — short enough to paste into a message. Open the app with ?shorturl in the address to switch it on.",
-        "Shortening sends the race link to TinyURL, and only ever with that flag on. If it is unavailable, or you are offline, you get the full link instead and it works just the same."
+        "Short share links via TinyURL, behind a ?shorturl flag. Removed in 0.4.1."
       ],
       "pt-BR": [
-        "Compartilhar pode entregar um link curto em vez de uma parede de caracteres — curto o bastante para colar em uma mensagem. Abra o app com ?shorturl no endereço para ativar.",
-        "Encurtar envia o link da prova ao TinyURL, e só com essa opção ativada. Se o serviço estiver fora do ar, ou você estiver sem internet, você recebe o link completo e ele funciona igual."
+        "Links curtos via TinyURL, atrás da opção ?shorturl. Removido na 0.4.1."
       ]
     }
   },
@@ -3354,79 +3359,15 @@ $("#watch-live").addEventListener("click", async () => {
   location.hash = "#/race/" + token + "/watch";
 });
 
-/* ---- Short share links (R32–R38, R43) -----------------------------------
-
-   A self-contained link cannot be made much shorter than it already is: the
-   payload is deflate-compressed and half of what remains is the checkpoint
-   names the user wrote. Measured on the sample race, the full link is 269
-   characters and the best lossless re-encoding still leaves ~230 — too long
-   to paste into a chat without it reading as broken. So, behind the R43 flag,
-   the link stops being self-contained at the moment of sharing only: it is
-   handed to TinyURL and the ~28-character redirect is what the user copies.
-
-   Verified 2026-09-21, and all three are load-bearing:
-     - api-create.php answers with an Access-Control-Allow-Origin reflecting
-       the caller, so a static page may call it;
-     - the URL fragment survives its 301 (Location carries "#/race/<token>"),
-       which is the whole race and therefore the whole design;
-     - the same long URL returns the same slug, so re-sharing an unchanged
-       race creates no second link and costs no quota (R37 caches it anyway,
-       to avoid the round trip entirely).
-
-   Failure is reported as HTTP 200 with a plain-text error body rather than a
-   status code, so the body is checked against SHORT_LINK_RE before it is
-   trusted. Every failure — offline, timeout, error body, anything — resolves
-   to null, and the caller falls back to the full self-contained link (R34).
-   That fallback is a working link, not a degraded one, so nothing is
-   reported to the user: an error message there would simply be false. */
-const SHORTEN_TIMEOUT_MS = 3000;                                   // R35
-const SHORT_LINK_RE = /^https:\/\/tinyurl\.com\/[A-Za-z0-9]+$/;
-const shortLinkCache = new Map();                                  // long URL -> short URL
-
-/* R43: off unless the page was opened with a "shorturl" query parameter
-   (e.g. index.html?shorturl#/race/<token>). The default is therefore the
-   app as it was — no network call at share time, nothing leaving the
-   browser — and turning the flag on is a per-session decision the sharer
-   makes, not something a link can make for a reader. Read once at load
-   because the router only ever rewrites the fragment; the query string
-   cannot change without a reload.
-
-   Note the flag deliberately does not travel: the URL being shortened is
-   rebuilt from origin + pathname and so carries no query string, which is
-   what keeps a shared link from switching the feature on for whoever
-   opens it. */
-const SHORT_LINKS_ENABLED = new URLSearchParams(location.search).has("shorturl");
-
-async function shortenUrl(url){
-  if(typeof AbortController !== "function" || typeof fetch !== "function") return null;
-  const ctrl = new AbortController();
-  const timer = setTimeout(() => ctrl.abort(), SHORTEN_TIMEOUT_MS);
-  try{
-    const res = await fetch("https://tinyurl.com/api-create.php?url=" + encodeURIComponent(url),
-                            {signal: ctrl.signal});
-    if(!res.ok) return null;
-    const body = (await res.text()).trim();
-    return SHORT_LINK_RE.test(body) ? body : null;
-  }catch(e){
-    return null;                       // offline, aborted, CORS, DNS — all the same to the caller
-  }finally{
-    clearTimeout(timer);
-  }
-}
-
-/* R17/R32: builds the bare "#/race/<token>" watch-route form (KTD10) — the
-   same shape the router already resolves for a shared/watched link, not the
-   /edit or /follow form — then shows its short link. Warns instead of
-   copying past the ~2000-char shareable-URL budget (KTD3), offering the
-   canonical text as a fallback share mechanism (still copyable/importable
-   via Paste results); that check runs before any network request (R38). */
-let shareSeq = 0;                      // guards against an earlier press landing last
+/* R17: copies the bare "#/race/<token>" watch-route form (KTD10) — the
+   same shape the router already resolves for a shared/watched link, not
+   the /edit or /follow form. Warns instead of copying past the ~2000-char
+   shareable-URL budget (KTD3), offering the canonical text as a fallback
+   share mechanism (still copyable/importable via Paste results). */
 $("#btn-share").addEventListener("click", async () => {
   if(!active) return;
-  const myRouteSeq = routeSeq;
   const text = toRaceText(active);
   const token = await encodeToken(text);
-  if(routeSeq !== myRouteSeq) return;
   const url = location.origin + location.pathname + "#/race/" + token;
   if(url.length > 2000){
     toast(tr("toast.tooBig"));
@@ -3434,69 +3375,28 @@ $("#btn-share").addEventListener("click", async () => {
     catch(e){ raw.value = text; dlg.showModal(); raw.select(); }
     return;
   }
-
-  /* The toggle-shut gesture is decided here rather than inside openShare,
-     which sees only the short link and so cannot tell whether the field is
-     already standing for this race. Deciding it first also means a second
-     press never flashes a pending state. */
-  if(!shareField.hidden && shareFieldFor === url){ hideShare(); return; }
-
-  // R43: with the flag off this is exactly the pre-0.4.0 path — the full
-  // self-contained link, shown immediately, no request made.
-  if(!SHORT_LINKS_ENABLED){ openShare(url, url); return; }
-
-  const cached = shortLinkCache.get(url);                          // R37
-  if(cached){ openShare(cached, url); return; }
-
-  const mySeq = ++shareSeq;
-  showSharePending();
-  const short = await shortenUrl(url);
-  // R36: the user may have navigated, edited, or pressed Share on another
-  // race while this was in flight — the same hazard routeSeq already guards
-  // for Watch Live's encode.
-  if(mySeq !== shareSeq || routeSeq !== myRouteSeq) return;
-  // Only a success is cached: a fallback must not stop the next press from
-  // trying again once the network is back.
-  if(short) shortLinkCache.set(url, short);
-  openShare(short || url, url);                                    // R34
+  openShare(url);
 });
 
 /* R17: the link is shown as well as copied — a readonly field the reader can
    read, select and copy by hand, since a clipboard write can be refused (or
    go unnoticed) and the URL itself is worth seeing. */
 const shareField = $("#share-url");
-/* The full self-contained URL the shown link stands for — the short link is a
-   redirect, so it is not itself enough to recognise the race on a second
-   press. Null while pending, and cleared when the field is put away. */
-let shareFieldFor = null;
 /** Reveals the link in the masthead (never a modal), selects it and copies it.
-    `forUrl` is the self-contained URL it resolves to, which may be the link
-    itself when shortening fell back (R34). */
-async function openShare(url, forUrl){
+    Pressing Share again with the same link showing puts it away. */
+async function openShare(url){
+  if(!shareField.hidden && shareField.value === url){ hideShare(); return; }
   shareField.value = url;
-  shareField.classList.remove("pending");
   shareField.hidden = false;
-  shareFieldFor = forUrl || url;
   shareField.focus(); shareField.select();
   shareField.scrollLeft = 0;            // selecting scrolls to the end; the start is the readable part
   try{ await navigator.clipboard.writeText(url); toast(tr("toast.linkCopied")); }
   catch(e){ toast(tr("toast.copyByHand")); }
 }
-/** R33: the field holds its place, muted, while the short link is fetched.
-    It is deliberately not focused or selected — there is nothing to copy
-    yet, and openShare will take the focus once there is. */
-function showSharePending(){
-  shareField.value = tr("share.pending");
-  shareField.classList.add("pending");
-  shareField.hidden = false;
-  shareFieldFor = null;
-}
 function hideShare(){
   if(shareField.hidden) return;
   shareField.hidden = true;
   shareField.value = "";
-  shareField.classList.remove("pending");
-  shareFieldFor = null;
 }
 shareField.addEventListener("focus", e => { e.target.select(); e.target.scrollLeft = 0; });
 shareField.addEventListener("keydown", e => { if(e.key === "Escape") hideShare(); });
