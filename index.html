@@ -367,11 +367,11 @@ button{font:inherit;color:inherit;cursor:pointer}
 .leg-tot b{font-variation-settings:"wdth" 104,"wght" 660;color:var(--ink);font-size:15px}
 .card-clocks{padding:10px 16px 10px;font-size:12px;color:var(--muted)}
 
-.cols,.row{display:grid;grid-template-columns:26px minmax(140px,1fr) 88px 88px 92px 84px 100px 68px;gap:10px;align-items:center}
+.cols,.row{display:grid;grid-template-columns:26px minmax(140px,1fr) 88px 84px 88px 92px 84px 100px 68px;gap:10px;align-items:center}
 /* watch mode trades some of the plan columns for the one editable field */
-.legs.watch .cols,.legs.watch .row{grid-template-columns:26px minmax(120px,1fr) 72px 78px 88px 172px 84px 60px}
+.legs.watch .cols,.legs.watch .row{grid-template-columns:26px minmax(120px,1fr) 72px 78px 78px 88px 172px 84px 60px}
 .cols{padding:8px 16px;border-bottom:1px solid var(--rule);font-size:11.5px;color:var(--muted)}
-.cols span:nth-child(n+3):nth-child(-n+7){text-align:right}
+.cols span:nth-child(n+3):nth-child(-n+8){text-align:right}
 .row{padding:7px 16px;border-bottom:1px solid var(--rule)}
 .row:last-of-type{border-bottom:0}
 .row:hover,.row.on{background:var(--surface-2)}
@@ -696,6 +696,7 @@ input.wide{width:100%;font:inherit;font-size:14px;padding:10px 11px;border-radiu
   .row>*:nth-child(5){grid-column:4}
   .row>*:nth-child(6){grid-column:2}
   .row>*:nth-child(7){grid-column:3}
+  .row>*:nth-child(8){grid-column:4}
   .row .acts{grid-column:4;justify-self:end;margin-top:-4px}
   .row .noterow{grid-column:2/-1}
   /* label sits above its value, so the value reads left-aligned under it
@@ -1010,6 +1011,7 @@ en:{
   "splits.title":"Splits",
   "leg.addCheckpoint":"Add a checkpoint to {leg}",
   "cols.checkpoint":"Checkpoint",
+  "cols.cumDist":"Dist. so far",
   "cols.split":"Split",
   "cols.elapsed":"Elapsed",
   "cols.clock":"Clock",
@@ -1206,6 +1208,7 @@ en:{
   "splits.title":"Parciais",
   "leg.addCheckpoint":"Adicionar checkpoint em {leg}",
   "cols.checkpoint":"checkpoint",
+  "cols.cumDist":"Dist. acum.",
   "cols.split":"Parcial",
   "cols.elapsed":"Decorrido",
   "cols.clock":"Relógio",
@@ -1402,8 +1405,19 @@ function setLang(next){
    what changed without leaving the page. Newest entry first;
    RELEASES[0].v must equal APP_VERSION.
    ============================================================ */
-const APP_VERSION = "0.4.2";
+const APP_VERSION = "0.4.3";
 const RELEASES = [
+  {
+    v: "0.4.3", date: "2026-09-21",
+    notes: {
+      en: [
+        "Run and bike sections now show a running total of distance covered so far, next to each checkpoint's own distance."
+      ],
+      "pt-BR": [
+        "As seções de corrida e ciclismo agora mostram a distância acumulada até cada ponto, ao lado da distância do próprio trecho."
+      ]
+    }
+  },
   {
     v: "0.4.2", date: "2026-09-21",
     notes: {
@@ -2676,11 +2690,15 @@ function renderLegs(){
     const cols = document.createElement("div");
     cols.className = "cols";
     cols.innerHTML = "<span></span><span>"+esc(tr("cols.checkpoint"))+"</span><span>"+(meta.unit||"—")+
-      "</span><span>"+esc(tr("cols.split"))+"</span><span>"+esc(tr("cols.elapsed"))+"</span><span>"+
+      "</span><span>"+esc(tr("cols.cumDist"))+"</span><span>"+esc(tr("cols.split"))+"</span><span>"+esc(tr("cols.elapsed"))+"</span><span>"+
       esc(tr("cols.clock"))+"</span><span>"+esc(tr("cols.pace"))+"</span><span></span>";
     leg.appendChild(cols);
 
-    g.items.forEach(({s,i}) => leg.appendChild(rowFor(s,i)));
+    let cumDist = 0;
+    g.items.forEach(({s,i}) => {
+      if(g.sport === "bike" || g.sport === "run") cumDist += (s.dist||0);
+      leg.appendChild(rowFor(s,i,g.sport === "bike" || g.sport === "run" ? cumDist : null));
+    });
 
     if(!readOnly){
       const foot = document.createElement("div");
@@ -2697,7 +2715,7 @@ function renderLegs(){
   });
 }
 
-function rowFor(s, i){
+function rowFor(s, i, cumDist){
   const meta = SPORTS[s.sport];
   const cum = cumulative(i);
   const p = paceOf(s.sport, s.dist, s.dur);
@@ -2733,6 +2751,10 @@ function rowFor(s, i){
       ? distField(s)
       : dash(),
     meta.unit || "dist"));
+
+  row.appendChild(cell(
+    cumDist != null ? staticText(fmtDistLabel(s.sport, cumDist), "num") : dash(),
+    tr("cols.cumDist")));
 
   row.appendChild(cell(timeField(fmtSplit(s.dur), tr("cols.split"),
     v => { const n = parseFlexDur(v); n!=null ? setDur(i,n) : render(); },

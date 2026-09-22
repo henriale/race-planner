@@ -10,6 +10,12 @@ moves when the app gains behaviour, the patch number when it only gets fixes,
 and the major number when a stored race or an existing link would stop
 resolving.
 
+## 0.4.3 — 2026-09-21
+
+- **Cumulative distance column.** Run and bike sections show a read-only
+  running total of distance covered so far, next to each checkpoint's own
+  distance.
+
 ## 0.4.2 — 2026-09-21
 
 - **Link previews.** Sharing a Race Planner link in WhatsApp, iMessage, Slack,
