@@ -367,9 +367,9 @@ button{font:inherit;color:inherit;cursor:pointer}
 .leg-tot b{font-variation-settings:"wdth" 104,"wght" 660;color:var(--ink);font-size:15px}
 .card-clocks{padding:10px 16px 10px;font-size:12px;color:var(--muted)}
 
-.cols,.row{display:grid;grid-template-columns:26px minmax(140px,1fr) 88px 84px 88px 92px 84px 100px 68px;gap:10px;align-items:center}
+.cols,.row{display:grid;grid-template-columns:26px minmax(140px,1fr) 88px 88px 100px 92px 84px 84px 68px;gap:10px;align-items:center}
 /* watch mode trades some of the plan columns for the one editable field */
-.legs.watch .cols,.legs.watch .row{grid-template-columns:26px minmax(120px,1fr) 72px 78px 78px 88px 172px 84px 60px}
+.legs.watch .cols,.legs.watch .row{grid-template-columns:26px minmax(120px,1fr) 72px 78px 84px 88px 172px 78px 60px}
 .cols{padding:8px 16px;border-bottom:1px solid var(--rule);font-size:11.5px;color:var(--muted)}
 .cols span:nth-child(n+3):nth-child(-n+8){text-align:right}
 .row{padding:7px 16px;border-bottom:1px solid var(--rule)}
@@ -402,6 +402,10 @@ input.f::placeholder{color:var(--muted);opacity:.7}
 .pacefield{display:flex;align-items:baseline;gap:3px;justify-content:flex-end}
 .pacefield input.f.pace{width:100%;min-width:0;text-align:right;font-variation-settings:"wdth" 100,"wght" 620}
 .pacefield .u{font-size:11px;color:var(--muted);flex:none}
+/* Split distance mirrors the pace field: an input with its unit parked beside it. */
+.distfield{display:flex;align-items:baseline;gap:3px;justify-content:flex-end}
+.distfield input.f{width:100%;min-width:0}
+.distfield .u{font-size:11px;color:var(--muted);flex:none}
 .acts{display:flex;gap:2px;justify-content:flex-end}
 .icon{border:1px solid transparent;background:transparent;color:var(--muted);border-radius:7px;width:30px;height:30px;display:grid;place-items:center;padding:0}
 .icon:hover{border-color:var(--rule);color:var(--ink)}
@@ -704,6 +708,8 @@ input.wide{width:100%;font:inherit;font-size:14px;padding:10px 11px;border-radiu
   input.num,.derived,.static.num{text-align:left}
   .pacefield{justify-content:flex-start}
   .pacefield input.f.pace{text-align:left;width:auto;flex:0 1 6.5em}
+  .distfield{justify-content:flex-start}
+  .distfield input.f{text-align:left;width:auto;flex:0 1 6.5em}
   .grip{height:34px;width:26px}
   .k{display:block;padding:0 8px 1px}
   input.f{padding:4px 8px}
@@ -1011,8 +1017,9 @@ en:{
   "splits.title":"Splits",
   "leg.addCheckpoint":"Add a checkpoint to {leg}",
   "cols.checkpoint":"Checkpoint",
-  "cols.cumDist":"Dist. so far",
-  "cols.split":"Split",
+  "cols.splitDist":"Split Dist.",
+  "cols.cumDist":"Km",
+  "cols.split":"Split Time",
   "cols.elapsed":"Elapsed",
   "cols.clock":"Clock",
   "cols.clockTime":"Clock time",
@@ -1208,8 +1215,9 @@ en:{
   "splits.title":"Parciais",
   "leg.addCheckpoint":"Adicionar checkpoint em {leg}",
   "cols.checkpoint":"checkpoint",
-  "cols.cumDist":"Dist. acum.",
-  "cols.split":"Parcial",
+  "cols.splitDist":"Dist. parcial",
+  "cols.cumDist":"Km",
+  "cols.split":"Tempo parcial",
   "cols.elapsed":"Decorrido",
   "cols.clock":"Relógio",
   "cols.clockTime":"Horário real",
@@ -1405,8 +1413,21 @@ function setLang(next){
    what changed without leaving the page. Newest entry first;
    RELEASES[0].v must equal APP_VERSION.
    ============================================================ */
-const APP_VERSION = "0.4.3";
+const APP_VERSION = "0.4.4";
 const RELEASES = [
+  {
+    v: "0.4.4", date: "2026-09-21",
+    notes: {
+      en: [
+        "Split columns reordered and relabeled: Split Dist., Split Time, Pace, Elapsed, Clock, then Km — the running total now sits at the end.",
+        "Split distance shows its unit (km/m) inline next to the value, the same way Pace shows km/h."
+      ],
+      "pt-BR": [
+        "Colunas de parciais reordenadas e renomeadas: Dist. parcial, Tempo parcial, Ritmo, Decorrido, Relógio e por fim Km — o acumulado agora fica no final.",
+        "A distância parcial mostra sua unidade (km/m) ao lado do valor, do mesmo jeito que o Ritmo mostra km/h."
+      ]
+    }
+  },
   {
     v: "0.4.3", date: "2026-09-21",
     notes: {
@@ -2689,9 +2710,9 @@ function renderLegs(){
 
     const cols = document.createElement("div");
     cols.className = "cols";
-    cols.innerHTML = "<span></span><span>"+esc(tr("cols.checkpoint"))+"</span><span>"+(meta.unit||"—")+
-      "</span><span>"+esc(tr("cols.cumDist"))+"</span><span>"+esc(tr("cols.split"))+"</span><span>"+esc(tr("cols.elapsed"))+"</span><span>"+
-      esc(tr("cols.clock"))+"</span><span>"+esc(tr("cols.pace"))+"</span><span></span>";
+    cols.innerHTML = "<span></span><span>"+esc(tr("cols.checkpoint"))+"</span><span>"+esc(tr("cols.splitDist"))+
+      "</span><span>"+esc(tr("cols.split"))+"</span><span>"+esc(tr("cols.pace"))+"</span><span>"+esc(tr("cols.elapsed"))+"</span><span>"+
+      esc(tr("cols.clock"))+"</span><span>"+esc(tr("cols.cumDist"))+"</span><span></span>";
     leg.appendChild(cols);
 
     let cumDist = 0;
@@ -2750,15 +2771,13 @@ function rowFor(s, i, cumDist){
     meta.unit
       ? distField(s)
       : dash(),
-    meta.unit || "dist"));
-
-  row.appendChild(cell(
-    cumDist != null ? staticText(fmtDistLabel(s.sport, cumDist), "num") : dash(),
-    tr("cols.cumDist")));
+    tr("cols.splitDist")));
 
   row.appendChild(cell(timeField(fmtSplit(s.dur), tr("cols.split"),
     v => { const n = parseFlexDur(v); n!=null ? setDur(i,n) : render(); },
     n => setDur(i, s.dur+n)), tr("cols.split")));
+
+  row.appendChild(cell(paceField(s, i, p), tr("cols.pace")));
 
   row.appendChild(cell(timeField(fmtHMS(cum), tr("cols.elapsed"),
     v => { const n = parseFlexDur(v); n!=null ? setCumulative(i,n) : render(); },
@@ -2774,7 +2793,9 @@ function rowFor(s, i, cumDist){
   if(mode === "watch") clockCell.classList.add("cell-clock");
   row.appendChild(clockCell);
 
-  row.appendChild(cell(paceField(s, i, p), tr("cols.pace")));
+  row.appendChild(cell(
+    cumDist != null ? staticText(fmtDistLabel(s.sport, cumDist), "num") : dash(),
+    tr("cols.cumDist")));
 
   const acts = document.createElement("div");
   acts.className = "acts";
@@ -2848,7 +2869,15 @@ function textField(value, ph, onCommit, cls){
 }
 function distField(s){
   const meta = SPORTS[s.sport];
-  if(readOnly) return staticText(distOut(s) || "", "num");
+  if(readOnly){
+    const dc = document.createElement("div");
+    dc.className = "derived num";
+    const val = distOut(s);
+    dc.innerHTML = val ? val+'<span class="u">'+esc(meta.unit)+'</span>' : "—";
+    return dc;
+  }
+  const wrap = document.createElement("div");
+  wrap.className = "distfield";
   const el = document.createElement("input");
   el.className = "f num";
   el.value = distOut(s); el.inputMode = "decimal"; el.placeholder = meta.unit;
@@ -2859,7 +2888,12 @@ function distField(s){
     commit();
   });
   blurOnEnter(el);
-  return el;
+  wrap.appendChild(el);
+  const u = document.createElement("span");
+  u.className = "u";
+  u.textContent = meta.unit;
+  wrap.appendChild(u);
+  return wrap;
 }
 function timeField(value, label, onCommit, onNudge){
   if(readOnly) return staticText(value, "num");

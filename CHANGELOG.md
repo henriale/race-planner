@@ -10,6 +10,17 @@ moves when the app gains behaviour, the patch number when it only gets fixes,
 and the major number when a stored race or an existing link would stop
 resolving.
 
+## 0.4.4 — 2026-09-21
+
+- **Split columns reordered and relabeled.** New order: Split Dist., Split
+  Time, Pace, Elapsed, Clock, Km — the cumulative distance column moves to
+  the end and is now labeled "Km" (was "Dist. so far"); the per-checkpoint
+  distance column is now "Split Dist." (was the bare unit, e.g. "km"), and
+  "Split" is now "Split Time".
+- **Inline unit on split distance.** The split distance field now shows its
+  unit next to the value (e.g. "1.20 km"), styled the same way Pace shows
+  "km/h".
+
 ## 0.4.3 — 2026-09-21
 
 - **Cumulative distance column.** Run and bike sections show a read-only
