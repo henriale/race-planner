@@ -1413,8 +1413,19 @@ function setLang(next){
    what changed without leaving the page. Newest entry first;
    RELEASES[0].v must equal APP_VERSION.
    ============================================================ */
-const APP_VERSION = "0.4.4";
+const APP_VERSION = "0.4.5";
 const RELEASES = [
+  {
+    v: "0.4.5", date: "2026-09-21",
+    notes: {
+      en: [
+        "Km column now also covers swim, and shows its unit inline the same way Pace and Split Dist. do."
+      ],
+      "pt-BR": [
+        "A coluna Km agora também vale para a natação, e mostra sua unidade ao lado do valor, do mesmo jeito que Ritmo e Dist. parcial."
+      ]
+    }
+  },
   {
     v: "0.4.4", date: "2026-09-21",
     notes: {
@@ -2717,8 +2728,8 @@ function renderLegs(){
 
     let cumDist = 0;
     g.items.forEach(({s,i}) => {
-      if(g.sport === "bike" || g.sport === "run") cumDist += (s.dist||0);
-      leg.appendChild(rowFor(s,i,g.sport === "bike" || g.sport === "run" ? cumDist : null));
+      if(g.sport !== "trans") cumDist += (s.dist||0);
+      leg.appendChild(rowFor(s,i,g.sport !== "trans" ? cumDist : null));
     });
 
     if(!readOnly){
@@ -2793,9 +2804,7 @@ function rowFor(s, i, cumDist){
   if(mode === "watch") clockCell.classList.add("cell-clock");
   row.appendChild(clockCell);
 
-  row.appendChild(cell(
-    cumDist != null ? staticText(fmtDistLabel(s.sport, cumDist), "num") : dash(),
-    tr("cols.cumDist")));
+  row.appendChild(cell(cumDistCell(s.sport, cumDist), tr("cols.cumDist")));
 
   const acts = document.createElement("div");
   acts.className = "acts";
@@ -2841,6 +2850,17 @@ function cell(inner, label){
   return c;
 }
 function dash(){ const d = document.createElement("div"); d.className="derived"; d.textContent="—"; return d; }
+/** Running distance total for a leg, styled like the Pace/Split Dist. cells:
+    value plus a muted inline unit. */
+function cumDistCell(sport, m){
+  const dc = document.createElement("div");
+  dc.className = "derived num";
+  if(m == null){ dc.textContent = "—"; return dc; }
+  const unit = SPORTS[sport].unit === "km" ? "km" : "m";
+  const val = unit === "km" ? +(m/1000).toFixed(2) : m;
+  dc.innerHTML = val+'<span class="u">'+unit+'</span>';
+  return dc;
+}
 /** Read-only stand-in for a field: plain text, same cell geometry, no input. */
 function staticText(text, cls){
   const el = document.createElement("div");

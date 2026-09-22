@@ -10,6 +10,13 @@ moves when the app gains behaviour, the patch number when it only gets fixes,
 and the major number when a stored race or an existing link would stop
 resolving.
 
+## 0.4.5 — 2026-09-21
+
+- **Km column covers swim too.** Previously run and bike only; now every
+  distance-bearing leg (swim, bike, run) shows its running total.
+- **Km's unit is inline now.** Same style as Pace and Split Dist.: value
+  plus a muted unit beside it, instead of a plain concatenated string.
+
 ## 0.4.4 — 2026-09-21
 
 - **Split columns reordered and relabeled.** New order: Split Dist., Split
