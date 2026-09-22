@@ -4,6 +4,17 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Race Planner</title>
+<meta name="description" content="Plan splits. Watch the race live.">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Race Planner">
+<meta property="og:description" content="Plan splits. Watch the race live.">
+<meta property="og:image" content="https://henriale.github.io/race-planner/assets/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Race Planner">
+<meta name="twitter:description" content="Plan splits. Watch the race live.">
+<meta name="twitter:image" content="https://henriale.github.io/race-planner/assets/og-image.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,100..900&display=swap" rel="stylesheet">
@@ -1391,8 +1402,19 @@ function setLang(next){
    what changed without leaving the page. Newest entry first;
    RELEASES[0].v must equal APP_VERSION.
    ============================================================ */
-const APP_VERSION = "0.4.1";
+const APP_VERSION = "0.4.2";
 const RELEASES = [
+  {
+    v: "0.4.2", date: "2026-09-21",
+    notes: {
+      en: [
+        "Shared links now show a title, description, and preview image on WhatsApp, iMessage, and other chat apps — instead of a bare URL."
+      ],
+      "pt-BR": [
+        "Links compartilhados agora mostram título, descrição e imagem de pré-visualização no WhatsApp, iMessage e outros apps de mensagem — em vez de um link nu."
+      ]
+    }
+  },
   {
     v: "0.4.1", date: "2026-09-21",
     notes: {

@@ -10,6 +10,16 @@ moves when the app gains behaviour, the patch number when it only gets fixes,
 and the major number when a stored race or an existing link would stop
 resolving.
 
+## 0.4.2 — 2026-09-21
+
+- **Link previews.** Sharing a Race Planner link in WhatsApp, iMessage, Slack,
+  etc. now shows a title, description, and a static branded image instead of
+  a bare URL, via `og:title`/`og:description`/`og:image` and Twitter Card
+  meta tags in `index.html`.
+- The preview image (`assets/og-image.png`) is fixed — it does not reflect
+  the sender's actual plan or timeline, since that would need a server to
+  render per-link. Same static image for every share.
+
 ## 0.4.1 — 2026-09-21
 
 - **Short links removed.** Share goes back to the self-contained link that
