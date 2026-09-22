@@ -854,7 +854,7 @@ input.wide{width:100%;font:inherit;font-size:14px;padding:10px 11px;border-radiu
 <dialog id="dlg">
   <div class="dlg">
     <h3 data-i18n="dlg.pasteTitle">Paste your results</h3>
-    <p data-i18n-html="dlg.pasteHelp">Name, then gun time, then one line per checkpoint: <code>S|B|R distance split name</code>, or <code>T split name</code> for a transition. Distances are kilometres, or <code>-</code> if unknown.</p>
+    <p data-i18n-html="dlg.pasteHelp">Name, then gun time, then one line per checkpoint: <code>S|B|R distance split [map] name</code>, or <code>T split name</code> for a transition. Distances are kilometres, or <code>-</code> if unknown. <code>map</code> is optional — a map link, recognized because it looks like one.</p>
     <textarea id="raw" spellcheck="false" data-i18n-ph="dlg.pastePlaceholder" placeholder="My race&#10;6:00:00&#10;S 1.9 44:00 Swim exit&#10;T 11:00 T1&#10;B 15 38:00 Cruzamento ida"></textarea>
     <div class="preview" id="preview" hidden></div>
     <p class="warn" id="parse-warn" hidden></p>
@@ -1074,7 +1074,7 @@ en:{
   "add.btn":"Add section at the end",
 
   "dlg.pasteTitle":"Paste your results",
-  "dlg.pasteHelp":"Name, then gun time, then one line per checkpoint: <code>S|B|R distance split name</code>, or <code>T split name</code> for a transition. Distances are kilometres, or <code>-</code> if unknown.",
+  "dlg.pasteHelp":"Name, then gun time, then one line per checkpoint: <code>S|B|R distance split [map] name</code>, or <code>T split name</code> for a transition. Distances are kilometres, or <code>-</code> if unknown. <code>map</code> is optional — a map link, recognized because it looks like one.",
   "dlg.pastePlaceholder":"My race\n6:00:00\nS 1.9 44:00 Swim exit\nT 11:00 T1\nB 15 38:00 Cruzamento ida",
   "dlg.copyBackup":"Copy backup",
   "dlg.cancel":"Cancel",
@@ -1272,7 +1272,7 @@ en:{
   "add.btn":"Adicionar trecho no fim",
 
   "dlg.pasteTitle":"Cole seus resultados",
-  "dlg.pasteHelp":"Nome, depois a largada, depois uma linha por checkpoint: <code>S|B|R distância parcial nome</code>, ou <code>T parcial nome</code> para transição. Distâncias em quilômetros, ou <code>-</code> se não souber.",
+  "dlg.pasteHelp":"Nome, depois a largada, depois uma linha por checkpoint: <code>S|B|R distância parcial [mapa] nome</code>, ou <code>T parcial nome</code> para transição. Distâncias em quilômetros, ou <code>-</code> se não souber. <code>mapa</code> é opcional — um link de mapa, reconhecido por parecer um.",
   "dlg.pastePlaceholder":"Minha prova\n6:00:00\nS 1.9 44:00 Saída da água\nT 11:00 T1\nB 15 38:00 Cruzamento ida",
   "dlg.copyBackup":"Copiar backup",
   "dlg.cancel":"Cancelar",
@@ -1413,8 +1413,19 @@ function setLang(next){
    what changed without leaving the page. Newest entry first;
    RELEASES[0].v must equal APP_VERSION.
    ============================================================ */
-const APP_VERSION = "0.4.5";
+const APP_VERSION = "0.4.6";
 const RELEASES = [
+  {
+    v: "0.4.6", date: "2026-09-21",
+    notes: {
+      en: [
+        "A checkpoint's map pin is now shareable — it travels in the same link as the plan, so a shared or watched race keeps every location marker."
+      ],
+      "pt-BR": [
+        "O pino de mapa de um checkpoint agora é compartilhável — ele viaja no mesmo link do plano, então uma prova compartilhada ou acompanhada mantém todos os marcadores de local."
+      ]
+    }
+  },
   {
     v: "0.4.5", date: "2026-09-21",
     notes: {
@@ -3128,14 +3139,19 @@ $("#map-remove").addEventListener("click", () => {
    race      := nameLine gunLine entry+
    nameLine  := <free text, never blank — "Untitled race" for unnamed>
    gunLine   := <clock, h:mm or h:mm:ss>
-   entry     := sport SP dist SP split SP name   ; sport is S | B | R
-              | "T"   SP split SP name           ; transition, no distance
+   entry     := sport SP dist SP split (SP map)? SP name   ; sport is S | B | R
+              | "T"   SP split SP name                     ; transition, no distance
    dist      := <kilometres, up to 3 decimals> | "-"   ; "-" = no distance
    split     := [h:]mm:ss
+   map       := <http(s) URL, no whitespace>   ; optional, recognized by
+                URL_RE — only a token in this position that looks like a
+                URL is read as one, so it never collides with a name
    Blank lines are skipped. Distances are km for every sport (KTD2) — the
    on-screen fields keep rendering swim in metres via SPORTS' unit table;
-   only this text format is km-for-everything. Notes and map links are
-   per-device decoration and never appear here (KTD9, R14).
+   only this text format is km-for-everything. A checkpoint's map link now
+   travels with it (share links and watch sessions are just this text,
+   compressed), reversing KTD9/R14's "never appear here" for map links —
+   notes remain per-device decoration and still never appear here.
    ============================================================ */
 const SPORT_TOKEN = {S:"swim", B:"bike", R:"run"};
 const SPORT_LETTER = {swim:"S", bike:"B", run:"R"};
@@ -3150,9 +3166,18 @@ function kmStr(meters){
 function toRaceText(race){
   const lines = [race.name || "Untitled race", fmtClock(race.start)];
   race.sections.forEach(s => {
-    lines.push(s.sport === "trans"
-      ? ["T", fmtSplit(s.dur), s.name || ""].join(" ")
-      : [SPORT_LETTER[s.sport], kmStr(s.dist), fmtSplit(s.dur), s.name || ""].join(" "));
+    if(s.sport === "trans"){
+      lines.push(["T", fmtSplit(s.dur), s.name || ""].join(" "));
+      return;
+    }
+    const parts = [SPORT_LETTER[s.sport], kmStr(s.dist), fmtSplit(s.dur)];
+    // The map link travels in the same canonical text as everything else
+    // (share links and watch sessions are just this text, compressed), so a
+    // shared/watched link carries a checkpoint's pin along with its splits.
+    // It's recognized on the way back in by URL_RE — see parseRaceText.
+    if(s.map) parts.push(s.map);
+    parts.push(s.name || "");
+    lines.push(parts.join(" "));
   });
   return lines.join("\n");
 }
@@ -3173,6 +3198,7 @@ const MAX_SPLIT_SECONDS = 30 * 86400;
 // plan too, well past any real race this app is for.
 const MAX_SECTIONS = 500;
 const MAX_TOTAL_SECONDS = 30 * 86400;
+const URL_RE = /^https?:\/\/\S+$/i;
 
 /** Single-pass parser for the canonical text format. Returns
     {name, start, sections} or {error} naming the offending line. */
@@ -3206,7 +3232,13 @@ function parseRaceText(text){
     const dur = parseDur(splitTok);
     if(dur > MAX_SPLIT_SECONDS) return {error:tr("err.longSplit", {n:lineNo})};
     const dist = distTok === "-" ? null : Math.round(parseFloat(distTok)*1000);
-    sections.push(sec(parts.slice(3).join(" "), SPORT_TOKEN[tok], dist, dur));
+    // An optional map link rides right after the split, recognized only by
+    // looking like a URL — everything from there on on is the checkpoint's
+    // name (see toRaceText).
+    const hasMap = URL_RE.test(parts[3]);
+    const s = sec(parts.slice(hasMap ? 4 : 3).join(" "), SPORT_TOKEN[tok], dist, dur);
+    if(hasMap) s.map = parts[3];
+    sections.push(s);
   }
   if(!sections.length) return {error:tr("err.noCheckpoints")};
   if(sections.length > MAX_SECTIONS) return {error:tr("err.tooManyCheckpoints", {max:MAX_SECTIONS})};

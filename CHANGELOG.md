@@ -10,6 +10,16 @@ moves when the app gains behaviour, the patch number when it only gets fixes,
 and the major number when a stored race or an existing link would stop
 resolving.
 
+## 0.4.6 — 2026-09-21
+
+- **Map pins are shareable.** A checkpoint's map link previously lived only
+  in the browser that set it — share links and watch sessions dropped it.
+  It now rides in the same canonical race text as everything else, so it
+  survives a share link, a watch session, and copy/paste of a plan.
+- The canonical text format gains an optional `map` field between `split`
+  and `name`, recognized only when it looks like a URL, so old links and
+  pasted plans without one still parse exactly as before.
+
 ## 0.4.5 — 2026-09-21
 
 - **Km column covers swim too.** Previously run and bike only; now every
