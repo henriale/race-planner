@@ -10,6 +10,20 @@ moves when the app gains behaviour, the patch number when it only gets fixes,
 and the major number when a stored race or an existing link would stop
 resolving.
 
+## 0.4.0 — 2026-09-21
+
+- **A short share link, behind a flag.** Open the app with `?shorturl` in the
+  address (`index.html?shorturl#/race/…`) and pressing Share gives you a
+  ~28-character link instead of the ~270-character one, short enough to paste
+  into a message without it reading as broken. Without the flag, Share behaves
+  exactly as it did before. The long, self-contained link is still what the
+  app addresses a race by; the short one is a redirect to it.
+- **Shortening sends the race link to TinyURL.** It happens only with the flag
+  on and only when you press Share. The flag is per-session and is not carried
+  by the link you share. If TinyURL is unavailable, or you are offline, Share
+  falls back to the full self-contained link — no error, no second press, and
+  that link works exactly as it always has.
+
 ## 0.3.0 — 2026-09-21
 
 - **A revised timeline.** In watch mode the bar is drawn against the revised
